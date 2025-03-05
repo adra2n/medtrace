@@ -12,6 +12,9 @@ interface MedicalRecordDao {
     @Query("SELECT * FROM medical_records WHERE id = :id")
     suspend fun getRecordById(id: Long): MedicalRecord?
 
+    @Query("SELECT * FROM medical_records ORDER BY onsetTime DESC LIMIT :limit")
+    fun getRecentRecords(limit: Int): Flow<List<MedicalRecord>>
+
     @Insert
     suspend fun insert(record: MedicalRecord): Long
 
