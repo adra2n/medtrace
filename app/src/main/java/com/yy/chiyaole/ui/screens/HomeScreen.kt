@@ -28,10 +28,11 @@ fun HomeScreen(
 ) {
     var todayReminders by remember { mutableStateOf<List<MedicationReminder>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
-    val dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm")
+    val now = LocalDateTime.now()
 
     LaunchedEffect(Unit) {
-        database.medicationReminderDao().getTodayReminders(LocalDateTime.now())
+        database.medicationReminderDao().getTodayReminders(now)
             .catch { e ->
                 error = e.message
                 e.printStackTrace()
@@ -151,7 +152,7 @@ fun HomeScreen(
                                         style = MaterialTheme.typography.titleMedium
                                     )
                                     Text(
-                                        text = reminder.firstDoseTime.format(dateTimeFormatter),
+                                        text = "首次服药：${reminder.firstDoseTime.format(dateTimeFormatter)}",
                                         style = MaterialTheme.typography.titleMedium
                                     )
                                 }
@@ -164,6 +165,14 @@ fun HomeScreen(
                                 Text(
                                     text = "剂量：${reminder.dosage}",
                                     style = MaterialTheme.typography.bodyMedium
+                                )
+                                
+                                // 计算并显示下一次用药时间
+                                val nextDoseTime = calculateNextDoseTime(reminder, now)
+                                Text(
+                                    text = "下一次用药：${nextDoseTime.format(dateTimeFormatter)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 
                                 if (reminder.instructions.isNotBlank()) {
@@ -179,4 +188,28 @@ fun HomeScreen(
             }
         }
     }
+}
+
+private fun calculateNextDoseTime(reminder: MedicationReminder, now: LocalDateTime): LocalDateTime {
+    var nextDoseTime = reminder.firstDoseTime
+    
+    // 如果第一次服药时间还没到，就返回第一次服药时间
+    if (nextDoseTime.isAfter(now)) {
+        return nextDoseTime
+    }
+    
+    // 计算从第一次服药到现在应该经过几个间隔
+    val hoursSinceFirstDose = now.hour - reminder.firstDoseTime.hour + 
+            (now.dayOfYear - reminder.firstDoseTime.dayOfYear) * 24
+    val intervals = (hoursSinceFirstDose / reminder.intervalHours) + 1
+    
+    // 计算下一次服药时间
+    nextDoseTime = reminder.firstDoseTime.plusHours((intervals * reminder.intervalHours).toLong())
+    
+    // 如果下一次服药时间超过了结束时间，返回 null 或最后一次服药时间
+    if (nextDoseTime.isAfter(reminder.endDate)) {
+        nextDoseTime = reminder.endDate
+    }
+    
+    return nextDoseTime
 }
