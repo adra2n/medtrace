@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">智药乐</string>
+    
+    <!-- 通知相关 -->
+    <string name="notification_channel_name">用药提醒</string>
+    <string name="notification_channel_description">提醒您按时服药</string>
+    <string name="notification_title">用药提醒</string>
+    <string name="reminder_message">%1$s，该服用 %2$s 了</string>
+    
+    <!-- 错误提示 -->
+    <string name="error_tts_init">语音提醒初始化失败</string>
+    
+    <!-- 按钮文本 -->
+    <string name="btn_add">添加</string>
+    <string name="btn_edit">编辑</string>
+    <string name="btn_delete">删除</string>
+    <string name="btn_save">保存</string>
+    <string name="btn_cancel">取消</string>
+    
+    <!-- 页面标题 -->
+    <string name="title_home">用药管理</string>
+    <string name="title_medication_reminders">用药提醒</string>
+    <string name="title_medical_records">医疗记录</string>
+    
+    <!-- 提示文本 -->
+    <string name="empty_reminders">还没有添加任何用药提醒</string>
+    <string name="empty_records">还没有添加任何医疗记录</string>
+</resources>
