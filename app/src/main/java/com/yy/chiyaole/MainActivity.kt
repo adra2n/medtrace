@@ -17,6 +17,7 @@ import androidx.work.WorkManager
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.ui.screens.*
 import com.yy.chiyaole.ui.theme.ChiyaoleTheme
+import com.yy.chiyaole.ui.screens.SplashScreen // Added import statement
 
 class MainActivity : ComponentActivity() {
     private lateinit var database: AppDatabase
@@ -45,7 +46,10 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(database: AppDatabase, workManager: WorkManager) {
     val navController = rememberNavController()
     
-    NavHost(navController = navController, startDestination = "home") {
+    NavHost(navController = navController, startDestination = "splash") {
+        composable("splash") {
+            SplashScreen(navController)
+        }
         composable("home") {
             HomeScreen(database = database, navController = navController)
         }
