@@ -45,17 +45,7 @@ fun MedicationReminderScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("用药提醒") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "返回")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { navController.navigate("home") }) {
-                        Icon(Icons.Default.Home, "返回主页")
-                    }
-                }
+                title = { Text("用药提醒") }
             )
         },
         floatingActionButton = {
