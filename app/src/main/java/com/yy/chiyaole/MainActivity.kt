@@ -30,8 +30,14 @@ class MainActivity : ComponentActivity() {
         val workManager = WorkManager.getInstance(applicationContext)
         
         setContent {
-            ChiyaoleTheme {
-                MainScreen(database, workManager)
+            val settings by database.userSettingsDao().getUserSettings().collectAsState(initial = null)
+            ChiyaoleTheme(darkTheme = settings?.darkMode) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainScreen(database, workManager)
+                }
             }
         }
     }
@@ -53,6 +59,11 @@ sealed class Screen(val route: String, val icon: @Composable () -> Unit, val lab
         icon = { Icon(Icons.Default.Person, "医疗记录") },
         label = "医疗记录"
     )
+    object Settings : Screen(
+        route = "settings",
+        icon = { Icon(Icons.Default.Settings, "设置") },
+        label = "设置"
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,7 +73,8 @@ fun MainScreen(database: AppDatabase, workManager: WorkManager) {
     val screens = listOf(
         Screen.Home,
         Screen.MedicationReminders,
-        Screen.MedicalRecords
+        Screen.MedicalRecords,
+        Screen.Settings
     )
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -114,6 +126,9 @@ fun MainScreen(database: AppDatabase, workManager: WorkManager) {
             }
             composable(Screen.MedicalRecords.route) {
                 MedicalRecordScreen(database, navController)
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen()
             }
             composable("add_reminder") {
                 AddMedicationReminderScreen(database, navController, workManager, reminderId = null)
