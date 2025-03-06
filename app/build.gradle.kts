@@ -14,7 +14,7 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 2
-        versionName = "1.2.1"
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -28,17 +28,49 @@ android {
                 )
             }
         }
+
+        // 启用 R8 完全模式
+        ndk {
+            debugSymbolLevel = "FULL"
+        }
+    }
+
+    // 配置签名信息 - 移到 buildTypes 之前
+    signingConfigs {
+        create("release") {
+            storeFile = file("../keystore/release.keystore")
+            storePassword = System.getenv("CHIYAOLE_KEYSTORE_PASSWORD") ?: "sec1uiop="
+            keyAlias = System.getenv("CHIYAOLE_KEY_ALIAS") ?: "chiyaole_key"
+            keyPassword = System.getenv("CHIYAOLE_KEY_PASSWORD") ?: "sec1uiop="
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // 启用混淆
+            isMinifyEnabled = true
+            // 启用资源压缩
+            isShrinkResources = true
+            // 启用代码优化
+            isDebuggable = false
+            // 启用 R8 完全模式
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 配置签名
+            signingConfig = signingConfigs.getByName("release")
+        }
+        
+        debug {
+            // 调试版本不启用混淆
+            isMinifyEnabled = false
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -48,6 +80,30 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    
+    // 配置 lint
+    lint {
+        checkReleaseBuilds = true
+        abortOnError = true
+        disable += "MissingTranslation"
+    }
+    
+    // 配置 packagingOptions
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*.kotlin_module"
+            )
+        }
     }
 }
 
