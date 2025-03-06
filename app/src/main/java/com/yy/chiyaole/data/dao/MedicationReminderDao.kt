@@ -32,4 +32,14 @@ interface MedicationReminderDao {
     
     @Query("DELETE FROM medication_reminders WHERE id = :id")
     suspend fun delete(id: Long)
+    
+    @Transaction
+    suspend fun insertOrUpdate(reminder: MedicationReminder): Long {
+        return if (reminder.id == 0L) {
+            insert(reminder)
+        } else {
+            update(reminder)
+            reminder.id
+        }
+    }
 }

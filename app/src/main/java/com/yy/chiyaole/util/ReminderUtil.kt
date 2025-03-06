@@ -21,7 +21,7 @@ fun scheduleMedicationReminder(workManager: WorkManager, reminder: MedicationRem
     val data = workDataOf(
         "patientName" to reminder.patientName,
         "medicineName" to reminder.medicineName,
-        "dosage" to reminder.dosage
+        "dosage" to "${reminder.dosageAmount}${reminder.dosageUnit}"
     )
     
     // 计算第一次提醒的延迟时间

@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
         MedicalRecord::class,
         UserSettings::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverter::class, LocalTimeConverter::class)
@@ -68,6 +68,51 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 创建临时表
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS medication_reminders_temp (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        patientName TEXT NOT NULL,
+                        medicineName TEXT NOT NULL,
+                        startDate TEXT NOT NULL,
+                        endDate TEXT NOT NULL,
+                        firstDoseTime TEXT NOT NULL,
+                        intervalHours INTEGER NOT NULL,
+                        timesPerDay INTEGER NOT NULL,
+                        dosageAmount REAL NOT NULL,
+                        dosageUnit TEXT NOT NULL,
+                        instructions TEXT NOT NULL,
+                        isActive INTEGER NOT NULL
+                    )
+                """)
+                
+                // 迁移数据
+                database.execSQL("""
+                    INSERT INTO medication_reminders_temp (
+                        id, patientName, medicineName, startDate, endDate,
+                        firstDoseTime, intervalHours, timesPerDay, dosageAmount,
+                        dosageUnit, instructions, isActive
+                    )
+                    SELECT 
+                        id, patientName, medicineName, startDate, endDate,
+                        firstDoseTime, intervalHours, 
+                        CAST((24 / intervalHours) AS INTEGER), -- 根据间隔计算每天次数
+                        1.0, -- 默认剂量为1
+                        '片', -- 默认单位为片
+                        instructions, isActive
+                    FROM medication_reminders
+                """)
+                
+                // 删除旧表
+                database.execSQL("DROP TABLE medication_reminders")
+                
+                // 重命名新表
+                database.execSQL("ALTER TABLE medication_reminders_temp RENAME TO medication_reminders")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -78,7 +123,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

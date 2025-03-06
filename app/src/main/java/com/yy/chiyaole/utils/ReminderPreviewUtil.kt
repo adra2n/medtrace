@@ -44,7 +44,7 @@ class ReminderPreviewUtil(private val context: Context) {
         val data = workDataOf(
             "patientName" to "测试用户",
             "medicineName" to "测试药品",
-            "dosage" to "1片",
+            "dosage" to "1片",  // 保持简单的预览格式
             "isPreview" to true
         )
 

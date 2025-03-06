@@ -15,8 +15,9 @@ data class MedicationReminder(
     val endDate: LocalDateTime,      // 结束服药日期
     val firstDoseTime: LocalDateTime, // 第一次服药时间
     val intervalHours: Int,          // 服药间隔（小时）
-    val frequency: String,           // 服药频率描述
-    val dosage: String,             // 用药剂量
-    val instructions: String = "",   // 服药说明
-    val isActive: Boolean = true    // 是否启用提醒
+    val timesPerDay: Int,            // 每天服用次数
+    val dosageAmount: Float,         // 每次服用数量
+    val dosageUnit: String,          // 剂量单位（片、袋、ml）
+    val instructions: String = "",    // 服药说明
+    val isActive: Boolean = true     // 是否启用提醒
 )

@@ -24,10 +24,10 @@ fun MedicationReminderForm(
 ) {
     var patientName by remember { mutableStateOf(reminder?.patientName ?: "") }
     var medicineName by remember { mutableStateOf(reminder?.medicineName ?: "") }
-    var frequency by remember { mutableStateOf(reminder?.frequency ?: "") }
-    var dosage by remember { mutableStateOf(reminder?.dosage ?: "") }
+    var timesPerDay by remember { mutableStateOf(reminder?.timesPerDay?.toString() ?: "1") }
+    var dosageAmount by remember { mutableStateOf(reminder?.dosageAmount?.toString() ?: "1") }
+    var dosageUnit by remember { mutableStateOf(reminder?.dosageUnit ?: "片") }
     var instructions by remember { mutableStateOf(reminder?.instructions ?: "") }
-    var intervalHours by remember { mutableStateOf(reminder?.intervalHours?.toString() ?: "8") }
     
     var startDate by remember { 
         mutableStateOf(reminder?.startDate?.toLocalDate() ?: LocalDate.now())
@@ -44,6 +44,8 @@ fun MedicationReminderForm(
     
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日")
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val dosageUnits = listOf("片", "袋", "ml")
+    var showDosageUnitMenu by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -133,28 +135,56 @@ fun MedicationReminderForm(
             Text("第一次服药时间：${firstDoseTime.format(timeFormatter)}")
         }
         
-        // 服药间隔
+        // 每天服用次数
         FormTextField(
-            value = intervalHours,
+            value = timesPerDay,
             onValueChange = { 
                 if (it.isEmpty() || it.toIntOrNull() != null) {
-                    intervalHours = it
+                    timesPerDay = it
                 }
             },
-            label = "服药间隔（小时）"
+            label = "每天服用次数"
         )
         
-        FormTextField(
-            value = frequency,
-            onValueChange = { frequency = it },
-            label = "服药频率描述（如：每天三次）"
-        )
-        
-        FormTextField(
-            value = dosage,
-            onValueChange = { dosage = it },
-            label = "用药剂量（如：每次一片）"
-        )
+        // 用药剂量
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FormTextField(
+                value = dosageAmount,
+                onValueChange = { 
+                    if (it.isEmpty() || it.toFloatOrNull() != null) {
+                        dosageAmount = it
+                    }
+                },
+                label = "每次用量",
+                modifier = Modifier.weight(1f)
+            )
+            
+            Box {
+                OutlinedButton(
+                    onClick = { showDosageUnitMenu = true }
+                ) {
+                    Text(dosageUnit)
+                }
+                
+                DropdownMenu(
+                    expanded = showDosageUnitMenu,
+                    onDismissRequest = { showDosageUnitMenu = false }
+                ) {
+                    dosageUnits.forEach { unit ->
+                        DropdownMenuItem(
+                            text = { Text(unit) },
+                            onClick = {
+                                dosageUnit = unit
+                                showDosageUnitMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
         
         FormTextField(
             value = instructions,
@@ -170,18 +200,27 @@ fun MedicationReminderForm(
         ) {
             Button(
                 onClick = {
-                    if (patientName.isBlank() || medicineName.isBlank() || 
-                        frequency.isBlank() || dosage.isBlank() || intervalHours.isBlank()
-                    ) {
-                        error = "请填写必要信息"
+                    if (patientName.isBlank()) {
+                        error = "请输入患者姓名"
+                        return@Button
+                    }
+                    if (medicineName.isBlank()) {
+                        error = "请输入药品名称"
+                        return@Button
+                    }
+                    val timesPerDayInt = timesPerDay.toIntOrNull()
+                    if (timesPerDayInt == null || timesPerDayInt <= 0) {
+                        error = "请输入有效的每天服用次数"
+                        return@Button
+                    }
+                    val dosageAmountFloat = dosageAmount.toFloatOrNull()
+                    if (dosageAmountFloat == null || dosageAmountFloat <= 0) {
+                        error = "请输入有效的用药剂量"
                         return@Button
                     }
                     
-                    val intervalHoursInt = intervalHours.toIntOrNull()
-                    if (intervalHoursInt == null || intervalHoursInt <= 0) {
-                        error = "请输入有效的服药间隔时间"
-                        return@Button
-                    }
+                    // 计算服药间隔（小时）
+                    val intervalHours = 24 / timesPerDayInt
                     
                     val newReminder = MedicationReminder(
                         id = reminder?.id ?: 0,
@@ -190,16 +229,17 @@ fun MedicationReminderForm(
                         startDate = LocalDateTime.of(startDate, LocalTime.MIN),
                         endDate = LocalDateTime.of(endDate, LocalTime.MAX),
                         firstDoseTime = LocalDateTime.of(startDate, firstDoseTime),
-                        intervalHours = intervalHoursInt,
-                        frequency = frequency,
-                        dosage = dosage,
+                        intervalHours = intervalHours,
+                        timesPerDay = timesPerDayInt,
+                        dosageAmount = dosageAmountFloat,
+                        dosageUnit = dosageUnit,
                         instructions = instructions
                     )
                     onSave(newReminder)
                 },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("保存")
+                Text(if (reminder == null) "添加" else "保存")
             }
             
             OutlinedButton(

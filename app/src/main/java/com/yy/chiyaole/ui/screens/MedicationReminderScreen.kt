@@ -157,12 +157,12 @@ fun MedicationReminderScreen(
                             )
                             
                             Text(
-                                text = "服药频率：${reminder.frequency}",
+                                text = "每天服用次数：${reminder.timesPerDay}次",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             
                             Text(
-                                text = "用药剂量：${reminder.dosage}",
+                                text = "用药剂量：每次 ${reminder.dosageAmount} ${reminder.dosageUnit}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             

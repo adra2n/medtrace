@@ -236,7 +236,7 @@ fun ReminderCard(
             )
             
             Text(
-                text = "剂量：${reminder.dosage}",
+                text = "剂量：每次 ${reminder.dosageAmount} ${reminder.dosageUnit}，每天 ${reminder.timesPerDay} 次",
                 style = MaterialTheme.typography.bodyMedium
             )
             

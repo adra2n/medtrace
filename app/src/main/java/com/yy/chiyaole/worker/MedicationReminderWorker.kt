@@ -50,10 +50,11 @@ class MedicationReminderWorker(
             }
 
             // 构建提醒消息
+            val title = if (isPreview) "提醒测试" else "服药提醒"
             val message = if (isPreview) {
                 "这是语音提醒测试"
             } else {
-                "${patientName}该吃${medicineName}了，用量：${dosage}"
+                "${patientName}该吃${medicineName}了，请服用${dosage}"
             }
 
             // 创建通知渠道
@@ -62,8 +63,9 @@ class MedicationReminderWorker(
             // 发送通知
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(if (isPreview) "提醒测试" else "服药提醒")
+                .setContentTitle(title)
                 .setContentText(message)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
 
