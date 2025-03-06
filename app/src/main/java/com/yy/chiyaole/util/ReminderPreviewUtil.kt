@@ -1,4 +1,4 @@
-package com.yy.chiyaole.utils
+package com.yy.chiyaole.util
 
 import android.content.Context
 import android.media.MediaPlayer
@@ -10,8 +10,6 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import androidx.work.OneTimeWorkRequestBuilder
 import com.yy.chiyaole.worker.MedicationReminderWorker
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 class ReminderPreviewUtil(private val context: Context) {
     private var mediaPlayer: MediaPlayer? = null

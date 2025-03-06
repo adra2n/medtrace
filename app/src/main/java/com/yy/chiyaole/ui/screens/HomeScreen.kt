@@ -41,6 +41,7 @@ fun HomeScreen(
     var recentRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var medicationStats by remember { mutableStateOf(MedicationStats()) }
     var error by remember { mutableStateOf<String?>(null) }
+    var showSettings by remember { mutableStateOf(false) }
     val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm")
     val now = LocalDateTime.now()
 
@@ -75,7 +76,17 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("智药乐") }
+                title = { Text("智药乐") },
+                actions = {
+                    IconButton(
+                        onClick = { showSettings = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "设置"
+                        )
+                    }
+                }
             )
         }
     ) { padding ->
@@ -173,6 +184,12 @@ fun HomeScreen(
                 HealthTipsCard()
             }
         }
+    }
+    
+    if (showSettings) {
+        SettingsDialog(
+            onDismiss = { showSettings = false }
+        )
     }
 }
 
