@@ -12,16 +12,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicationReminder
 import com.yy.chiyaole.data.model.MedicalRecord
-import kotlinx.coroutines.flow.catch
+import com.yy.chiyaole.data.model.MedicationRecord
+import com.yy.chiyaole.data.model.MedicationStatus
+import com.yy.chiyaole.util.ComplianceUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -29,7 +37,9 @@ import java.time.format.DateTimeFormatter
 data class MedicationStats(
     val totalToday: Int = 0,
     val completedToday: Int = 0,
-    val weeklyAdherence: Float = 0f
+    val weeklyAdherence: Float = 0f,
+    val monthlyAdherence: Float = 0f,
+    val complianceAdvice: String = ""
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,45 +50,67 @@ fun HomeScreen(
 ) {
     var todayReminders by remember { mutableStateOf<List<MedicationReminder>>(emptyList()) }
     var recentRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
+    var medicationRecords by remember { mutableStateOf<List<MedicationRecord>>(emptyList()) }
     var medicationStats by remember { mutableStateOf(MedicationStats()) }
     var error by remember { mutableStateOf<String?>(null) }
     var showSettings by remember { mutableStateOf(false) }
     val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm")
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val now = LocalDateTime.now()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     // 加载数据
     LaunchedEffect(Unit) {
-        database.medicationReminderDao().getTodayReminders(now)
-            .catch { e ->
-                error = e.message
-                e.printStackTrace()
-            }
-            .collect { reminders ->
-                todayReminders = reminders
-                // 计算用药统计
-                val totalDoses = reminders.sumOf { it.timesPerDay }
-                val completedDoses = reminders.sumOf { reminder ->
-                    reminder.medicationTimes.count { time ->
-                        LocalDateTime.of(now.toLocalDate(), time).isBefore(now)
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            launch {
+                // 合并提醒和记录数据流
+                combine(
+                    database.medicationReminderDao().getTodayReminders(now),
+                    database.medicationRecordDao().getAll()
+                ) { reminders, records ->
+                    todayReminders = reminders
+                    
+                    // 计算用药统计
+                    val totalDoses = reminders.sumOf { it.timesPerDay }
+                    val completedDoses = records.count { 
+                        it.scheduledTime.toLocalDate() == now.toLocalDate() && 
+                        it.status == MedicationStatus.TAKEN
                     }
+                    
+                    // 计算依从率
+                    val weeklyAdherence = ComplianceUtil.calculateWeeklyComplianceRate(records)
+                    val monthlyAdherence = ComplianceUtil.calculateMonthlyComplianceRate(records)
+                    val complianceAdvice = ComplianceUtil.getComplianceAdvice(weeklyAdherence)
+                    
+                    medicationStats = MedicationStats(
+                        totalToday = totalDoses,
+                        completedToday = completedDoses,
+                        weeklyAdherence = weeklyAdherence,
+                        monthlyAdherence = monthlyAdherence,
+                        complianceAdvice = complianceAdvice
+                    )
                 }
-                medicationStats = MedicationStats(
-                    totalToday = totalDoses,
-                    completedToday = completedDoses,
-                    weeklyAdherence = 0.85f // 这里需要实现实际的计算逻辑
-                )
+                .flowOn(Dispatchers.Default)
+                .catch { e ->
+                    error = e.message
+                    e.printStackTrace()
+                }
+                .collect()
             }
-        
-        // 加载最近的医疗记录
-        database.medicalRecordDao().getRecentRecords(3)
-            .catch { e ->
-                error = e.message
-                e.printStackTrace()
+            
+            launch {
+                // 加载最近的医疗记录
+                database.medicalRecordDao().getRecentRecords(3)
+                    .flowOn(Dispatchers.Default)
+                    .catch { e ->
+                        error = e.message
+                        e.printStackTrace()
+                    }
+                    .collect { records ->
+                        recentRecords = records
+                    }
             }
-            .collect { records ->
-                recentRecords = records
-            }
+        }
     }
 
     Scaffold(
@@ -140,11 +172,50 @@ fun HomeScreen(
                                 icon = Icons.Default.CheckCircle
                             )
                             StatItem(
-                                title = "依从率",
+                                title = "本周依从率",
                                 value = "${(medicationStats.weeklyAdherence * 100).toInt()}%",
                                 icon = Icons.Default.List
                             )
                         }
+                        
+                        // 依从率建议
+                        if (medicationStats.complianceAdvice.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = medicationStats.complianceAdvice,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 月度依从率卡片
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "月度依从率",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = "${(medicationStats.monthlyAdherence * 100).toInt()}%",
+                            style = MaterialTheme.typography.displayMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
                     }
                 }
             }
@@ -202,15 +273,19 @@ fun HomeScreen(
 }
 
 @Composable
-fun StatItem(title: String, value: String, icon: ImageVector) {
+fun StatItem(
+    title: String,
+    value: String,
+    icon: ImageVector
+) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = icon,
             contentDescription = title,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.size(24.dp)
         )
         Text(
             text = value,
@@ -226,71 +301,11 @@ fun StatItem(title: String, value: String, icon: ImageVector) {
 }
 
 @Composable
-fun ReminderCard(
-    reminder: MedicationReminder,
-    timeFormatter: DateTimeFormatter,
-    now: LocalDateTime
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = reminder.patientName,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "每天 ${reminder.timesPerDay} 次",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            
-            Text(
-                text = "药品：${reminder.medicineName}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            
-            Text(
-                text = "剂量：每次 ${reminder.dosageAmount} ${reminder.dosageUnit}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            
-//            Text(
-//                text = "服药时间：${reminder.medicationTimes.joinToString(", ") { it.format(timeFormatter) }}",
-//                style = MaterialTheme.typography.bodyMedium
-//            )
-            
-            val nextDoseTime = calculateNextDoseTime(reminder, now)
-            Text(
-                text = "用药时间：${nextDoseTime?.format(timeFormatter) ?: "今日已完成"}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            
-            if (reminder.instructions.isNotBlank()) {
-                Text(
-                    text = "说明：${reminder.instructions}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun EmptyReminders() {
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -315,7 +330,9 @@ fun EmptyReminders() {
 @Composable
 fun EmptyRecords() {
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -338,9 +355,77 @@ fun EmptyRecords() {
 }
 
 @Composable
+fun ReminderCard(
+    reminder: MedicationReminder,
+    timeFormatter: DateTimeFormatter,
+    now: LocalDateTime
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = reminder.patientName,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "每天 ${reminder.timesPerDay} 次",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            
+            Text(
+                text = "药品：${reminder.medicineName}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            
+            Text(
+                text = "剂量：每次 ${reminder.dosageAmount} ${reminder.dosageUnit}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            
+            // Text(
+            //     text = "服药时间：${reminder.medicationTimes.joinToString(", ") { it.format(timeFormatter) }}",
+            //     style = MaterialTheme.typography.bodyMedium
+            // )
+            
+            val nextDoseTime = calculateNextDoseTime(reminder, now)
+            if (nextDoseTime != null) {
+                Text(
+                    text = "服药时间：${nextDoseTime.format(timeFormatter)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            if (reminder.instructions.isNotBlank()) {
+                Text(
+                    text = "说明：${reminder.instructions}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun MedicalRecordCard(record: MedicalRecord) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -388,7 +473,9 @@ fun MedicalRecordCard(record: MedicalRecord) {
 @Composable
 fun HealthTipsCard() {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         )

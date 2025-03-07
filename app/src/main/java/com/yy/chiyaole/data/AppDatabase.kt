@@ -1,52 +1,57 @@
 package com.yy.chiyaole.data
 
 import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
+import androidx.room.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.yy.chiyaole.data.converter.DateTimeConverter
+import com.yy.chiyaole.data.converter.LocalDateConverter
+import com.yy.chiyaole.data.converter.LocalDateTimeConverter
 import com.yy.chiyaole.data.converter.LocalTimeConverter
+import com.yy.chiyaole.data.converter.LocalTimeListConverter
 import com.yy.chiyaole.data.dao.MedicalRecordDao
+import com.yy.chiyaole.data.dao.MedicationRecordDao
 import com.yy.chiyaole.data.dao.MedicationReminderDao
 import com.yy.chiyaole.data.dao.UserSettingsDao
 import com.yy.chiyaole.data.model.MedicalRecord
+import com.yy.chiyaole.data.model.MedicationRecord
 import com.yy.chiyaole.data.model.MedicationReminder
 import com.yy.chiyaole.data.model.UserSettings
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.LocalTime
 
 @Database(
     entities = [
         MedicationReminder::class,
         MedicalRecord::class,
-        UserSettings::class
+        UserSettings::class,
+        MedicationRecord::class
     ],
-    version = 5,
+    version = 3,
     exportSchema = false
 )
-@TypeConverters(DateTimeConverter::class, LocalTimeConverter::class)
+@TypeConverters(
+    LocalDateConverter::class,
+    LocalDateTimeConverter::class,
+    LocalTimeConverter::class,
+    LocalTimeListConverter::class
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun medicationReminderDao(): MedicationReminderDao
     abstract fun medicalRecordDao(): MedicalRecordDao
     abstract fun userSettingsDao(): UserSettingsDao
+    abstract fun medicationRecordDao(): MedicationRecordDao
 
     companion object {
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // 删除旧的user_settings表
-                database.execSQL("DROP TABLE IF EXISTS user_settings")
-                
-                // 创建新的user_settings表，使用与Room实体相同的列名
+                // 创建新的用户设置表，不包含睡眠时间字段
                 database.execSQL("""
-                    CREATE TABLE IF NOT EXISTS user_settings (
+                    CREATE TABLE IF NOT EXISTS user_settings_new (
                         id INTEGER PRIMARY KEY NOT NULL,
-                        sleepStartTime TEXT NOT NULL,
-                        sleepEndTime TEXT NOT NULL,
                         enableVoiceReminder INTEGER NOT NULL,
                         enableNotificationSound INTEGER NOT NULL,
                         enableVibration INTEGER NOT NULL,
@@ -54,115 +59,46 @@ abstract class AppDatabase : RoomDatabase() {
                         darkMode INTEGER NOT NULL
                     )
                 """)
-                
-                // 插入默认设置
+
+                // 复制旧数据到新表，忽略睡眠时间字段
                 database.execSQL("""
-                    INSERT OR REPLACE INTO user_settings (
-                        id, sleepStartTime, sleepEndTime,
-                        enableVoiceReminder, enableNotificationSound,
+                    INSERT INTO user_settings_new (
+                        id, enableVoiceReminder, enableNotificationSound,
                         enableVibration, reminderAdvanceMinutes, darkMode
-                    ) VALUES (
-                        1, '22:00', '06:00',
-                        1, 1, 1, 5, 0
                     )
+                    SELECT id, enableVoiceReminder, enableNotificationSound,
+                           enableVibration, reminderAdvanceMinutes, darkMode
+                    FROM user_settings
                 """)
+
+                // 删除旧表
+                database.execSQL("DROP TABLE user_settings")
+
+                // 重命名新表
+                database.execSQL("ALTER TABLE user_settings_new RENAME TO user_settings")
             }
         }
 
-        private val MIGRATION_3_4 = object : Migration(3, 4) {
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // 创建临时表
+                // 创建服药记录表
                 database.execSQL("""
-                    CREATE TABLE IF NOT EXISTS medication_reminders_temp (
+                    CREATE TABLE IF NOT EXISTS medication_records (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                        patientName TEXT NOT NULL,
-                        medicineName TEXT NOT NULL,
-                        startDate TEXT NOT NULL,
-                        endDate TEXT NOT NULL,
-                        firstDoseTime TEXT NOT NULL,
-                        intervalHours INTEGER NOT NULL,
-                        timesPerDay INTEGER NOT NULL,
-                        dosageAmount REAL NOT NULL,
-                        dosageUnit TEXT NOT NULL,
-                        instructions TEXT NOT NULL,
-                        isActive INTEGER NOT NULL
+                        reminderId INTEGER NOT NULL,
+                        scheduledTime TEXT NOT NULL,
+                        actualTime TEXT,
+                        status TEXT NOT NULL,
+                        note TEXT NOT NULL DEFAULT '',
+                        FOREIGN KEY (reminderId) REFERENCES medication_reminders(id) ON DELETE CASCADE
                     )
                 """)
                 
-                // 迁移数据
+                // 创建 reminderId 列的索引
                 database.execSQL("""
-                    INSERT INTO medication_reminders_temp (
-                        id, patientName, medicineName, startDate, endDate,
-                        firstDoseTime, intervalHours, timesPerDay, dosageAmount,
-                        dosageUnit, instructions, isActive
-                    )
-                    SELECT 
-                        id, patientName, medicineName, startDate, endDate,
-                        firstDoseTime, intervalHours, 
-                        CAST((24 / intervalHours) AS INTEGER), -- 根据间隔计算每天次数
-                        1.0, -- 默认剂量为1
-                        '片', -- 默认单位为片
-                        instructions, isActive
-                    FROM medication_reminders
+                    CREATE INDEX IF NOT EXISTS index_medication_records_reminderId 
+                    ON medication_records(reminderId)
                 """)
-                
-                // 删除旧表
-                database.execSQL("DROP TABLE medication_reminders")
-                
-                // 重命名新表
-                database.execSQL("ALTER TABLE medication_reminders_temp RENAME TO medication_reminders")
-            }
-        }
-
-        private val MIGRATION_4_5 = object : Migration(4, 5) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                // 创建临时表，包含新的 medicationTimes 列
-                database.execSQL("""
-                    CREATE TABLE IF NOT EXISTS medication_reminders_temp (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                        patientName TEXT NOT NULL,
-                        medicineName TEXT NOT NULL,
-                        startDate TEXT NOT NULL,
-                        endDate TEXT NOT NULL,
-                        timesPerDay INTEGER NOT NULL,
-                        medicationTimes TEXT NOT NULL,
-                        dosageAmount REAL NOT NULL,
-                        dosageUnit TEXT NOT NULL,
-                        instructions TEXT NOT NULL,
-                        isActive INTEGER NOT NULL
-                    )
-                """)
-                
-                // 迁移数据，根据 firstDoseTime 和 intervalHours 生成 medicationTimes
-                database.execSQL("""
-                    INSERT INTO medication_reminders_temp (
-                        id, patientName, medicineName, startDate, endDate,
-                        timesPerDay, medicationTimes, dosageAmount,
-                        dosageUnit, instructions, isActive
-                    )
-                    SELECT 
-                        id, patientName, medicineName, startDate, endDate,
-                        timesPerDay,
-                        CASE 
-                            WHEN timesPerDay = 1 THEN time(firstDoseTime)
-                            WHEN timesPerDay = 2 THEN time(firstDoseTime) || ',' || time(datetime(firstDoseTime, '+' || (intervalHours) || ' hours'))
-                            WHEN timesPerDay = 3 THEN time(firstDoseTime) || ',' || 
-                                time(datetime(firstDoseTime, '+' || (intervalHours) || ' hours')) || ',' ||
-                                time(datetime(firstDoseTime, '+' || (intervalHours * 2) || ' hours'))
-                            ELSE time(firstDoseTime) || ',' || 
-                                time(datetime(firstDoseTime, '+' || (intervalHours) || ' hours')) || ',' ||
-                                time(datetime(firstDoseTime, '+' || (intervalHours * 2) || ' hours')) || ',' ||
-                                time(datetime(firstDoseTime, '+' || (intervalHours * 3) || ' hours'))
-                        END,
-                        dosageAmount, dosageUnit, instructions, isActive
-                    FROM medication_reminders
-                """)
-                
-                // 删除旧表
-                database.execSQL("DROP TABLE medication_reminders")
-                
-                // 重命名新表
-                database.execSQL("ALTER TABLE medication_reminders_temp RENAME TO medication_reminders")
             }
         }
 
@@ -176,7 +112,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
