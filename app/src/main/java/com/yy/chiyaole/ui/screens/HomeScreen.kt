@@ -36,7 +36,9 @@ import java.time.format.DateTimeFormatter
 
 data class MedicationStats(
     val totalToday: Int = 0,
-    val completedToday: Int = 0
+    val completedToday: Int = 0,
+//    val totalDosesToday: Int = 0,    // 今日总服药次数
+    val takenDosesToday: Int = 0     // 今日已服用次数
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,9 +76,20 @@ fun HomeScreen(
                         it.status == MedicationStatus.TAKEN
                     }
                     
+                    // 计算今日服药次数
+                    val todayRecords = records.filter { 
+                        it.scheduledTime.toLocalDate() == now.toLocalDate()
+                    }
+//                    val totalDosesToday = todayRecords.size
+                    val takenDosesToday = todayRecords.count { 
+                        it.status == MedicationStatus.TAKEN 
+                    }
+                    
                     medicationStats = MedicationStats(
                         totalToday = totalDoses,
-                        completedToday = completedDoses
+                        completedToday = completedDoses,
+//                        totalDosesToday = totalDosesToday,
+                        takenDosesToday = takenDosesToday
                     )
                 }
                 .flowOn(Dispatchers.Default)
@@ -129,7 +142,7 @@ fun HomeScreen(
         ) {
             item {
                 Text(
-                    text = "用药统计",
+                    text = "今日用药统计",
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -147,27 +160,49 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .padding(16.dp)
                     ) {
-                        Text(
-                            text = "今日用药统计",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+//                        Text(
+//                            text = "今日用药统计",
+//                            style = MaterialTheme.typography.titleMedium,
+//                            color = MaterialTheme.colorScheme.onPrimaryContainer
+//                        )
+//                        Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
                             StatItem(
-                                title = "今日药品",
+                                title = "服药数量",
                                 value = "${medicationStats.totalToday}",
                                 icon = Icons.Default.Notifications
                             )
+//                            StatItem(
+//                                title = "今日次数",
+//                                value = "${medicationStats.totalDosesToday}",
+//                                icon = Icons.Default.Done
+//                            )
                             StatItem(
                                 title = "已服用",
                                 value = "${medicationStats.completedToday}",
                                 icon = Icons.Default.CheckCircle
                             )
+                            
                         }
+                        // Spacer(modifier = Modifier.height(8.dp))
+                        // Row(
+                        //     modifier = Modifier.fillMaxWidth(),
+                        //     horizontalArrangement = Arrangement.SpaceAround
+                        // ) {
+                        //     StatItem(
+                        //         title = "今日次数",
+                        //         value = "${medicationStats.totalDosesToday}",
+                        //         icon = Icons.Default.Done
+                        //     )
+                            // StatItem(
+                            //     title = "已完成",
+                            //     value = "${medicationStats.takenDosesToday}",
+                            //     icon = Icons.Default.Done
+                            // )
+                        // }
                     }
                 }
             }
@@ -342,27 +377,43 @@ fun ReminderCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            Text(
+                text = reminder.patientName,
+                // 字体居中设置
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Thin,
+                fontSize = 25.sp
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 Column {
                     Text(
                         text = reminder.medicineName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.bodyMedium,
+                        // 颜色为红色
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Thin,
+                        fontSize = 25.sp
                     )
+                    
                     Text(
                         text = "服用剂量：${reminder.dosageAmount}${reminder.dosageUnit}",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontSize = 20.sp
                     )
                 }
                 calculateNextDoseTime(reminder, now)?.let { nextDoseTime ->
                     Text(
                         text = "下次：${nextDoseTime.format(timeFormatter)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 15.sp
                     )
                 }
             }

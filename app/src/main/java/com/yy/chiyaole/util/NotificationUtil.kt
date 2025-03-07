@@ -46,27 +46,6 @@ object NotificationUtil {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val takenIntent = createActionPendingIntent(
-            context,
-            reminder.id,
-            ACTION_TAKEN,
-            reminder.scheduledTime.toString()
-        )
-
-        val skipIntent = createActionPendingIntent(
-            context,
-            reminder.id,
-            ACTION_SKIP,
-            reminder.scheduledTime.toString()
-        )
-
-        val delayIntent = createActionPendingIntent(
-            context,
-            reminder.id,
-            ACTION_DELAY,
-            reminder.scheduledTime.toString()
-        )
-
         // 构建提醒消息
         val message = buildReminderMessage(reminder)
 
@@ -82,9 +61,6 @@ object NotificationUtil {
             .setOngoing(true)      // 设置为持续通知
             .setContentIntent(contentIntent)
             .setGroup(GROUP_KEY)
-            .addAction(R.drawable.ic_check, "已服用", takenIntent)
-            .addAction(R.drawable.ic_skip, "跳过", skipIntent)
-            .addAction(R.drawable.ic_delay, "延迟15分钟", delayIntent)
             .apply {
                 if (enableSound) {
                     setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
@@ -103,35 +79,9 @@ object NotificationUtil {
     }
 
     private fun buildReminderMessage(reminder: MedicationReminder): String {
-        return "${reminder.patientName}该吃${reminder.medicineName}了，" +
+        return "请${reminder.patientName}服用${reminder.medicineName}，" +
                 "请服用${reminder.dosageAmount}${reminder.dosageUnit}" +
                 (if (reminder.instructions.isNotBlank()) "，${reminder.instructions}" else "")
-    }
-
-    private fun createActionPendingIntent(
-        context: Context,
-        reminderId: Long,
-        action: String,
-        scheduledTime: String
-    ): PendingIntent {
-        return PendingIntent.getBroadcast(
-            context,
-            (reminderId.toInt() * 10) + when (action) {
-                ACTION_TAKEN -> 1
-                ACTION_SKIP -> 2
-                ACTION_DELAY -> 3
-                else -> 0
-            },
-            Intent(context, MedicationActionReceiver::class.java).apply {
-                this.action = action
-                putExtra(EXTRA_REMINDER_ID, reminderId)
-                putExtra("scheduledTime", scheduledTime)
-                if (action == ACTION_DELAY) {
-                    putExtra(EXTRA_DELAY_MINUTES, 15)
-                }
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
     }
 
     private fun updateSummaryNotification(context: Context, notificationManager: NotificationManager) {
