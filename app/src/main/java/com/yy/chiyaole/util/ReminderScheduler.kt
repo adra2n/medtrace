@@ -10,6 +10,9 @@ import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 object ReminderScheduler {
+    private const val TAG_PREFIX = "reminder_"
+    private const val TAG_DELAYED = "_delayed"
+
     fun scheduleReminder(
         context: Context,
         reminder: MedicationReminder,
@@ -18,7 +21,7 @@ object ReminderScheduler {
         val workManager = WorkManager.getInstance(context)
         
         // 取消该提醒的所有现有工作
-        workManager.cancelAllWorkByTag("reminder_${reminder.id}")
+        cancelReminder(context, reminder.id)
         
         // 如果提醒不活跃或已过期，直接返回
         if (!reminder.isActive || LocalDateTime.now().isAfter(reminder.endDate)) {
@@ -56,46 +59,89 @@ object ReminderScheduler {
                 return@forEach
             }
             
-            // 计算延迟时间
-            val delay = Duration.between(now, reminderTime)
-            
-            // 创建工作数据
-            val data = workDataOf(
-                "reminderId" to reminder.id,
-                "patientName" to reminder.patientName,
-                "medicineName" to reminder.medicineName,
-                "dosageAmount" to reminder.dosageAmount,
-                "dosageUnit" to reminder.dosageUnit,
-                "isPreview" to false
+            scheduleReminderWork(
+                context = context,
+                reminder = reminder,
+                nextDoseTime = nextDoseTime,
+                delay = Duration.between(now, reminderTime),
+                isDelayed = false
             )
-            
-            // 创建工作请求
-            val reminderRequest = OneTimeWorkRequestBuilder<MedicationReminderWorker>()
+        }
+    }
+
+    fun scheduleDelayedReminder(
+        context: Context,
+        reminder: MedicationReminder,
+        delayMinutes: Int
+    ) {
+        val workManager = WorkManager.getInstance(context)
+        val now = LocalDateTime.now()
+        val delayedTime = now.plusMinutes(delayMinutes.toLong())
+        
+        // 取消该提醒的延迟提醒（如果有）
+        workManager.cancelAllWorkByTag("${TAG_PREFIX}${reminder.id}${TAG_DELAYED}")
+        
+        scheduleReminderWork(
+            context = context,
+            reminder = reminder,
+            nextDoseTime = delayedTime,
+            delay = Duration.ofMinutes(delayMinutes.toLong()),
+            isDelayed = true
+        )
+    }
+
+    private fun scheduleReminderWork(
+        context: Context,
+        reminder: MedicationReminder,
+        nextDoseTime: LocalDateTime,
+        delay: Duration,
+        isDelayed: Boolean
+    ) {
+        val workManager = WorkManager.getInstance(context)
+        
+        // 创建工作数据
+        val data = workDataOf(
+            "reminderId" to reminder.id,
+            "patientName" to reminder.patientName,
+            "medicineName" to reminder.medicineName,
+            "dosageAmount" to reminder.dosageAmount,
+            "dosageUnit" to reminder.dosageUnit,
+            "scheduledTime" to nextDoseTime.toString(),
+            "isPreview" to false
+        )
+        
+        // 创建工作请求
+        val reminderRequest = OneTimeWorkRequestBuilder<MedicationReminderWorker>()
+            .setInputData(data)
+            .setInitialDelay(delay.toMillis(), TimeUnit.MILLISECONDS)
+            .addTag(TAG_PREFIX + reminder.id)
+            .apply {
+                if (isDelayed) {
+                    addTag(TAG_PREFIX + reminder.id + TAG_DELAYED)
+                }
+            }
+            .build()
+        
+        // 提交工作请求
+        workManager.enqueue(reminderRequest)
+        
+        // 如果不是延迟提醒且不是一次性提醒，创建周期性工作
+        if (!isDelayed && reminder.endDate.isAfter(nextDoseTime.plusDays(1))) {
+            val periodicRequest = PeriodicWorkRequestBuilder<MedicationReminderWorker>(
+                24, TimeUnit.HOURS,
+                15, TimeUnit.MINUTES // 灵活间隔
+            )
                 .setInputData(data)
-                .setInitialDelay(delay.toMillis(), TimeUnit.MILLISECONDS)
-                .addTag("reminder_${reminder.id}")
+                .addTag(TAG_PREFIX + reminder.id)
                 .build()
             
-            // 提交工作请求
-            workManager.enqueue(reminderRequest)
-            
-            // 如果不是一次性提醒，创建周期性工作
-            if (reminder.endDate.isAfter(nextDoseTime.plusDays(1))) {
-                val periodicRequest = PeriodicWorkRequestBuilder<MedicationReminderWorker>(
-                    24, TimeUnit.HOURS,
-                    15, TimeUnit.MINUTES // 灵活间隔
-                )
-                    .setInputData(data)
-                    .addTag("reminder_${reminder.id}")
-                    .build()
-                
-                workManager.enqueue(periodicRequest)
-            }
+            workManager.enqueue(periodicRequest)
         }
     }
     
     fun cancelReminder(context: Context, reminderId: Long) {
         val workManager = WorkManager.getInstance(context)
-        workManager.cancelAllWorkByTag("reminder_$reminderId")
+        workManager.cancelAllWorkByTag(TAG_PREFIX + reminderId)
+        workManager.cancelAllWorkByTag(TAG_PREFIX + reminderId + TAG_DELAYED)
     }
 }
