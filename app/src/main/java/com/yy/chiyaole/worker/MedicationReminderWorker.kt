@@ -1,31 +1,23 @@
 package com.yy.chiyaole.worker
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
-import android.media.AudioAttributes
-import android.media.RingtoneManager
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
-import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
-import com.yy.chiyaole.R
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicationRecord
 import com.yy.chiyaole.data.model.MedicationStatus
-import com.yy.chiyaole.receiver.MedicationActionReceiver
+import com.yy.chiyaole.util.NotificationUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.util.Locale
+import kotlin.coroutines.resume
 
 class MedicationReminderWorker(
     private val context: Context,
@@ -33,172 +25,157 @@ class MedicationReminderWorker(
 ) : CoroutineWorker(context, params) {
 
     private var textToSpeech: TextToSpeech? = null
-    private var ttsInitialized = false
-    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    private val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
             val reminderId = inputData.getLong("reminderId", -1)
             if (reminderId == -1L) return@withContext Result.failure()
-            
+
             val patientName = inputData.getString("patientName") ?: return@withContext Result.failure()
             val medicineName = inputData.getString("medicineName") ?: return@withContext Result.failure()
             val dosageAmount = inputData.getFloat("dosageAmount", 0f)
             val dosageUnit = inputData.getString("dosageUnit") ?: return@withContext Result.failure()
-            val scheduledTime = LocalDateTime.now()
+            val scheduledTimeStr = inputData.getString("scheduledTime")
+            val scheduledTime = if (scheduledTimeStr != null) LocalDateTime.parse(scheduledTimeStr) else LocalDateTime.now()
             val isPreview = inputData.getBoolean("isPreview", false)
 
-            // 获取用户设置
-            val settings = AppDatabase.getDatabase(context).userSettingsDao().getUserSettings().first() ?: return@withContext Result.failure()
+            // 如果不是预览模式，获取用户设置
+            val settings = if (!isPreview) {
+                AppDatabase.getDatabase(context).userSettingsDao().getUserSettings().first()
+                    ?: return@withContext Result.failure()
+            } else null
 
-            // 如果不是预览，创建服药记录
+            // 如果不是预览，创建或更新服药记录
             if (!isPreview) {
-                val record = MedicationRecord(
-                    reminderId = reminderId,
-                    scheduledTime = scheduledTime,
-                    actualTime = null,
-                    status = MedicationStatus.PENDING
-                )
-                AppDatabase.getDatabase(context).medicationRecordDao().insert(record)
-            }
+                val existingRecord = AppDatabase.getDatabase(context).medicationRecordDao()
+                    .getRecordsBetween(
+                        scheduledTime.minusMinutes(1),
+                        scheduledTime.plusMinutes(1)
+                    ).first().firstOrNull { it.reminderId == reminderId }
 
-            // 构建提醒消息
-            val title = if (isPreview) "提醒测试" else "服药提醒"
-            val message = if (isPreview) {
-                "这是语音提醒测试"
-            } else {
-                "${patientName}该吃${medicineName}了，请服用${dosageAmount}${dosageUnit}"
-            }
-
-            // 创建通知渠道
-            createNotificationChannel()
-
-            // 创建操作按钮的 PendingIntent
-            val takenIntent = PendingIntent.getBroadcast(
-                context,
-                reminderId.toInt() * 10 + 1,
-                Intent(context, MedicationActionReceiver::class.java).apply {
-                    action = MedicationActionReceiver.ACTION_TAKEN
-                    putExtra("reminderId", reminderId)
-                    putExtra("scheduledTime", scheduledTime.toString())
-                },
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            val skipIntent = PendingIntent.getBroadcast(
-                context,
-                reminderId.toInt() * 10 + 2,
-                Intent(context, MedicationActionReceiver::class.java).apply {
-                    action = MedicationActionReceiver.ACTION_SKIP
-                    putExtra("reminderId", reminderId)
-                    putExtra("scheduledTime", scheduledTime.toString())
-                },
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            // 发送通知
-            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notification_medicine)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true)
-                .addAction(R.drawable.ic_check, "已服用", takenIntent)
-                .addAction(R.drawable.ic_skip, "跳过", skipIntent)
-
-            // 根据设置添加声音
-            if (settings.enableNotificationSound || isPreview) {
-                builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-            }
-
-            // 根据设置添加震动
-            if (settings.enableVibration || isPreview) {
-                builder.setVibrate(longArrayOf(0, 500, 200, 500))
+                if (existingRecord == null) {
+                    // 创建新记录
+                    val record = MedicationRecord(
+                        reminderId = reminderId,
+                        scheduledTime = scheduledTime,
+                        actualTime = null,
+                        delayedTime = null,
+                        status = MedicationStatus.PENDING,
+                        note = "",
+                        delayReason = ""
+                    )
+                    AppDatabase.getDatabase(context).medicationRecordDao().insert(record)
+                } else if (existingRecord.status == MedicationStatus.DELAYED) {
+                    // 如果是延迟的记录，更新状态为待服用
+                    val updatedRecord = existingRecord.copy(
+                        status = MedicationStatus.PENDING,
+                        delayedTime = null,
+                        delayReason = "${existingRecord.delayReason}\n延迟提醒时间：${LocalDateTime.now()}"
+                    )
+                    AppDatabase.getDatabase(context).medicationRecordDao().update(updatedRecord)
+                }
             }
 
             // 显示通知
-            notificationManager.notify(
-                if (isPreview) PREVIEW_NOTIFICATION_ID else reminderId.toInt(),
-                builder.build()
-            )
+            if (!isPreview) {
+                val reminder = AppDatabase.getDatabase(context).medicationReminderDao().getById(reminderId)
+                    ?: return@withContext Result.failure()
+                NotificationUtil.showMedicationReminder(
+                    context = context,
+                    reminder = reminder,
+                    enableSound = settings?.enableNotificationSound == true,
+                    enableVibration = settings?.enableVibration == true
+                )
+            }
 
-            // 语音提醒
-            if (settings.enableVoiceReminder || isPreview) {
-                withContext(Dispatchers.Main) {
-                    initTextToSpeech(message)
+            // 语音提醒（预览模式或启用了语音提醒）
+            if (isPreview || settings?.enableVoiceReminder == true) {
+                val message = "亲爱的${patientName}，现在该吃${medicineName}了，请服用${dosageAmount}${dosageUnit}"
+                try {
+                    speakMessage(message)
+                } catch (e: Exception) {
+                    Log.e(TAG, "语音提醒失败", e)
                 }
             }
 
             Result.success()
         } catch (e: Exception) {
-            Log.e("MedicationReminderWorker", "提醒失败", e)
+            Log.e(TAG, "提醒失败", e)
             Result.failure()
+        } finally {
+            // 清理 TextToSpeech 资源
+            textToSpeech?.shutdown()
+            textToSpeech = null
         }
     }
 
-    private fun initTextToSpeech(message: String) {
-        if (textToSpeech == null) {
+    private suspend fun speakMessage(message: String) = suspendCancellableCoroutine { continuation ->
+        try {
             textToSpeech = TextToSpeech(context) { status ->
                 if (status == TextToSpeech.SUCCESS) {
-                    val result = textToSpeech?.setLanguage(Locale.CHINESE)
-                    when (result) {
-                        TextToSpeech.LANG_MISSING_DATA,
-                        TextToSpeech.LANG_NOT_SUPPORTED -> {
-                            textToSpeech?.setLanguage(Locale.SIMPLIFIED_CHINESE)
+                    // 设置语言
+                    var result = textToSpeech?.setLanguage(Locale.CHINESE)
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        result = textToSpeech?.setLanguage(Locale.SIMPLIFIED_CHINESE)
+                        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                            Log.e(TAG, "语言不支持")
+                            continuation.resume(Unit)
+                            return@TextToSpeech
                         }
                     }
-                    ttsInitialized = true
-                    speakMessage(message)
+
+                    // 设置语音完成的回调
+                    textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) {}
+
+                        override fun onDone(utteranceId: String?) {
+                            if (utteranceId == "medication_reminder") {
+                                continuation.resume(Unit)
+                            }
+                        }
+
+                        @Deprecated("Deprecated in Java")
+                        override fun onError(utteranceId: String?) {
+                            if (utteranceId == "medication_reminder") {
+                                Log.e(TAG, "语音播放失败")
+                                continuation.resume(Unit)
+                            }
+                        }
+                    })
+
+                    // 播放语音
+                    textToSpeech?.speak(
+                        message,
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        "medication_reminder"
+                    )
+                } else {
+                    Log.e(TAG, "TextToSpeech 初始化失败: $status")
+                    continuation.resume(Unit)
                 }
             }
-        } else {
-            speakMessage(message)
-        }
-    }
 
-    private fun speakMessage(message: String) {
-        if (ttsInitialized) {
-            textToSpeech?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "medication_reminder")
-        }
-    }
-
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "服药提醒"
-            val descriptionText = "用于发送服药提醒通知"
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-                enableVibration(true)
-                vibrationPattern = longArrayOf(0, 500, 200, 500)
-                setSound(
-                    RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                        .build()
-                )
+            continuation.invokeOnCancellation {
+                textToSpeech?.stop()
+                textToSpeech?.shutdown()
+                textToSpeech = null
             }
-            notificationManager.createNotificationChannel(channel)
+        } catch (e: Exception) {
+            Log.e(TAG, "语音提醒设置失败", e)
+            continuation.resume(Unit)
         }
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
         return ForegroundInfo(
             ONGOING_NOTIFICATION_ID,
-            NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_notification_medicine)
-                .setContentTitle("服药提醒")
-                .setContentText("正在运行服药提醒服务")
-                .build()
+            NotificationUtil.createOngoingNotification(context)
         )
     }
 
     companion object {
-        private const val CHANNEL_ID = "medication_reminder_channel"
+        private const val TAG = "MedicationReminderWorker"
         private const val ONGOING_NOTIFICATION_ID = 1
-        private const val PREVIEW_NOTIFICATION_ID = 9999
     }
 }

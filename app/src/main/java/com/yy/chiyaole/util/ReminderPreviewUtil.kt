@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import androidx.work.OneTimeWorkRequestBuilder
 import com.yy.chiyaole.worker.MedicationReminderWorker
+import java.time.LocalDateTime
 
 class ReminderPreviewUtil(private val context: Context) {
     private var mediaPlayer: MediaPlayer? = null
@@ -40,9 +41,12 @@ class ReminderPreviewUtil(private val context: Context) {
 
         // 使用MedicationReminderWorker来预览语音提醒
         val data = workDataOf(
+            "reminderId" to PREVIEW_REMINDER_ID,
             "patientName" to "测试用户",
             "medicineName" to "测试药品",
-            "dosage" to "1片",  // 保持简单的预览格式
+            "dosageAmount" to 1f,
+            "dosageUnit" to "片",
+            "scheduledTime" to LocalDateTime.now().toString(),
             "isPreview" to true
         )
 
@@ -83,5 +87,9 @@ class ReminderPreviewUtil(private val context: Context) {
     fun release() {
         stopAll()
         vibrator = null
+    }
+
+    companion object {
+        private const val PREVIEW_REMINDER_ID = 9999L
     }
 }
