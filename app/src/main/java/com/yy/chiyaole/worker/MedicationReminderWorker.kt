@@ -2,7 +2,9 @@ package com.yy.chiyaole.worker
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
@@ -16,9 +18,13 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.yy.chiyaole.R
 import com.yy.chiyaole.data.AppDatabase
+import com.yy.chiyaole.data.model.MedicationRecord
+import com.yy.chiyaole.data.model.MedicationStatus
+import com.yy.chiyaole.receiver.MedicationActionReceiver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
 import java.util.Locale
 
 class MedicationReminderWorker(
@@ -33,20 +39,27 @@ class MedicationReminderWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
+            val reminderId = inputData.getLong("reminderId", -1)
+            if (reminderId == -1L) return@withContext Result.failure()
+            
             val patientName = inputData.getString("patientName") ?: return@withContext Result.failure()
             val medicineName = inputData.getString("medicineName") ?: return@withContext Result.failure()
             val dosage = inputData.getString("dosage") ?: return@withContext Result.failure()
+            val scheduledTime = LocalDateTime.now()
             val isPreview = inputData.getBoolean("isPreview", false)
 
             // 获取用户设置
             val settings = AppDatabase.getDatabase(context).userSettingsDao().getUserSettings().first() ?: return@withContext Result.failure()
 
-            // 如果不是预览且在睡眠时间内，跳过提醒
+            // 如果不是预览，创建服药记录
             if (!isPreview) {
-                val currentTime = java.time.LocalTime.now()
-                if (currentTime.isAfter(settings.sleepStartTime) && currentTime.isBefore(settings.sleepEndTime)) {
-                    return@withContext Result.success()
-                }
+                val record = MedicationRecord(
+                    reminderId = reminderId,
+                    scheduledTime = scheduledTime,
+                    actualTime = null,
+                    status = MedicationStatus.PENDING
+                )
+                AppDatabase.getDatabase(context).medicationRecordDao().insert(record)
             }
 
             // 构建提醒消息
@@ -60,14 +73,39 @@ class MedicationReminderWorker(
             // 创建通知渠道
             createNotificationChannel()
 
+            // 创建操作按钮的 PendingIntent
+            val takenIntent = PendingIntent.getBroadcast(
+                context,
+                reminderId.toInt() * 10 + 1,
+                Intent(context, MedicationActionReceiver::class.java).apply {
+                    action = MedicationActionReceiver.ACTION_TAKEN
+                    putExtra("reminderId", reminderId)
+                    putExtra("scheduledTime", scheduledTime.toString())
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val skipIntent = PendingIntent.getBroadcast(
+                context,
+                reminderId.toInt() * 10 + 2,
+                Intent(context, MedicationActionReceiver::class.java).apply {
+                    action = MedicationActionReceiver.ACTION_SKIP
+                    putExtra("reminderId", reminderId)
+                    putExtra("scheduledTime", scheduledTime.toString())
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
             // 发送通知
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_notification_medicine)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
+                .addAction(R.drawable.ic_check, "已服用", takenIntent)
+                .addAction(R.drawable.ic_skip, "跳过", skipIntent)
 
             // 根据设置添加声音
             if (settings.enableNotificationSound || isPreview) {
@@ -80,7 +118,10 @@ class MedicationReminderWorker(
             }
 
             // 显示通知
-            notificationManager.notify(if (isPreview) PREVIEW_NOTIFICATION_ID else System.currentTimeMillis().toInt(), builder.build())
+            notificationManager.notify(
+                if (isPreview) PREVIEW_NOTIFICATION_ID else reminderId.toInt(),
+                builder.build()
+            )
 
             // 语音提醒
             if (settings.enableVoiceReminder || isPreview) {
@@ -147,7 +188,7 @@ class MedicationReminderWorker(
         return ForegroundInfo(
             ONGOING_NOTIFICATION_ID,
             NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_notification_medicine)
                 .setContentTitle("服药提醒")
                 .setContentText("正在运行服药提醒服务")
                 .build()
