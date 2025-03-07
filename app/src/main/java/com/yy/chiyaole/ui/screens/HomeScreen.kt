@@ -392,25 +392,30 @@ fun ReminderCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
 
-                Column {
+                Row {
                     Text(
                         text = reminder.medicineName,
                         style = MaterialTheme.typography.bodyMedium,
                         // 颜色为红色
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Thin,
-                        fontSize = 25.sp
+                        fontSize = 20.sp
                     )
-                    
+                    // Spacer(modifier = Modifier.width(30.dp))
+                    Spacer(modifier = Modifier.width(70.dp))
+
                     Text(
                         text = "服用剂量：${reminder.dosageAmount}${reminder.dosageUnit}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontSize = 20.sp
+                        
                     )
                 }
                 calculateNextDoseTime(reminder, now)?.let { nextDoseTime ->
+                    val dateTimeFormatter=DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm")
                     Text(
-                        text = "下次：${nextDoseTime.format(timeFormatter)}",
+                        // 时间展示为年月日
+                        text = "下次：${nextDoseTime.format(dateTimeFormatter)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 15.sp
