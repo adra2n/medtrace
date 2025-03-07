@@ -20,13 +20,12 @@ import androidx.navigation.NavController
 import androidx.work.*
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicationReminder
-import com.yy.chiyaole.worker.MedicationReminderWorker
+import com.yy.chiyaole.util.ReminderScheduler
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.TimeUnit
 import java.time.Duration
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -307,11 +306,24 @@ fun AddMedicationReminderScreen(
                                 medicationTimes = medicationTimes,
                                 dosageAmount = dosageAmountFloat,
                                 dosageUnit = dosageUnit,
-                                instructions = instructions
+                                instructions = instructions,
+                                isActive = true
                             )
                             
+                            // 获取用户设置的提前提醒时间
+                            val settings = database.userSettingsDao().getUserSettings().first()
+                            val advanceMinutes = settings?.reminderAdvanceMinutes ?: 30
+                            
+                            // 保存提醒到数据库
                             database.medicationReminderDao().insertOrUpdate(reminder)
-                            scheduleReminder(workManager, reminder)
+                            
+                            // 使用 ReminderScheduler 调度提醒
+                            ReminderScheduler.scheduleReminder(
+                                context = context,
+                                reminder = reminder,
+                                advanceMinutes = advanceMinutes
+                            )
+                            
                             navController.popBackStack()
                         } catch (e: Exception) {
                             error = e.message
@@ -324,52 +336,5 @@ fun AddMedicationReminderScreen(
                 Text(if (reminderId == null) "添加" else "保存")
             }
         }
-    }
-}
-
-private fun scheduleReminder(workManager: WorkManager, reminder: MedicationReminder) {
-    // 取消该提醒的所有现有工作
-    workManager.cancelAllWorkByTag("reminder_${reminder.id}")
-    
-    val now = LocalDateTime.now()
-    if (reminder.endDate.isBefore(now)) return
-    
-    // 设置提醒数据
-    val data = workDataOf(
-        "patientName" to reminder.patientName,
-        "medicineName" to reminder.medicineName,
-        "dosage" to "${reminder.dosageAmount}${reminder.dosageUnit}"
-    )
-    
-    // 为每个服药时间点创建周期性提醒
-    reminder.medicationTimes.forEachIndexed { index, time ->
-        // 计算今天这个时间点
-        var nextDoseTime = now.with(time)
-        
-        // 如果今天的这个时间点已经过了，设置为明天的这个时间点
-        if (nextDoseTime.isBefore(now)) {
-            nextDoseTime = nextDoseTime.plusDays(1)
-        }
-        
-        // 如果开始日期还没到，使用开始日期的这个时间点
-        if (nextDoseTime.isBefore(reminder.startDate)) {
-            nextDoseTime = reminder.startDate.with(time)
-        }
-        
-        // 计算延迟时间（分钟）
-        val initialDelay = java.time.Duration.between(now, nextDoseTime).toMinutes()
-        
-        // 创建每日重复的提醒
-        val periodicRequest = PeriodicWorkRequestBuilder<MedicationReminderWorker>(
-            24, // 每24小时重复一次
-            TimeUnit.HOURS
-        )
-            .setInitialDelay(initialDelay, TimeUnit.MINUTES)
-            .setInputData(data)
-            .addTag("reminder_${reminder.id}")
-            .addTag("reminder_${reminder.id}_time_$index")
-            .build()
-            
-        workManager.enqueue(periodicRequest)
     }
 }

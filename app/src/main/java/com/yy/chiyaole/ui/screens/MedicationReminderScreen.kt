@@ -9,11 +9,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.work.WorkManager
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicationReminder
+import com.yy.chiyaole.util.ReminderScheduler
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -28,6 +30,7 @@ fun MedicationReminderScreen(
     navController: NavController,
     workManager: WorkManager
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var reminders by remember { mutableStateOf<List<MedicationReminder>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -64,15 +67,31 @@ fun MedicationReminderScreen(
         }
     }
 
+    // 加载用户设置和提醒列表
     LaunchedEffect(Unit) {
-        database.medicationReminderDao().getAll()
-            .catch { e ->
-                error = e.message
-                e.printStackTrace()
-            }
-            .collectLatest {
-                reminders = it
-            }
+        // 加载用户设置
+        database.userSettingsDao().getUserSettings().collect { settings ->
+            // 加载提醒列表
+            database.medicationReminderDao().getAll()
+                .catch { e ->
+                    error = e.message
+                    e.printStackTrace()
+                }
+                .collectLatest { reminderList ->
+                    reminders = reminderList
+                    
+                    // 重新调度所有活跃的提醒
+                    reminderList.forEach { reminder ->
+                        if (reminder.isActive) {
+                            ReminderScheduler.scheduleReminder(
+                                context = context,
+                                reminder = reminder,
+                                advanceMinutes = settings?.reminderAdvanceMinutes ?: 30
+                            )
+                        }
+                    }
+                }
+        }
     }
 
     Scaffold(
@@ -146,8 +165,8 @@ fun MedicationReminderScreen(
                                         onClick = {
                                             scope.launch {
                                                 try {
-                                                    // 取消提醒
-                                                    workManager.cancelAllWorkByTag("reminder_${reminder.id}")
+                                                    // 取消提醒调度
+                                                    ReminderScheduler.cancelReminder(context, reminder.id)
                                                     // 从数据库删除
                                                     database.medicationReminderDao().delete(reminder)
                                                 } catch (e: Exception) {
