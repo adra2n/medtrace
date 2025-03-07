@@ -187,7 +187,12 @@ fun HomeScreen(
                 }
             } else {
                 items(todayReminders) { reminder ->
-                    ReminderCard(reminder, timeFormatter, now)
+                    ReminderCard(
+                        reminder = reminder,
+                        timeFormatter = timeFormatter,
+                        now = now,
+                        database = database
+                    )
                 }
             }
 
@@ -310,63 +315,147 @@ fun EmptyRecords() {
 fun ReminderCard(
     reminder: MedicationReminder,
     timeFormatter: DateTimeFormatter,
-    now: LocalDateTime
+    now: LocalDateTime,
+    database: AppDatabase,
+    modifier: Modifier = Modifier
 ) {
+    var todayRecords by remember { mutableStateOf<List<MedicationRecord>>(emptyList()) }
+    val scope = rememberCoroutineScope()
+
+    // 获取今日用药记录
+    LaunchedEffect(reminder.id) {
+        database.medicationRecordDao().getReminderDayRecords(
+            reminderId = reminder.id,
+            date = LocalDateTime.now()
+        ).collect { records ->
+            todayRecords = records
+        }
+    }
+
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = reminder.patientName,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "每天 ${reminder.timesPerDay} 次",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Column {
+                    Text(
+                        text = reminder.medicineName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "服用剂量：${reminder.dosageAmount}${reminder.dosageUnit}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                calculateNextDoseTime(reminder, now)?.let { nextDoseTime ->
+                    Text(
+                        text = "下次：${nextDoseTime.format(timeFormatter)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
-            
-            Text(
-                text = "药品：${reminder.medicineName}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            
-            Text(
-                text = "剂量：每次 ${reminder.dosageAmount} ${reminder.dosageUnit}",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            
-            // Text(
-            //     text = "服药时间：${reminder.medicationTimes.joinToString(", ") { it.format(timeFormatter) }}",
-            //     style = MaterialTheme.typography.bodyMedium
-            // )
-            
-            val nextDoseTime = calculateNextDoseTime(reminder, now)
-            if (nextDoseTime != null) {
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 显示今日用药记录
+            if (todayRecords.isNotEmpty()) {
                 Text(
-                    text = "下次服药时间：${nextDoseTime.format(timeFormatter)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    text = "今日服药记录",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
-            }
-            
-            if (reminder.instructions.isNotBlank()) {
-                Text(
-                    text = "说明：${reminder.instructions}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                todayRecords.forEach { record ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "计划时间：${record.scheduledTime.format(timeFormatter)}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = when (record.status) {
+                                MedicationStatus.TAKEN -> "已服用"
+                                MedicationStatus.SKIPPED -> "已跳过"
+                                MedicationStatus.DELAYED -> "已延迟"
+                                MedicationStatus.PENDING -> "待服用"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = when (record.status) {
+                                MedicationStatus.TAKEN -> MaterialTheme.colorScheme.primary
+                                MedicationStatus.SKIPPED -> MaterialTheme.colorScheme.error
+                                MedicationStatus.DELAYED -> MaterialTheme.colorScheme.tertiary
+                                MedicationStatus.PENDING -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                    record.actualTime?.let { actualTime ->
+                        Text(
+                            text = "实际服药时间：${actualTime.format(timeFormatter)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // 添加快速服药按钮
+                if (reminder.isActive && !now.isAfter(reminder.endDate)) {
+                    val pendingRecords = todayRecords.filter { it.status == MedicationStatus.PENDING }
+                    if (pendingRecords.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        val record = pendingRecords.first()
+                                        val updatedRecord = record.copy(
+                                            status = MedicationStatus.TAKEN,
+                                            actualTime = LocalDateTime.now()
+                                        )
+                                        database.medicationRecordDao().update(updatedRecord)
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = null)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("已服用")
+                            }
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        val record = pendingRecords.first()
+                                        val updatedRecord = record.copy(
+                                            status = MedicationStatus.SKIPPED,
+                                            actualTime = LocalDateTime.now()
+                                        )
+                                        database.medicationRecordDao().update(updatedRecord)
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.Default.Clear, contentDescription = null)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("跳过")
+                            }
+                        }
+                    }
+                }
             }
         }
     }

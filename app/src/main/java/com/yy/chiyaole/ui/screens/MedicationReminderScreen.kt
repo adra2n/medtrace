@@ -15,6 +15,7 @@ import androidx.navigation.NavController
 import androidx.work.WorkManager
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicationReminder
+import com.yy.chiyaole.data.model.MedicationStatus
 import com.yy.chiyaole.util.ReminderScheduler
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest

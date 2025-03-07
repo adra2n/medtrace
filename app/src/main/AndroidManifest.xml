@@ -39,6 +39,7 @@
             <intent-filter>
                 <action android:name="com.yy.chiyaole.ACTION_MEDICATION_TAKEN" />
                 <action android:name="com.yy.chiyaole.ACTION_MEDICATION_SKIP" />
+                <action android:name="com.yy.chiyaole.ACTION_MEDICATION_DELAY" />
             </intent-filter>
         </receiver>
 
