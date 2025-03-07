@@ -44,7 +44,8 @@ class MedicationReminderWorker(
             
             val patientName = inputData.getString("patientName") ?: return@withContext Result.failure()
             val medicineName = inputData.getString("medicineName") ?: return@withContext Result.failure()
-            val dosage = inputData.getString("dosage") ?: return@withContext Result.failure()
+            val dosageAmount = inputData.getFloat("dosageAmount", 0f)
+            val dosageUnit = inputData.getString("dosageUnit") ?: return@withContext Result.failure()
             val scheduledTime = LocalDateTime.now()
             val isPreview = inputData.getBoolean("isPreview", false)
 
@@ -67,7 +68,7 @@ class MedicationReminderWorker(
             val message = if (isPreview) {
                 "这是语音提醒测试"
             } else {
-                "${patientName}该吃${medicineName}了，请服用${dosage}"
+                "${patientName}该吃${medicineName}了，请服用${dosageAmount}${dosageUnit}"
             }
 
             // 创建通知渠道
