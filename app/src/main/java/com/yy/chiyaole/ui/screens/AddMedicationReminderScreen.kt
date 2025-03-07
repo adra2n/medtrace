@@ -3,6 +3,8 @@ package com.yy.chiyaole.ui.screens
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,6 +23,7 @@ import com.yy.chiyaole.data.model.MedicationReminder
 import com.yy.chiyaole.worker.MedicationReminderWorker
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
@@ -43,8 +46,8 @@ fun AddMedicationReminderScreen(
     var medicineName by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf(LocalDateTime.now()) }
     var endDate by remember { mutableStateOf(LocalDateTime.now().plusDays(7)) }
-    var firstDoseTime by remember { mutableStateOf(LocalDateTime.now()) }
-    var timesPerDay by remember { mutableStateOf("1") }
+    var dailyFrequency by remember { mutableStateOf(1) }
+    var medicationTimes by remember { mutableStateOf(List(1) { LocalTime.of(8, 0) }) }
     var dosageAmount by remember { mutableStateOf("1") }
     var dosageUnit by remember { mutableStateOf("片") }
     var instructions by remember { mutableStateOf("") }
@@ -64,8 +67,8 @@ fun AddMedicationReminderScreen(
                     medicineName = it.medicineName
                     startDate = it.startDate
                     endDate = it.endDate
-                    firstDoseTime = it.firstDoseTime
-                    timesPerDay = it.timesPerDay.toString()
+                    dailyFrequency = it.timesPerDay
+                    medicationTimes = it.medicationTimes
                     dosageAmount = it.dosageAmount.toString()
                     dosageUnit = it.dosageUnit
                     instructions = it.instructions
@@ -172,37 +175,60 @@ fun AddMedicationReminderScreen(
                 Text("结束日期：${endDate.format(dateFormatter)}")
             }
             
-            // 第一次服药时间选择
-            OutlinedButton(
-                onClick = {
-                    TimePickerDialog(
-                        context,
-                        { _, hourOfDay, minute ->
-                            firstDoseTime = firstDoseTime
-                                .withHour(hourOfDay)
-                                .withMinute(minute)
-                        },
-                        firstDoseTime.hour,
-                        firstDoseTime.minute,
-                        true
-                    ).show()
-                },
-                modifier = Modifier.fillMaxWidth()
+            // 每天服用次数选择
+            Text("每日服药次数", style = MaterialTheme.typography.bodyLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("第一次服药时间：${firstDoseTime.format(timeFormatter)}")
-            }
-            
-            // 每天服用次数
-            OutlinedTextField(
-                value = timesPerDay,
-                onValueChange = { 
-                    if (it.isEmpty() || it.toIntOrNull() != null) {
-                        timesPerDay = it
+                (1..4).forEach { count ->
+                    OutlinedButton(
+                        onClick = {
+                            dailyFrequency = count
+                            medicationTimes = List(count) { index ->
+                                when (index) {
+                                    0 -> LocalTime.of(8, 0)  // 早上8点
+                                    1 -> LocalTime.of(12, 0) // 中午12点
+                                    2 -> LocalTime.of(18, 0) // 晚上6点
+                                    else -> LocalTime.of(21, 0) // 睡前9点
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (dailyFrequency == count) 
+                                MaterialTheme.colorScheme.primaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Text(count.toString())
                     }
-                },
-                label = { Text("每天服用次数") },
-                modifier = Modifier.fillMaxWidth()
-            )
+                }
+            }
+
+            // 服药时间选择
+            Text("服药时间", style = MaterialTheme.typography.bodyLarge)
+            medicationTimes.forEachIndexed { index, time ->
+                OutlinedButton(
+                    onClick = {
+                        TimePickerDialog(
+                            context,
+                            { _, hourOfDay, minute ->
+                                medicationTimes = medicationTimes.toMutableList().apply {
+                                    this[index] = LocalTime.of(hourOfDay, minute)
+                                }
+                            },
+                            time.hour,
+                            time.minute,
+                            true
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("第${index + 1}次：${time.format(timeFormatter)}")
+                }
+            }
             
             // 用药剂量
             Row(
@@ -263,19 +289,11 @@ fun AddMedicationReminderScreen(
                         error = "请输入药品名称"
                         return@Button
                     }
-                    val timesPerDayInt = timesPerDay.toIntOrNull()
-                    if (timesPerDayInt == null || timesPerDayInt <= 0) {
-                        error = "请输入有效的每天服用次数"
-                        return@Button
-                    }
                     val dosageAmountFloat = dosageAmount.toFloatOrNull()
                     if (dosageAmountFloat == null || dosageAmountFloat <= 0) {
                         error = "请输入有效的用药剂量"
                         return@Button
                     }
-                    
-                    // 计算服药间隔（小时）
-                    val intervalHours = 24 / timesPerDayInt
                     
                     scope.launch {
                         try {
@@ -285,9 +303,8 @@ fun AddMedicationReminderScreen(
                                 medicineName = medicineName,
                                 startDate = startDate,
                                 endDate = endDate,
-                                firstDoseTime = firstDoseTime,
-                                intervalHours = intervalHours,
-                                timesPerDay = timesPerDayInt,
+                                timesPerDay = dailyFrequency,
+                                medicationTimes = medicationTimes,
                                 dosageAmount = dosageAmountFloat,
                                 dosageUnit = dosageUnit,
                                 instructions = instructions
@@ -324,33 +341,35 @@ private fun scheduleReminder(workManager: WorkManager, reminder: MedicationRemin
         "dosage" to "${reminder.dosageAmount}${reminder.dosageUnit}"
     )
     
-    // 计算第一次提醒的延迟时间
-    val firstDoseDelay = Duration.between(now, reminder.firstDoseTime)
-    if (!firstDoseDelay.isNegative) {
-        // 如果第一次服药时间还没到，创建一次性提醒
-        val firstDoseRequest = OneTimeWorkRequestBuilder<MedicationReminderWorker>()
-            .setInitialDelay(firstDoseDelay.toMinutes(), TimeUnit.MINUTES)
+    // 为每个服药时间点创建周期性提醒
+    reminder.medicationTimes.forEachIndexed { index, time ->
+        // 计算今天这个时间点
+        var nextDoseTime = now.with(time)
+        
+        // 如果今天的这个时间点已经过了，设置为明天的这个时间点
+        if (nextDoseTime.isBefore(now)) {
+            nextDoseTime = nextDoseTime.plusDays(1)
+        }
+        
+        // 如果开始日期还没到，使用开始日期的这个时间点
+        if (nextDoseTime.isBefore(reminder.startDate)) {
+            nextDoseTime = reminder.startDate.with(time)
+        }
+        
+        // 计算延迟时间（分钟）
+        val initialDelay = java.time.Duration.between(now, nextDoseTime).toMinutes()
+        
+        // 创建每日重复的提醒
+        val periodicRequest = PeriodicWorkRequestBuilder<MedicationReminderWorker>(
+            24, // 每24小时重复一次
+            TimeUnit.HOURS
+        )
+            .setInitialDelay(initialDelay, TimeUnit.MINUTES)
             .setInputData(data)
             .addTag("reminder_${reminder.id}")
+            .addTag("reminder_${reminder.id}_time_$index")
             .build()
             
-        workManager.enqueue(firstDoseRequest)
+        workManager.enqueue(periodicRequest)
     }
-    
-    // 创建周期性提醒
-    val periodicRequest = PeriodicWorkRequestBuilder<MedicationReminderWorker>(
-        reminder.intervalHours.toLong(),
-        TimeUnit.HOURS
-    )
-        .setInputData(data)
-        .addTag("reminder_${reminder.id}")
-        // 如果第一次服药时间还没到，设置周期性提醒的开始时间为第一次服药时间
-        .apply {
-            if (!firstDoseDelay.isNegative) {
-                setInitialDelay(firstDoseDelay.toMinutes(), TimeUnit.MINUTES)
-            }
-        }
-        .build()
-    
-    workManager.enqueue(periodicRequest)
 }

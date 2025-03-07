@@ -17,6 +17,8 @@ import com.yy.chiyaole.data.model.MedicationReminder
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +32,37 @@ fun MedicationReminderScreen(
     var reminders by remember { mutableStateOf<List<MedicationReminder>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val now = LocalDateTime.now()
+
+    // 计算下一次服药时间的函数
+    fun getNextDoseTime(reminder: MedicationReminder): LocalDateTime? {
+        if (!reminder.isActive || now.isAfter(reminder.endDate) || reminder.medicationTimes.isEmpty()) {
+            return null
+        }
+
+        // 如果当前时间在开始日期之前，返回开始日期的第一个服药时间
+        if (now.isBefore(reminder.startDate)) {
+            return reminder.startDate.with(reminder.medicationTimes[0])
+        }
+
+        val currentTime = now.toLocalTime()
+        val today = now.toLocalDate()
+
+        // 找到今天的下一个服药时间
+        val nextTimeToday = reminder.medicationTimes.find { it.isAfter(currentTime) }
+
+        return if (nextTimeToday != null) {
+            // 今天还有服药时间
+            now.with(nextTimeToday)
+        } else {
+            // 今天没有剩余的服药时间，返回明天的第一个服药时间
+            now.plusDays(1).with(reminder.medicationTimes[0])
+        }.let { nextTime ->
+            // 检查是否超过结束日期
+            if (nextTime.isAfter(reminder.endDate)) null else nextTime
+        }
+    }
 
     LaunchedEffect(Unit) {
         database.medicationReminderDao().getAll()
@@ -145,19 +178,25 @@ fun MedicationReminderScreen(
                                 text = "结束时间：${reminder.endDate.format(dateFormatter)}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            
-                            Text(
-                                text = "第一次服药时间：${reminder.firstDoseTime.format(dateFormatter)}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            
-                            Text(
-                                text = "服药间隔：${reminder.intervalHours}小时",
-                                style = MaterialTheme.typography.bodyMedium
+
+                            getNextDoseTime(reminder)?.let { nextDoseTime ->
+                                Text(
+                                    text = "下次服药时间：${nextDoseTime.format(dateFormatter)}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            } ?: Text(
+                                text = "已完成服药",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.secondary
                             )
                             
                             Text(
                                 text = "每天服用次数：${reminder.timesPerDay}次",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                            Text(
+                                text = "服药时间：${reminder.medicationTimes.joinToString(", ") { it.format(timeFormatter) }}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             
