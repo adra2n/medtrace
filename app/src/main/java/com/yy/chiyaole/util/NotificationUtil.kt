@@ -78,7 +78,8 @@ object NotificationUtil {
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setAutoCancel(true)
+            .setAutoCancel(true)  
+            .setOngoing(true)      // 设置为持续通知
             .setContentIntent(contentIntent)
             .setGroup(GROUP_KEY)
             .addAction(R.drawable.ic_check, "已服用", takenIntent)

@@ -14,5 +14,5 @@ enum class MedicationStatus {
     TAKEN,      // 已服用：用户已确认服用药物
     SKIPPED,    // 已跳过：用户主动选择跳过服用
     DELAYED,    // 已延迟：用户选择延迟服用，等待新的提醒
-    MISSED      // 已错过：超过服药时间且用户未进行任何操作
+//    MISSED      // 已错过：超过服药时间且用户未进行任何操作
 }
