@@ -26,7 +26,7 @@ import com.yy.chiyaole.data.model.MedicationReminder
 import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.data.model.MedicationRecord
 import com.yy.chiyaole.data.model.MedicationStatus
-import com.yy.chiyaole.util.ComplianceUtil
+//import com.yy.chiyaole.util.ComplianceUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -36,13 +36,7 @@ import java.time.format.DateTimeFormatter
 
 data class MedicationStats(
     val totalToday: Int = 0,
-    val completedToday: Int = 0,
-    val weeklyAdherence: Float = 0f,
-    val monthlyAdherence: Float = 0f,
-    val monthlyTotalDoses: Int = 0,
-    val monthlyCompletedDoses: Int = 0,
-    val monthlyMissedDoses: Int = 0,
-    val complianceAdvice: String = ""
+    val completedToday: Int = 0
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,27 +74,9 @@ fun HomeScreen(
                         it.status == MedicationStatus.TAKEN
                     }
                     
-                    // 计算依从率
-                    val weeklyAdherence = ComplianceUtil.calculateWeeklyComplianceRate(records)
-                    val monthlyAdherence = ComplianceUtil.calculateMonthlyComplianceRate(records)
-                    val complianceAdvice = ComplianceUtil.getComplianceAdvice(weeklyAdherence)
-                    
-                    val monthlyTotalDoses = records.count { it.scheduledTime.toLocalDate().month == now.toLocalDate().month }
-                    val monthlyCompletedDoses = records.count { 
-                        it.scheduledTime.toLocalDate().month == now.toLocalDate().month && 
-                        it.status == MedicationStatus.TAKEN
-                    }
-                    val monthlyMissedDoses = monthlyTotalDoses - monthlyCompletedDoses
-                    
                     medicationStats = MedicationStats(
                         totalToday = totalDoses,
-                        completedToday = completedDoses,
-                        weeklyAdherence = weeklyAdherence,
-                        monthlyAdherence = monthlyAdherence,
-                        monthlyTotalDoses = monthlyTotalDoses,
-                        monthlyCompletedDoses = monthlyCompletedDoses,
-                        monthlyMissedDoses = monthlyMissedDoses,
-                        complianceAdvice = complianceAdvice
+                        completedToday = completedDoses
                     )
                 }
                 .flowOn(Dispatchers.Default)
@@ -158,10 +134,6 @@ fun HomeScreen(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-            // 月度依从率卡片
-            item {
-                MonthlyComplianceCard(medicationStats)
-            }
             // 用药统计卡片
             item {
                 Card(
@@ -195,31 +167,10 @@ fun HomeScreen(
                                 value = "${medicationStats.completedToday}",
                                 icon = Icons.Default.CheckCircle
                             )
-                            StatItem(
-                                title = "本周依从率",
-                                value = "${(medicationStats.weeklyAdherence * 100).toInt()}%",
-                                icon = Icons.Default.List
-                            )
-                        }
-                        
-                        // 依从率建议
-                        if (medicationStats.complianceAdvice.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = medicationStats.complianceAdvice,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
                         }
                     }
                 }
             }
-
-            // // 月度依从率卡片
-            // item {
-            //     MonthlyComplianceCard(medicationStats)
-            // }
 
             // 今日用药提醒
             item {
@@ -498,131 +449,6 @@ fun HealthTipsCard() {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
-        }
-    }
-}
-
-@Composable
-fun MonthlyComplianceCard(
-    medicationStats: MedicationStats,
-    onViewDetails: () -> Unit = {}
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                medicationStats.monthlyAdherence >= 0.9f -> MaterialTheme.colorScheme.primaryContainer
-                medicationStats.monthlyAdherence >= 0.7f -> MaterialTheme.colorScheme.secondaryContainer
-                else -> MaterialTheme.colorScheme.errorContainer
-            }
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "本月服药依从率",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                
-                Text(
-                    text = "${(medicationStats.monthlyAdherence * 100).toInt()}%",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-            LinearProgressIndicator(
-                progress = medicationStats.monthlyAdherence,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-                color = when {
-                    medicationStats.monthlyAdherence >= 0.9f -> MaterialTheme.colorScheme.primary
-                    medicationStats.monthlyAdherence >= 0.7f -> MaterialTheme.colorScheme.secondary
-                    else -> MaterialTheme.colorScheme.error
-                },
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "本月应服用",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "${medicationStats.monthlyTotalDoses}剂",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                
-                Column {
-                    Text(
-                        text = "已按时服用",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "${medicationStats.monthlyCompletedDoses}剂",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                
-                Column {
-                    Text(
-                        text = "漏服/延迟",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "${medicationStats.monthlyMissedDoses}剂",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-            
-            if (medicationStats.complianceAdvice.isNotEmpty()) {
-                Text(
-                    text = medicationStats.complianceAdvice,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-            
-            // TextButton(
-            //     onClick = onViewDetails,
-            //     modifier = Modifier.align(Alignment.End)
-            // ) {
-            //     Text("查看详情")
-            //     Icon(
-            //         Icons.Default.ArrowForward,
-            //         contentDescription = "查看详情",
-            //         modifier = Modifier.padding(start = 4.dp)
-            //     )
-            // }
         }
     }
 }
