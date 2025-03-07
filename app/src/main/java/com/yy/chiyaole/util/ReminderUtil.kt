@@ -3,11 +3,11 @@ package com.yy.chiyaole.util
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
 import com.yy.chiyaole.data.model.MedicationReminder
 import com.yy.chiyaole.worker.MedicationReminderWorker
 import java.time.Duration
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 
 fun scheduleMedicationReminder(workManager: WorkManager, reminder: MedicationReminder) {
@@ -15,42 +15,47 @@ fun scheduleMedicationReminder(workManager: WorkManager, reminder: MedicationRem
     workManager.cancelAllWorkByTag("reminder_${reminder.id}")
     
     val now = LocalDateTime.now()
-    if (reminder.endDate.isBefore(now)) return
+    if (reminder.endDate.isBefore(now) || !reminder.isActive) return
     
     // 设置提醒数据
     val data = workDataOf(
+        "reminderId" to reminder.id,
         "patientName" to reminder.patientName,
         "medicineName" to reminder.medicineName,
         "dosage" to "${reminder.dosageAmount}${reminder.dosageUnit}"
     )
     
-    // 计算第一次提醒的延迟时间
-    val firstDoseDelay = Duration.between(now, reminder.firstDoseTime)
-    if (!firstDoseDelay.isNegative) {
-        // 如果第一次服药时间还没到，创建一次性提醒
-        val firstDoseRequest = OneTimeWorkRequestBuilder<MedicationReminderWorker>()
-            .setInitialDelay(firstDoseDelay.toMinutes(), TimeUnit.MINUTES)
+    // 获取今天的服药时间点
+    val todayTimes = reminder.medicationTimes.map { time ->
+        LocalDateTime.of(now.toLocalDate(), time)
+    }
+    
+    // 为每个今天未过期的时间点设置提醒
+    todayTimes.forEach { dateTime ->
+        val delay = Duration.between(now, dateTime)
+        if (!delay.isNegative) {
+            val request = OneTimeWorkRequestBuilder<MedicationReminderWorker>()
+                .setInitialDelay(delay.toMinutes(), TimeUnit.MINUTES)
+                .setInputData(data)
+                .addTag("reminder_${reminder.id}")
+                .build()
+                
+            workManager.enqueue(request)
+        }
+    }
+    
+    // 为明天的第一个时间点设置提醒
+    val tomorrow = now.plusDays(1).toLocalDate()
+    if (!tomorrow.isAfter(reminder.endDate.toLocalDate())) {
+        val tomorrowFirstTime = LocalDateTime.of(tomorrow, reminder.medicationTimes.first())
+        val delayToTomorrow = Duration.between(now, tomorrowFirstTime)
+        
+        val tomorrowRequest = OneTimeWorkRequestBuilder<MedicationReminderWorker>()
+            .setInitialDelay(delayToTomorrow.toMinutes(), TimeUnit.MINUTES)
             .setInputData(data)
             .addTag("reminder_${reminder.id}")
             .build()
             
-        workManager.enqueue(firstDoseRequest)
+        workManager.enqueue(tomorrowRequest)
     }
-    
-    // 创建周期性提醒
-    val periodicRequest = PeriodicWorkRequestBuilder<MedicationReminderWorker>(
-        reminder.intervalHours.toLong(),
-        TimeUnit.HOURS
-    )
-        .setInputData(data)
-        .addTag("reminder_${reminder.id}")
-        // 如果第一次服药时间还没到，设置周期性提醒的开始时间为第一次服药时间
-        .apply {
-            if (!firstDoseDelay.isNegative) {
-                setInitialDelay(firstDoseDelay.toMinutes(), TimeUnit.MINUTES)
-            }
-        }
-        .build()
-    
-    workManager.enqueue(periodicRequest)
 }

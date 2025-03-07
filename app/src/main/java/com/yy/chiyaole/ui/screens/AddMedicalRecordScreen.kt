@@ -19,6 +19,7 @@ import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicalRecord
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,7 +31,8 @@ fun AddMedicalRecordScreen(
     var patientName by remember { mutableStateOf("") }
     var diagnosis by remember { mutableStateOf("") }
     var medications by remember { mutableStateOf("") }
-    var frequency by remember { mutableStateOf("") }
+    var dailyFrequency by remember { mutableStateOf(1) }
+    var medicationTimes by remember { mutableStateOf(List(1) { LocalTime.of(8, 0) }) }
     var dosage by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var onsetTime by remember { mutableStateOf(LocalDateTime.now()) }
@@ -125,12 +127,58 @@ fun AddMedicalRecordScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             
-            OutlinedTextField(
-                value = frequency,
-                onValueChange = { frequency = it },
-                label = { Text("服药频率（如：每天三次）") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Text("每日服药次数", style = MaterialTheme.typography.bodyLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                (1..4).forEach { count ->
+                    OutlinedButton(
+                        onClick = {
+                            dailyFrequency = count
+                            medicationTimes = List(count) { index ->
+                                when (index) {
+                                    0 -> LocalTime.of(8, 0)  // 早上8点
+                                    1 -> LocalTime.of(12, 0) // 中午12点
+                                    2 -> LocalTime.of(18, 0) // 晚上6点
+                                    else -> LocalTime.of(21, 0) // 睡前9点
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (dailyFrequency == count) 
+                                MaterialTheme.colorScheme.primaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Text(count.toString())
+                    }
+                }
+            }
+
+            Text("服药时间", style = MaterialTheme.typography.bodyLarge)
+            medicationTimes.forEachIndexed { index, time ->
+                OutlinedButton(
+                    onClick = {
+                        TimePickerDialog(
+                            context,
+                            { _, hourOfDay, minute ->
+                                medicationTimes = medicationTimes.toMutableList().apply {
+                                    this[index] = LocalTime.of(hourOfDay, minute)
+                                }
+                            },
+                            time.hour,
+                            time.minute,
+                            true
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("第${index + 1}次：${time.format(DateTimeFormatter.ofPattern("HH:mm"))}")
+                }
+            }
             
             OutlinedTextField(
                 value = dosage,
@@ -155,10 +203,14 @@ fun AddMedicalRecordScreen(
                 Button(
                     onClick = {
                         if (patientName.isBlank() || diagnosis.isBlank() || 
-                            medications.isBlank() || frequency.isBlank() || dosage.isBlank()
+                            medications.isBlank() || dosage.isBlank()
                         ) {
                             error = "请填写必要信息"
                             return@Button
+                        }
+                        
+                        val frequency = "每天${dailyFrequency}次：" + medicationTimes.joinToString(", ") { 
+                            it.format(DateTimeFormatter.ofPattern("HH:mm")) 
                         }
                         
                         val record = MedicalRecord(

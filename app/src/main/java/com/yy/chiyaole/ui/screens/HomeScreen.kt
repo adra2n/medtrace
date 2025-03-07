@@ -23,6 +23,7 @@ import com.yy.chiyaole.data.model.MedicationReminder
 import com.yy.chiyaole.data.model.MedicalRecord
 import kotlinx.coroutines.flow.catch
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 data class MedicationStats(
@@ -43,6 +44,7 @@ fun HomeScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var showSettings by remember { mutableStateOf(false) }
     val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm")
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val now = LocalDateTime.now()
 
     // 加载数据
@@ -55,9 +57,15 @@ fun HomeScreen(
             .collect { reminders ->
                 todayReminders = reminders
                 // 计算用药统计
+                val totalDoses = reminders.sumOf { it.timesPerDay }
+                val completedDoses = reminders.sumOf { reminder ->
+                    reminder.medicationTimes.count { time ->
+                        LocalDateTime.of(now.toLocalDate(), time).isBefore(now)
+                    }
+                }
                 medicationStats = MedicationStats(
-                    totalToday = reminders.size,
-                    completedToday = reminders.count { it.firstDoseTime.isBefore(now) },
+                    totalToday = totalDoses,
+                    completedToday = completedDoses,
                     weeklyAdherence = 0.85f // 这里需要实现实际的计算逻辑
                 )
             }
@@ -156,7 +164,7 @@ fun HomeScreen(
                 }
             } else {
                 items(todayReminders) { reminder ->
-                    ReminderCard(reminder, dateTimeFormatter, now)
+                    ReminderCard(reminder, timeFormatter, now)
                 }
             }
 
@@ -220,7 +228,7 @@ fun StatItem(title: String, value: String, icon: ImageVector) {
 @Composable
 fun ReminderCard(
     reminder: MedicationReminder,
-    dateTimeFormatter: DateTimeFormatter,
+    timeFormatter: DateTimeFormatter,
     now: LocalDateTime
 ) {
     Card(
@@ -242,7 +250,7 @@ fun ReminderCard(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "首次服药：${reminder.firstDoseTime.format(dateTimeFormatter)}",
+                    text = "每天 ${reminder.timesPerDay} 次",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -253,13 +261,18 @@ fun ReminderCard(
             )
             
             Text(
-                text = "剂量：每次 ${reminder.dosageAmount} ${reminder.dosageUnit}，每天 ${reminder.timesPerDay} 次",
+                text = "剂量：每次 ${reminder.dosageAmount} ${reminder.dosageUnit}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            
+            Text(
+                text = "服药时间：${reminder.medicationTimes.joinToString(", ") { it.format(timeFormatter) }}",
                 style = MaterialTheme.typography.bodyMedium
             )
             
             val nextDoseTime = calculateNextDoseTime(reminder, now)
             Text(
-                text = "下一次用药：${nextDoseTime.format(dateTimeFormatter)}",
+                text = "下一次用药：${nextDoseTime?.format(timeFormatter) ?: "今日已完成"}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -401,22 +414,12 @@ fun HealthTipsCard() {
     }
 }
 
-private fun calculateNextDoseTime(reminder: MedicationReminder, now: LocalDateTime): LocalDateTime {
-    var nextDoseTime = reminder.firstDoseTime
-    
-    if (nextDoseTime.isAfter(now)) {
-        return nextDoseTime
+private fun calculateNextDoseTime(reminder: MedicationReminder, now: LocalDateTime): LocalTime? {
+    // 获取今天的所有服药时间点
+    val todayTimes = reminder.medicationTimes.map { time ->
+        LocalDateTime.of(now.toLocalDate(), time)
     }
     
-    val hoursSinceFirstDose = now.hour - reminder.firstDoseTime.hour + 
-            (now.dayOfYear - reminder.firstDoseTime.dayOfYear) * 24
-    val intervals = (hoursSinceFirstDose / reminder.intervalHours) + 1
-    
-    nextDoseTime = reminder.firstDoseTime.plusHours((intervals * reminder.intervalHours).toLong())
-    
-    if (nextDoseTime.isAfter(reminder.endDate)) {
-        nextDoseTime = reminder.endDate
-    }
-    
-    return nextDoseTime
+    // 找到下一个服药时间点
+    return todayTimes.find { it.isAfter(now) }?.toLocalTime()
 }

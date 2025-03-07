@@ -18,6 +18,7 @@ import com.yy.chiyaole.data.model.UserSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.time.LocalTime
 
 @Database(
     entities = [
@@ -25,7 +26,7 @@ import kotlinx.coroutines.launch
         MedicalRecord::class,
         UserSettings::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(DateTimeConverter::class, LocalTimeConverter::class)
@@ -113,6 +114,58 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 创建临时表，包含新的 medicationTimes 列
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS medication_reminders_temp (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        patientName TEXT NOT NULL,
+                        medicineName TEXT NOT NULL,
+                        startDate TEXT NOT NULL,
+                        endDate TEXT NOT NULL,
+                        timesPerDay INTEGER NOT NULL,
+                        medicationTimes TEXT NOT NULL,
+                        dosageAmount REAL NOT NULL,
+                        dosageUnit TEXT NOT NULL,
+                        instructions TEXT NOT NULL,
+                        isActive INTEGER NOT NULL
+                    )
+                """)
+                
+                // 迁移数据，根据 firstDoseTime 和 intervalHours 生成 medicationTimes
+                database.execSQL("""
+                    INSERT INTO medication_reminders_temp (
+                        id, patientName, medicineName, startDate, endDate,
+                        timesPerDay, medicationTimes, dosageAmount,
+                        dosageUnit, instructions, isActive
+                    )
+                    SELECT 
+                        id, patientName, medicineName, startDate, endDate,
+                        timesPerDay,
+                        CASE 
+                            WHEN timesPerDay = 1 THEN time(firstDoseTime)
+                            WHEN timesPerDay = 2 THEN time(firstDoseTime) || ',' || time(datetime(firstDoseTime, '+' || (intervalHours) || ' hours'))
+                            WHEN timesPerDay = 3 THEN time(firstDoseTime) || ',' || 
+                                time(datetime(firstDoseTime, '+' || (intervalHours) || ' hours')) || ',' ||
+                                time(datetime(firstDoseTime, '+' || (intervalHours * 2) || ' hours'))
+                            ELSE time(firstDoseTime) || ',' || 
+                                time(datetime(firstDoseTime, '+' || (intervalHours) || ' hours')) || ',' ||
+                                time(datetime(firstDoseTime, '+' || (intervalHours * 2) || ' hours')) || ',' ||
+                                time(datetime(firstDoseTime, '+' || (intervalHours * 3) || ' hours'))
+                        END,
+                        dosageAmount, dosageUnit, instructions, isActive
+                    FROM medication_reminders
+                """)
+                
+                // 删除旧表
+                database.execSQL("DROP TABLE medication_reminders")
+                
+                // 重命名新表
+                database.execSQL("ALTER TABLE medication_reminders_temp RENAME TO medication_reminders")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -123,7 +176,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

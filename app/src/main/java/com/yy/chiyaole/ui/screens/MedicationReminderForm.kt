@@ -35,8 +35,9 @@ fun MedicationReminderForm(
     var endDate by remember { 
         mutableStateOf(reminder?.endDate?.toLocalDate() ?: LocalDate.now().plusDays(7))
     }
-    var firstDoseTime by remember { 
-        mutableStateOf(reminder?.firstDoseTime?.toLocalTime() ?: LocalTime.of(8, 0))
+    
+    var medicationTimes by remember {
+        mutableStateOf(reminder?.medicationTimes ?: listOf(LocalTime.of(8, 0)))
     }
     
     var error by remember { mutableStateOf<String?>(null) }
@@ -117,34 +118,54 @@ fun MedicationReminderForm(
             Text("结束日期：${endDate.format(dateFormatter)}")
         }
         
-        // 第一次服药时间选择
-        OutlinedButton(
-            onClick = {
-                TimePickerDialog(
-                    context,
-                    { _, hourOfDay, minute ->
-                        firstDoseTime = LocalTime.of(hourOfDay, minute)
-                    },
-                    firstDoseTime.hour,
-                    firstDoseTime.minute,
-                    true
-                ).show()
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("第一次服药时间：${firstDoseTime.format(timeFormatter)}")
-        }
-        
         // 每天服用次数
         FormTextField(
             value = timesPerDay,
-            onValueChange = { 
-                if (it.isEmpty() || it.toIntOrNull() != null) {
-                    timesPerDay = it
+            onValueChange = { newValue -> 
+                if (newValue.isEmpty() || newValue.toIntOrNull() != null) {
+                    val newTimesPerDay = newValue.toIntOrNull() ?: 1
+                    if (newTimesPerDay in 1..4) {
+                        timesPerDay = newValue
+                        // 根据服用次数调整时间点列表
+                        medicationTimes = when (newTimesPerDay) {
+                            1 -> listOf(LocalTime.of(8, 0))
+                            2 -> listOf(LocalTime.of(8, 0), LocalTime.of(20, 0))
+                            3 -> listOf(LocalTime.of(8, 0), LocalTime.of(14, 0), LocalTime.of(20, 0))
+                            4 -> listOf(LocalTime.of(8, 0), LocalTime.of(12, 0), LocalTime.of(16, 0), LocalTime.of(20, 0))
+                            else -> medicationTimes
+                        }
+                    }
                 }
             },
-            label = "每天服用次数"
+            label = "每天服用次数（1-4次）"
         )
+        
+        // 服药时间点选择
+        Text(
+            text = "服药时间",
+            style = MaterialTheme.typography.bodyLarge
+        )
+        medicationTimes.forEachIndexed { index, time ->
+            OutlinedButton(
+                onClick = {
+                    TimePickerDialog(
+                        context,
+                        { _, hourOfDay, minute ->
+                            val newTime = LocalTime.of(hourOfDay, minute)
+                            medicationTimes = medicationTimes.toMutableList().also {
+                                it[index] = newTime
+                            }.sorted()
+                        },
+                        time.hour,
+                        time.minute,
+                        true
+                    ).show()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("第${index + 1}次：${time.format(timeFormatter)}")
+            }
+        }
         
         // 用药剂量
         Row(
@@ -209,8 +230,8 @@ fun MedicationReminderForm(
                         return@Button
                     }
                     val timesPerDayInt = timesPerDay.toIntOrNull()
-                    if (timesPerDayInt == null || timesPerDayInt <= 0) {
-                        error = "请输入有效的每天服用次数"
+                    if (timesPerDayInt == null || timesPerDayInt !in 1..4) {
+                        error = "请输入有效的每天服用次数（1-4次）"
                         return@Button
                     }
                     val dosageAmountFloat = dosageAmount.toFloatOrNull()
@@ -219,21 +240,18 @@ fun MedicationReminderForm(
                         return@Button
                     }
                     
-                    // 计算服药间隔（小时）
-                    val intervalHours = 24 / timesPerDayInt
-                    
                     val newReminder = MedicationReminder(
                         id = reminder?.id ?: 0,
                         patientName = patientName,
                         medicineName = medicineName,
                         startDate = LocalDateTime.of(startDate, LocalTime.MIN),
                         endDate = LocalDateTime.of(endDate, LocalTime.MAX),
-                        firstDoseTime = LocalDateTime.of(startDate, firstDoseTime),
-                        intervalHours = intervalHours,
                         timesPerDay = timesPerDayInt,
+                        medicationTimes = medicationTimes.sorted(),
                         dosageAmount = dosageAmountFloat,
                         dosageUnit = dosageUnit,
-                        instructions = instructions
+                        instructions = instructions,
+                        isActive = true
                     )
                     onSave(newReminder)
                 },
