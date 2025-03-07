@@ -265,14 +265,14 @@ fun ReminderCard(
                 style = MaterialTheme.typography.bodyMedium
             )
             
-            Text(
-                text = "服药时间：${reminder.medicationTimes.joinToString(", ") { it.format(timeFormatter) }}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+//            Text(
+//                text = "服药时间：${reminder.medicationTimes.joinToString(", ") { it.format(timeFormatter) }}",
+//                style = MaterialTheme.typography.bodyMedium
+//            )
             
             val nextDoseTime = calculateNextDoseTime(reminder, now)
             Text(
-                text = "下一次用药：${nextDoseTime?.format(timeFormatter) ?: "今日已完成"}",
+                text = "用药时间：${nextDoseTime?.format(timeFormatter) ?: "今日已完成"}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary
             )
