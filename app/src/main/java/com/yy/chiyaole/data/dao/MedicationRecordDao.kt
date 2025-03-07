@@ -50,4 +50,12 @@ interface MedicationRecordDao {
         ORDER BY scheduledTime DESC
     """)
     fun getReminderDayRecords(reminderId: Long, date: LocalDateTime): Flow<List<MedicationRecord>>
+
+    @Query("""
+        SELECT * FROM medication_records 
+        WHERE reminderId = :reminderId AND date(scheduledTime) = date('now')
+        ORDER BY scheduledTime DESC
+        LIMIT 1
+    """)
+    fun getLatestRecordForReminder(reminderId: Long): Flow<MedicationRecord?>
 }

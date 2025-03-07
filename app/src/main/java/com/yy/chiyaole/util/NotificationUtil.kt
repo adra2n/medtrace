@@ -8,11 +8,20 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.work.*
 import com.yy.chiyaole.MainActivity
 import com.yy.chiyaole.R
 import com.yy.chiyaole.data.model.MedicationReminder
 import com.yy.chiyaole.receiver.MedicationActionReceiver
+import com.yy.chiyaole.worker.RepeatReminderWorker
+import kotlinx.coroutines.*
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
 
 object NotificationUtil {
     private const val CHANNEL_ID = "medication_reminder_channel"
@@ -26,19 +35,24 @@ object NotificationUtil {
 
     const val EXTRA_REMINDER_ID = "reminderId"
     const val EXTRA_DELAY_MINUTES = "delayMinutes"
+    private const val REPEAT_INTERVAL = 30L // 重复提醒间隔（秒）
+
+    private var textToSpeech: TextToSpeech? = null
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
 
     fun showMedicationReminder(
         context: Context,
         reminder: MedicationReminder,
         enableSound: Boolean = true,
-        enableVibration: Boolean = true
+        enableVibration: Boolean = true,
+        enableVoice: Boolean = true
     ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
         // 创建通知渠道
         createNotificationChannel(context)
         
-        // 创建操作按钮的 PendingIntent
+        // 创建点击通知时的 Intent
         val contentIntent = PendingIntent.getActivity(
             context,
             reminder.id.toInt(),
@@ -76,6 +90,111 @@ object NotificationUtil {
 
         // 更新摘要通知
         updateSummaryNotification(context, notificationManager)
+
+        // 播放语音提醒
+        if (enableVoice) {
+            coroutineScope.launch {
+                try {
+                    speakMessage(context, message)
+                } catch (e: Exception) {
+                    Log.e("NotificationUtil", "语音提醒失败", e)
+                }
+            }
+        }
+
+        // 调度重复提醒
+        scheduleRepeatReminder(context, reminder)
+    }
+
+    private fun scheduleRepeatReminder(context: Context, reminder: MedicationReminder) {
+        val workManager = WorkManager.getInstance(context)
+        
+        // 创建重复提醒的工作请求
+        val repeatWorkRequest = OneTimeWorkRequestBuilder<RepeatReminderWorker>()
+            .setInitialDelay(REPEAT_INTERVAL, TimeUnit.SECONDS)
+            .setInputData(workDataOf(
+                "reminderId" to reminder.id,
+                "notificationId" to reminder.id.toInt(),
+                "enableVoice" to true  // 添加语音提醒标志
+            ))
+            .addTag("repeat_reminder_${reminder.id}")
+            .build()
+
+        // 取消之前的重复提醒（如果有）
+        workManager.cancelAllWorkByTag("repeat_reminder_${reminder.id}")
+        
+        // 开始新的重复提醒
+        workManager.enqueue(repeatWorkRequest)
+    }
+
+    private suspend fun speakMessage(context: Context, message: String) = suspendCancellableCoroutine { continuation ->
+        try {
+            textToSpeech = TextToSpeech(context) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    // 设置语言
+                    var result = textToSpeech?.setLanguage(Locale.CHINESE)
+                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                        result = textToSpeech?.setLanguage(Locale.SIMPLIFIED_CHINESE)
+                        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                            Log.e("NotificationUtil", "语言不支持")
+                            continuation.resume(Unit)
+                            return@TextToSpeech
+                        }
+                    }
+
+                    // 设置语音完成的回调
+                    textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) {}
+
+                        override fun onDone(utteranceId: String?) {
+                            if (utteranceId == "medication_reminder") {
+                                continuation.resume(Unit)
+                                // 清理资源
+                                textToSpeech?.shutdown()
+                                textToSpeech = null
+                            }
+                        }
+
+                        @Deprecated("Deprecated in Java")
+                        override fun onError(utteranceId: String?) {
+                            if (utteranceId == "medication_reminder") {
+                                Log.e("NotificationUtil", "语音播放失败")
+                                continuation.resume(Unit)
+                                // 清理资源
+                                textToSpeech?.shutdown()
+                                textToSpeech = null
+                            }
+                        }
+                    })
+
+                    // 播放语音
+                    textToSpeech?.speak(
+                        message,
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        "medication_reminder"
+                    )
+                } else {
+                    Log.e("NotificationUtil", "TextToSpeech 初始化失败: $status")
+                    continuation.resume(Unit)
+                    // 清理资源
+                    textToSpeech?.shutdown()
+                    textToSpeech = null
+                }
+            }
+
+            continuation.invokeOnCancellation {
+                textToSpeech?.stop()
+                textToSpeech?.shutdown()
+                textToSpeech = null
+            }
+        } catch (e: Exception) {
+            Log.e("NotificationUtil", "语音提醒设置失败", e)
+            continuation.resume(Unit)
+            // 清理资源
+            textToSpeech?.shutdown()
+            textToSpeech = null
+        }
     }
 
     private fun buildReminderMessage(reminder: MedicationReminder): String {
@@ -125,12 +244,21 @@ object NotificationUtil {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.cancel(reminderId.toInt())
         
+        // 取消重复提醒
+        WorkManager.getInstance(context).cancelAllWorkByTag("repeat_reminder_$reminderId")
+        
         // 检查是否还有其他通知，如果没有，取消摘要通知
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (notificationManager.activeNotifications.none { it.id != SUMMARY_ID }) {
                 notificationManager.cancel(SUMMARY_ID)
             }
         }
+
+        // 清理语音资源
+        textToSpeech?.stop()
+        textToSpeech?.shutdown()
+        textToSpeech = null
+        coroutineScope.cancel()
     }
 
     fun createOngoingNotification(context: Context): android.app.Notification {
