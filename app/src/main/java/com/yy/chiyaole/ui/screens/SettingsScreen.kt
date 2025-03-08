@@ -1,7 +1,12 @@
 package com.yy.chiyaole.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -30,6 +35,27 @@ fun SettingsDialog(
     
     val reminderPreviewUtil = remember { ReminderPreviewUtil(context) }
 
+    // 处理设置跳转
+    fun handleSettingsNavigation(intent: Intent, settingName: String) {
+        try {
+            if (intent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(intent)
+            } else {
+                Toast.makeText(
+                    context,
+                    "无法打开${settingName}设置，请手动前往系统设置",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(
+                context,
+                "打开设置失败：${e.localizedMessage}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     // 在组件销毁时释放资源
     DisposableEffect(Unit) {
         onDispose {
@@ -54,6 +80,127 @@ fun SettingsDialog(
                     .padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // 权限设置
+                item {
+                    SettingsSection(title = "权限设置") {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    // Text("通知权限")
+                                    Text(
+                                        "请确保已授予通知权限，否则无法收到提醒",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Button(
+                                        onClick = {
+                                            val intent = Intent().apply {
+                                                action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                                                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                            }
+                                            handleSettingsNavigation(intent, "通知")
+                                        },
+                                        modifier = Modifier.padding(start = 8.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        elevation = ButtonDefaults.buttonElevation(
+                                            defaultElevation = 2.dp,
+                                            pressedElevation = 8.dp
+                                        )
+                                ) {
+                                    Text(
+                                        text = "去设置",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    // Text("自动化权限")
+                                    Text(
+                                        "请允许应用在后台自动运行，否则可能无法准时提醒",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Button(
+                                        onClick = {
+                                            val intent = Intent().apply {
+                                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                                data = Uri.fromParts("package", context.packageName, null)
+                                            }
+                                            handleSettingsNavigation(intent, "自动化")
+                                        },
+                                        modifier = Modifier.padding(start = 8.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        elevation = ButtonDefaults.buttonElevation(
+                                            defaultElevation = 2.dp,
+                                            pressedElevation = 8.dp
+                                        )
+                                ) {
+                                    Text(
+                                        text = "去设置",
+                                        style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    // Text("电池优化")
+                                    Text(
+                                        "请关闭电池优化，确保应用能够正常运行",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Button(
+                                        onClick = {
+                                            val intent = Intent().apply {
+                                                action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                                                data = Uri.parse("package:${context.packageName}")
+                                            }
+                                            handleSettingsNavigation(intent, "电池优化")
+                                        },
+                                        modifier = Modifier.padding(start = 8.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        elevation = ButtonDefaults.buttonElevation(
+                                            defaultElevation = 2.dp,
+                                            pressedElevation = 8.dp
+                                        )
+                                    ) {
+                                        Text(
+                                            text = "去设置",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // 提醒设置
                 item {
                     SettingsSection(title = "提醒设置") {
