@@ -43,7 +43,7 @@ class RepeatReminderWorker(
                     reminder = reminder,
                     enableSound = settings.enableNotificationSound,
                     enableVibration = settings.enableVibration,
-                    enableVoice = settings.enableVoiceReminder
+                    enableVoice = settings.enableVoiceReminder,
                 )
 
                 // 调度下一次提醒
@@ -57,6 +57,10 @@ class RepeatReminderWorker(
                     .build()
 
                 WorkManager.getInstance(context).enqueue(repeatWorkRequest)
+            }
+            if (record != null && record.status == MedicationStatus.TAKEN) {
+                // 如果已经服用，取消通知
+                NotificationUtil.cancelNotification(context, reminderId)
             }
 
             Result.success()

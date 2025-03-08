@@ -24,39 +24,39 @@ class MedicationActionReceiver : BroadcastReceiver() {
         
         CoroutineScope(Dispatchers.IO).launch {
             when (intent.action) {
-                NotificationUtil.ACTION_DELAY -> {
-                    // 获取延迟时间（分钟）
-                    val delayMinutes = intent.getIntExtra(NotificationUtil.EXTRA_DELAY_MINUTES, 15)
-                    
-                    // 获取提醒信息
-                    database.medicationReminderDao().getById(reminderId)?.let { reminder ->
-                        // 重新调度提醒
-                        ReminderScheduler.scheduleDelayedReminder(
-                            context = context,
-                            reminder = reminder,
-                            delayMinutes = delayMinutes
-                        )
-                        
-                        // 更新记录状态为延迟
-                        database.medicationRecordDao().getRecordsBetween(
-                            scheduledTime.minusMinutes(1),
-                            scheduledTime.plusMinutes(1)
-                        ).collect { records ->
-                            val record = records.firstOrNull { it.reminderId == reminderId }
-                            record?.let {
-                                val updatedRecord = it.copy(
-                                    status = MedicationStatus.DELAYED,
-                                    actualTime = null,
-                                    delayedTime = LocalDateTime.now().plusMinutes(delayMinutes.toLong())
-                                )
-                                database.medicationRecordDao().update(updatedRecord)
-                            }
-                        }
-                    }
-                    
-                    // 取消当前通知
-                    NotificationUtil.cancelNotification(context, reminderId)
-                }
+//                NotificationUtil.ACTION_DELAY -> {
+//                    // 获取延迟时间（分钟）
+//                    val delayMinutes = intent.getIntExtra(NotificationUtil.EXTRA_DELAY_MINUTES, 15)
+//
+//                    // 获取提醒信息
+//                    database.medicationReminderDao().getById(reminderId)?.let { reminder ->
+//                        // 重新调度提醒
+//                        ReminderScheduler.scheduleDelayedReminder(
+//                            context = context,
+//                            reminder = reminder,
+//                            delayMinutes = delayMinutes
+//                        )
+//
+//                        // 更新记录状态为延迟
+//                        database.medicationRecordDao().getRecordsBetween(
+//                            scheduledTime.minusMinutes(1),
+//                            scheduledTime.plusMinutes(1)
+//                        ).collect { records ->
+//                            val record = records.firstOrNull { it.reminderId == reminderId }
+//                            record?.let {
+//                                val updatedRecord = it.copy(
+//                                    status = MedicationStatus.DELAYED,
+//                                    actualTime = null,
+//                                    delayedTime = LocalDateTime.now().plusMinutes(delayMinutes.toLong())
+//                                )
+//                                database.medicationRecordDao().update(updatedRecord)
+//                            }
+//                        }
+//                    }
+//
+//                    // 取消当前通知
+//                    NotificationUtil.cancelNotification(context, reminderId)
+//                }
                 
                 NotificationUtil.ACTION_TAKEN, NotificationUtil.ACTION_SKIP -> {
                     // 查找对应的服药记录
@@ -95,6 +95,6 @@ class MedicationActionReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_TAKEN = NotificationUtil.ACTION_TAKEN
         const val ACTION_SKIP = NotificationUtil.ACTION_SKIP
-        const val ACTION_DELAY = NotificationUtil.ACTION_DELAY
+//        const val ACTION_DELAY = NotificationUtil.ACTION_DELAY
     }
 }
