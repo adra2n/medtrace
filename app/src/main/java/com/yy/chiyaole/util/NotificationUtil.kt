@@ -31,7 +31,7 @@ object NotificationUtil {
 
     const val ACTION_TAKEN = "com.yy.chiyaole.ACTION_MEDICATION_TAKEN"
     const val ACTION_SKIP = "com.yy.chiyaole.ACTION_MEDICATION_SKIP"
-    const val ACTION_DELAY = "com.yy.chiyaole.ACTION_MEDICATION_DELAY"
+    // const val ACTION_DELAY = "com.yy.chiyaole.ACTION_MEDICATION_DELAY"
 
     const val EXTRA_REMINDER_ID = "reminderId"
     const val EXTRA_DELAY_MINUTES = "delayMinutes"
@@ -43,8 +43,10 @@ object NotificationUtil {
     fun showMedicationReminder(
         context: Context,
         reminder: MedicationReminder,
+        // 是否启用声音
         enableSound: Boolean = true,
         enableVibration: Boolean = true,
+        // 是否启用语音
         enableVoice: Boolean = true
     ) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -198,7 +200,7 @@ object NotificationUtil {
     }
 
     private fun buildReminderMessage(reminder: MedicationReminder): String {
-        return "请${reminder.patientName}服用${reminder.medicineName}，" +
+        return "亲爱的${reminder.patientName}，请服用${reminder.medicineName}，" +
                 "请服用${reminder.dosageAmount}${reminder.dosageUnit}" +
                 (if (reminder.instructions.isNotBlank()) "，${reminder.instructions}" else "")
     }

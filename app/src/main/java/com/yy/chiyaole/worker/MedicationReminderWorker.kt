@@ -1,30 +1,31 @@
 package com.yy.chiyaole.worker
 
+import android.app.NotificationManager
 import android.content.Context
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicationRecord
+import com.yy.chiyaole.data.model.MedicationReminder
 import com.yy.chiyaole.data.model.MedicationStatus
+//import com.yy.chiyaole.data.model.RepeatType
 import com.yy.chiyaole.util.NotificationUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.Locale
-import kotlin.coroutines.resume
 
 class MedicationReminderWorker(
     private val context: Context,
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
 
-    private var textToSpeech: TextToSpeech? = null
+    private lateinit var notificationManager: NotificationManager
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
@@ -90,80 +91,32 @@ class MedicationReminderWorker(
 
             // 语音提醒（预览模式或启用了语音提醒）
             if (isPreview || settings?.enableVoiceReminder == true) {
-                val message = "亲爱的${patientName}，现在该吃${medicineName}了，请服用${dosageAmount}${dosageUnit}"
-                try {
-                    speakMessage(message)
-                } catch (e: Exception) {
-                    Log.e(TAG, "语音提醒失败", e)
-                }
+                // 使用 NotificationUtil 来发送提醒
+                NotificationUtil.showMedicationReminder(
+                    context = applicationContext,
+                    reminder = MedicationReminder(
+                        id = 0,
+                        patientName = patientName,
+                        medicineName = medicineName,
+                        dosageAmount = dosageAmount,
+                        dosageUnit = dosageUnit,
+                        instructions = "",
+                        startDate = LocalDateTime.now(),
+                        endDate = LocalDateTime.now(),
+                        timesPerDay = 1,
+                        medicationTimes = listOf(LocalTime.now()),
+                        scheduledTime = LocalDateTime.now()
+                    ),
+                    enableSound = false,  // 禁用声音，因为这里只需要语音提醒
+                    enableVibration = true,  // 启用振动提醒
+                    enableVoice = true  // 启用语音提醒
+                )
             }
 
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "提醒失败", e)
             Result.failure()
-        } finally {
-            // 清理 TextToSpeech 资源
-            textToSpeech?.shutdown()
-            textToSpeech = null
-        }
-    }
-
-    private suspend fun speakMessage(message: String) = suspendCancellableCoroutine { continuation ->
-        try {
-            textToSpeech = TextToSpeech(context) { status ->
-                if (status == TextToSpeech.SUCCESS) {
-                    // 设置语言
-                    var result = textToSpeech?.setLanguage(Locale.CHINESE)
-                    if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        result = textToSpeech?.setLanguage(Locale.SIMPLIFIED_CHINESE)
-                        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                            Log.e(TAG, "语言不支持")
-                            continuation.resume(Unit)
-                            return@TextToSpeech
-                        }
-                    }
-
-                    // 设置语音完成的回调
-                    textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                        override fun onStart(utteranceId: String?) {}
-
-                        override fun onDone(utteranceId: String?) {
-                            if (utteranceId == "medication_reminder") {
-                                continuation.resume(Unit)
-                            }
-                        }
-
-                        @Deprecated("Deprecated in Java")
-                        override fun onError(utteranceId: String?) {
-                            if (utteranceId == "medication_reminder") {
-                                Log.e(TAG, "语音播放失败")
-                                continuation.resume(Unit)
-                            }
-                        }
-                    })
-
-                    // 播放语音
-                    textToSpeech?.speak(
-                        message,
-                        TextToSpeech.QUEUE_FLUSH,
-                        null,
-                        "medication_reminder"
-                    )
-                } else {
-                    Log.e(TAG, "TextToSpeech 初始化失败: $status")
-                    continuation.resume(Unit)
-                }
-            }
-
-            continuation.invokeOnCancellation {
-                textToSpeech?.stop()
-                textToSpeech?.shutdown()
-                textToSpeech = null
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "语音提醒设置失败", e)
-            continuation.resume(Unit)
         }
     }
 
