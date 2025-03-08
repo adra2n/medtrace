@@ -10,5 +10,6 @@ data class UserSettings(
     val enableNotificationSound: Boolean = true,         // 启用通知声音
     val enableVibration: Boolean = true,                 // 启用震动
     val reminderAdvanceMinutes: Int = 5,                // 提前提醒时间（分钟）
-    val darkMode: Boolean = false                        // 深色模式
+    val darkMode: Boolean = false,                       // 深色模式
+    val voiceVolume: Int = 60                           // 语音提醒音量（百分比）
 )
