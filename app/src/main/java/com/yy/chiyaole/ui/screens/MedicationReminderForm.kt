@@ -180,7 +180,7 @@ fun MedicationReminderForm(
                     }
                 },
                 label = "每次用量",
-                modifier = Modifier.weight(1f)
+//                modifier = Modifier.weight(1f)
             )
             
             Box {
