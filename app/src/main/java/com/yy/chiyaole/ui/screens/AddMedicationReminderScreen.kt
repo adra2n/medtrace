@@ -2,6 +2,8 @@ package com.yy.chiyaole.ui.screens
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +22,7 @@ import androidx.navigation.NavController
 import androidx.work.*
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicationReminder
-import com.yy.chiyaole.util.ReminderScheduler
+//import com.yy.chiyaole.util.ReminderScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -28,12 +30,13 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.Duration
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMedicationReminderScreen(
     database: AppDatabase,
     navController: NavController,
-    workManager: WorkManager,
+//    workManager: WorkManager,
     reminderId: Long?
 ) {
     val scope = rememberCoroutineScope()
@@ -317,12 +320,12 @@ fun AddMedicationReminderScreen(
                             // 保存提醒到数据库
                             database.medicationReminderDao().insertOrUpdate(reminder)
                             
-                            // 使用 ReminderScheduler 调度提醒
-                            ReminderScheduler.scheduleReminder(
-                                context = context,
-                                reminder = reminder,
-                                advanceMinutes = advanceMinutes
-                            )
+//                            // 使用 ReminderScheduler 调度提醒
+//                            ReminderScheduler.scheduleReminder(
+//                                context = context,
+//                                reminder = reminder,
+//                                advanceMinutes = advanceMinutes
+//                            )
                             
                             navController.popBackStack()
                         } catch (e: Exception) {

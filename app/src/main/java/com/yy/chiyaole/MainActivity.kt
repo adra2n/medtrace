@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -113,6 +115,7 @@ sealed class Screen(val route: String, val icon: @Composable () -> Unit, val lab
     )
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(database: AppDatabase, workManager: WorkManager) {
@@ -168,30 +171,33 @@ fun MainScreen(database: AppDatabase, workManager: WorkManager) {
             composable(Screen.Home.route) {
                 HomeScreen(database, navController)
             }
-            composable(Screen.MedicationReminders.route) {
-                MedicationReminderScreen(database, navController, workManager)
-            }
-            composable(Screen.MedicalRecords.route) {
-                MedicalRecordScreen(database, navController)
-            }
-            composable(Screen.About.route) {
-                AboutScreen()
-            }
-            composable("add_reminder") {
-                AddMedicationReminderScreen(database, navController, workManager, reminderId = null)
-            }
-            composable(
-                route = "edit_reminder/{reminderId}",
-                arguments = listOf(
-                    navArgument("reminderId") { type = NavType.LongType }
-                )
-            ) {
-                val reminderId = it.arguments?.getLong("reminderId")
-                AddMedicationReminderScreen(database, navController, workManager, reminderId)
-            }
-            composable("add_record") {
-                AddMedicalRecordScreen(database, navController)
-            }
+
+             composable(Screen.MedicationReminders.route) {
+                 MedicationReminderScreen(database, navController)
+             }
+             composable(Screen.MedicalRecords.route) {
+                 MedicalRecordScreen(database, navController)
+             }
+             composable(Screen.About.route) {
+                 AboutScreen()
+             }
+
+             composable("add_reminder") {
+                 AddMedicationReminderScreen(database, navController, reminderId = null)
+             }
+
+             composable(
+                 route = "edit_reminder/{reminderId}",
+                 arguments = listOf(
+                     navArgument("reminderId") { type = NavType.LongType }
+                 )
+             ) {
+                 val reminderId = it.arguments?.getLong("reminderId")
+                 AddMedicationReminderScreen(database, navController, reminderId)
+             }
+             composable("add_record") {
+                 AddMedicalRecordScreen(database, navController)
+             }
         }
     }
 }

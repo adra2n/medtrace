@@ -46,61 +46,61 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun medicationRecordDao(): MedicationRecordDao
 
     companion object {
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                // 创建新的用户设置表，不包含睡眠时间字段
-                database.execSQL("""
-                    CREATE TABLE IF NOT EXISTS user_settings_new (
-                        id INTEGER PRIMARY KEY NOT NULL,
-                        enableVoiceReminder INTEGER NOT NULL,
-                        enableNotificationSound INTEGER NOT NULL,
-                        enableVibration INTEGER NOT NULL,
-                        reminderAdvanceMinutes INTEGER NOT NULL,
-                        darkMode INTEGER NOT NULL
-                    )
-                """)
-
-                // 复制旧数据到新表，忽略睡眠时间字段
-                database.execSQL("""
-                    INSERT INTO user_settings_new (
-                        id, enableVoiceReminder, enableNotificationSound,
-                        enableVibration, reminderAdvanceMinutes, darkMode
-                    )
-                    SELECT id, enableVoiceReminder, enableNotificationSound,
-                           enableVibration, reminderAdvanceMinutes, darkMode
-                    FROM user_settings
-                """)
-
-                // 删除旧表
-                database.execSQL("DROP TABLE user_settings")
-
-                // 重命名新表
-                database.execSQL("ALTER TABLE user_settings_new RENAME TO user_settings")
-            }
-        }
-
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                // 创建服药记录表
-                database.execSQL("""
-                    CREATE TABLE IF NOT EXISTS medication_records (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                        reminderId INTEGER NOT NULL,
-                        scheduledTime TEXT NOT NULL,
-                        actualTime TEXT,
-                        status TEXT NOT NULL,
-                        note TEXT NOT NULL DEFAULT '',
-                        FOREIGN KEY (reminderId) REFERENCES medication_reminders(id) ON DELETE CASCADE
-                    )
-                """)
-                
-                // 创建 reminderId 列的索引
-                database.execSQL("""
-                    CREATE INDEX IF NOT EXISTS index_medication_records_reminderId 
-                    ON medication_records(reminderId)
-                """)
-            }
-        }
+//        private val MIGRATION_1_2 = object : Migration(1, 2) {
+//            override fun migrate(database: SupportSQLiteDatabase) {
+//                // 创建新的用户设置表，不包含睡眠时间字段
+//                database.execSQL("""
+//                    CREATE TABLE IF NOT EXISTS user_settings_new (
+//                        id INTEGER PRIMARY KEY NOT NULL,
+//                        enableVoiceReminder INTEGER NOT NULL,
+//                        enableNotificationSound INTEGER NOT NULL,
+//                        enableVibration INTEGER NOT NULL,
+//                        reminderAdvanceMinutes INTEGER NOT NULL,
+//                        darkMode INTEGER NOT NULL
+//                    )
+//                """)
+//
+//                // 复制旧数据到新表，忽略睡眠时间字段
+//                database.execSQL("""
+//                    INSERT INTO user_settings_new (
+//                        id, enableVoiceReminder, enableNotificationSound,
+//                        enableVibration, reminderAdvanceMinutes, darkMode
+//                    )
+//                    SELECT id, enableVoiceReminder, enableNotificationSound,
+//                           enableVibration, reminderAdvanceMinutes, darkMode
+//                    FROM user_settings
+//                """)
+//
+//                // 删除旧表
+//                database.execSQL("DROP TABLE user_settings")
+//
+//                // 重命名新表
+//                database.execSQL("ALTER TABLE user_settings_new RENAME TO user_settings")
+//            }
+//        }
+//
+//        private val MIGRATION_2_3 = object : Migration(2, 3) {
+//            override fun migrate(database: SupportSQLiteDatabase) {
+//                // 创建服药记录表
+//                database.execSQL("""
+//                    CREATE TABLE IF NOT EXISTS medication_records (
+//                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+//                        reminderId INTEGER NOT NULL,
+//                        scheduledTime TEXT NOT NULL,
+//                        actualTime TEXT,
+//                        status TEXT NOT NULL,
+//                        note TEXT NOT NULL DEFAULT '',
+//                        FOREIGN KEY (reminderId) REFERENCES medication_reminders(id) ON DELETE CASCADE
+//                    )
+//                """)
+//
+//                // 创建 reminderId 列的索引
+//                database.execSQL("""
+//                    CREATE INDEX IF NOT EXISTS index_medication_records_reminderId
+//                    ON medication_records(reminderId)
+//                """)
+//            }
+//        }
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
@@ -112,7 +112,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+//                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

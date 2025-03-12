@@ -1,4 +1,4 @@
-package com.yy.chiyaole.ui.components.homescreen
+package com.yy.chiyaole.ui.components
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -42,7 +42,6 @@ import com.yy.chiyaole.data.model.MedicationStatus
 import com.yy.chiyaole.util.getNextDoseTime
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -170,7 +169,8 @@ fun ReminderCard(
                 }
 
                 // 添加快速服药按钮
-                if (reminder.isActive && !now.isAfter(reminder.endDate)) {
+                 if (reminder.isActive && !now.isAfter(reminder.endDate)) {
+//                if (reminder.isActive) {
                     val pendingRecords = todayRecords.filter { it.status == MedicationStatus.PENDING }
                     if (pendingRecords.isNotEmpty()) {
                         Row(
