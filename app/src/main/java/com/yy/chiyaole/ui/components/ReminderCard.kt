@@ -135,9 +135,6 @@ fun ReminderCard(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-//                    Log.e("gaohe_debug", "今日用药记录")
-//                    // 显示今日用药记录
-//                    Log.e("gaohe_debug", todayRecords.toString())
             if (todayRecords.isNotEmpty()) {
                 Text(
                     text = "今日服药记录",
@@ -178,15 +175,15 @@ fun ReminderCard(
                 }
 
                 // 添加快速服药按钮
-                if (reminder.isActive && now.isAfter(reminder.endDate)) {
-                    //                if (reminder.isActive) {
+                if (reminder.isActive && !now.isAfter(reminder.endDate)) {
                     val pendingRecords =
                         todayRecords.filter { it.status == MedicationStatus.PENDING }
                     if (pendingRecords.isNotEmpty()) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp),
+                                .padding(top = 8.dp)
+                                .align(Alignment.CenterHorizontally),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Button(
@@ -205,22 +202,22 @@ fun ReminderCard(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("已服用")
                             }
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        val record = pendingRecords.first()
-                                        val updatedRecord = record.copy(
-                                            status = MedicationStatus.SKIPPED,
-                                            actualTime = LocalDateTime.now()
-                                        )
-                                        database.medicationRecordDao().update(updatedRecord)
-                                    }
-                                }
-                            ) {
-                                Icon(Icons.Default.Clear, contentDescription = null)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("跳过")
-                            }
+//                            Button(
+//                                onClick = {
+//                                    scope.launch {
+//                                        val record = pendingRecords.first()
+//                                        val updatedRecord = record.copy(
+//                                            status = MedicationStatus.SKIPPED,
+//                                            actualTime = LocalDateTime.now()
+//                                        )
+//                                        database.medicationRecordDao().update(updatedRecord)
+//                                    }
+//                                }
+//                            ) {
+//                                Icon(Icons.Default.Clear, contentDescription = null)
+//                                Spacer(modifier = Modifier.width(4.dp))
+//                                Text("跳过")
+//                            }
                         }
                     }
                 }
