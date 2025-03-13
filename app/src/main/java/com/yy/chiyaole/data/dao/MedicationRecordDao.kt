@@ -46,10 +46,16 @@ interface MedicationRecordDao {
     @Transaction
     @Query("""
         SELECT * FROM medication_records 
-        WHERE reminderId = :reminderId AND date(scheduledTime) = date(:date)
+        WHERE reminderId = :reminderId 
+        AND scheduledTime >= :startOfDay
+        AND scheduledTime < :endOfDay
         ORDER BY scheduledTime DESC
     """)
-    fun getReminderDayRecords(reminderId: Long, date: LocalDateTime): Flow<List<MedicationRecord>>
+    fun getReminderDayRecords(
+        reminderId: Long, 
+        startOfDay: LocalDateTime,
+        endOfDay: LocalDateTime
+    ): Flow<List<MedicationRecord>>
 
     @Query("""
         SELECT * FROM medication_records 

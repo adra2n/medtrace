@@ -1,6 +1,7 @@
 package com.yy.chiyaole.ui.components
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,11 +58,22 @@ fun ReminderCard(
     val scope = rememberCoroutineScope()
 
     // 获取今日用药记录
-    LaunchedEffect(reminder.id) {
+    LaunchedEffect(reminder.id, now) {
+        val startOfDay = now.toLocalDate().atStartOfDay()
+        val endOfDay = now.toLocalDate().plusDays(1).atStartOfDay()
+        
+        Log.e("gaohe_debug", "Fetching records for reminderId: ${reminder.id}, startOfDay: $startOfDay, endOfDay: $endOfDay")
+
         database.medicationRecordDao().getReminderDayRecords(
             reminderId = reminder.id,
-            date = LocalDateTime.now()
+            startOfDay = startOfDay,
+            endOfDay = endOfDay
         ).collect { records ->
+            Log.e("gaohe_debug", "Fetched records for reminderId: ${reminder.id}")
+            Log.e("gaohe_debug", "Fetched records: $records")
+            records.forEach { record ->
+                Log.e("gaohe_debug", "获取数据: $record")
+            }
             todayRecords = records
         }
     }
@@ -109,22 +121,23 @@ fun ReminderCard(
                         fontSize = 20.sp
 
                     )
-                }
-                getNextDoseTime(reminder)?.let { nextDoseTime ->
+                    Spacer(modifier = Modifier.width(70.dp))
+                    getNextDoseTime(reminder)?.let { nextDoseTime ->
 //                    val dateTimeFormatter=DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm")
-                    Text(
-                        // 时间展示为年月日
-                        text = "下次：${nextDoseTime.format(timeFormatter)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 15.sp
-                    )
+                        Text(
+                            // 时间展示为年月日
+                            text = "下次：${nextDoseTime.format(timeFormatter)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 20.sp
+                        )
+                    }
                 }
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            // 显示今日用药记录
+//                    Log.e("gaohe_debug", "今日用药记录")
+//                    // 显示今日用药记录
+//                    Log.e("gaohe_debug", todayRecords.toString())
             if (todayRecords.isNotEmpty()) {
                 Text(
                     text = "今日服药记录",
@@ -145,16 +158,12 @@ fun ReminderCard(
                             text = when (record.status) {
                                 MedicationStatus.TAKEN -> "已服用"
                                 MedicationStatus.SKIPPED -> "已跳过"
-//                                MedicationStatus.DELAYED -> "已延迟"
-//                                MedicationStatus.PENDING -> "待服用"
                                 MedicationStatus.PENDING -> "待服用"
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = when (record.status) {
                                 MedicationStatus.TAKEN -> MaterialTheme.colorScheme.primary
                                 MedicationStatus.SKIPPED -> MaterialTheme.colorScheme.error
-//                                MedicationStatus.DELAYED -> MaterialTheme.colorScheme.tertiary
-//                                MedicationStatus.PENDING -> MaterialTheme.colorScheme.onSurfaceVariant
                                 MedicationStatus.PENDING -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
                         )
@@ -169,9 +178,10 @@ fun ReminderCard(
                 }
 
                 // 添加快速服药按钮
-                 if (reminder.isActive && !now.isAfter(reminder.endDate)) {
-//                if (reminder.isActive) {
-                    val pendingRecords = todayRecords.filter { it.status == MedicationStatus.PENDING }
+                if (reminder.isActive && now.isAfter(reminder.endDate)) {
+                    //                if (reminder.isActive) {
+                    val pendingRecords =
+                        todayRecords.filter { it.status == MedicationStatus.PENDING }
                     if (pendingRecords.isNotEmpty()) {
                         Row(
                             modifier = Modifier
@@ -215,6 +225,7 @@ fun ReminderCard(
                     }
                 }
             }
+
         }
     }
 }
