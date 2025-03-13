@@ -58,7 +58,7 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // 加载数据
-    LaunchedEffect(Unit) {
+    LaunchedEffect(Unit, now) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             launch {
                 // 合并提醒和记录数据流
@@ -81,6 +81,7 @@ fun HomeScreen(
                     
                     medicationStats = MedicationStats(
                         totalToday = totalDoses,
+                        completedToday = takenDosesToday,
                         takenDosesToday = takenDosesToday
                     )
                 }
@@ -235,16 +236,3 @@ fun HomeScreen(
         )
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

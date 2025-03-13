@@ -22,21 +22,21 @@ object ReminderScheduler {
         advanceMinutes: Int = 30
     ) {
         val workManager = WorkManager.getInstance(context)
-
-
-        // 取消该提醒的所有现有工作
+//
+//
+//        // 取消该提醒的所有现有工作
         workManager.cancelAllWorkByTag("reminder_${reminder.id}")
-//        cancelReminder(context, reminder.id)
-
-        // 如果提醒不活跃或已过期，直接返回
+        cancelReminder(context, reminder.id)
+//
+//        // 如果提醒不活跃或已过期，直接返回
         if (!reminder.isActive || LocalDateTime.now().isAfter(reminder.endDate)) {
             return
         }
-
+//
         // 获取当前时间
         val now = LocalDateTime.now()
-
-        // 设置提醒数据
+//
+//        // 设置提醒数据
         val data = workDataOf(
             "reminderId" to reminder.id,
             "patientName" to reminder.patientName,
@@ -44,12 +44,12 @@ object ReminderScheduler {
             "dosage" to "${reminder.dosageAmount}${reminder.dosageUnit}"
         )
 
-        // 获取今天的服药时间点
+//        // 获取今天的服药时间点
         val todayTimes = reminder.medicationTimes.map { time ->
             LocalDateTime.of(now.toLocalDate(), time)
         }
-
-        // 为每个今天未过期的时间点设置提醒
+//
+//        // 为每个今天未过期的时间点设置提醒
         todayTimes.forEach { dateTime ->
             val delay = Duration.between(now, dateTime)
             if (!delay.isNegative) {
@@ -62,7 +62,7 @@ object ReminderScheduler {
                 workManager.enqueue(request)
             }
         }
-        // 为明天的第一个时间点设置提醒
+//        // 为明天的第一个时间点设置提醒
         val tomorrow = now.plusDays(1).toLocalDate()
         if (!tomorrow.isAfter(reminder.endDate.toLocalDate())) {
             val tomorrowFirstTime = LocalDateTime.of(tomorrow, reminder.medicationTimes.first())
@@ -165,9 +165,9 @@ object ReminderScheduler {
 ////        }
 //    }
 //
-//    fun cancelReminder(context: Context, reminderId: Long) {
-//        val workManager = WorkManager.getInstance(context)
-//        workManager.cancelAllWorkByTag(TAG_PREFIX + reminderId)
-////        workManager.cancelAllWorkByTag(TAG_PREFIX + reminderId + TAG_DELAYED)
-//    }
+    fun cancelReminder(context: Context, reminderId: Long) {
+        val workManager = WorkManager.getInstance(context)
+        workManager.cancelAllWorkByTag(TAG_PREFIX + reminderId)
+//        workManager.cancelAllWorkByTag(TAG_PREFIX + reminderId + TAG_DELAYED)
+    }
 }

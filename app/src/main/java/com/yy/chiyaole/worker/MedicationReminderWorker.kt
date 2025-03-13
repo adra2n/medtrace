@@ -54,7 +54,19 @@ class MedicationReminderWorker(
             val record = AppDatabase.getDatabase(context).medicationRecordDao()
                 .getLatestRecordForReminder(reminderId)
                 .first()
-//
+
+            // 如果没有记录，创建一条新记录
+            if (record == null) {
+                val newRecord = MedicationRecord(
+                    reminderId = reminderId,
+                    scheduledTime = reminder.scheduledTime,
+                    actualTime = null,
+                    status = MedicationStatus.PENDING,
+                    note = ""
+                )
+                AppDatabase.getDatabase(context).medicationRecordDao().insert(newRecord)
+            }
+
             // 如果药品还未服用，继续发送提醒
             if (record == null || record.status == MedicationStatus.PENDING) {
                 // 获取用户设置
@@ -196,4 +208,3 @@ class MedicationReminderWorker(
         private const val ONGOING_NOTIFICATION_ID = 1
     }
 }
-

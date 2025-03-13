@@ -56,16 +56,16 @@ fun MedicationReminderScreen(
                 .collectLatest { reminderList ->
                     reminders = reminderList
 
-                    // 重新调度所有活跃的提醒
-//                    reminderList.forEach { reminder ->
-//                        if (reminder.isActive) {
-//                            ReminderScheduler.scheduleReminder(
-//                                context = context,
-//                                reminder = reminder,
+//                  重新调度所有活跃的提醒
+                    reminderList.forEach { reminder ->
+                        if (reminder.isActive) {
+                            ReminderScheduler.scheduleReminder(
+                                context = context,
+                                reminder = reminder,
 //                                advanceMinutes = settings?.reminderAdvanceMinutes ?: 30
-//                            )
-//                        }
-//                    }
+                            )
+                        }
+                    }
                 }
         }
     }
