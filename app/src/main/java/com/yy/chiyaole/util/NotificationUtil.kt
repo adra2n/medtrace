@@ -16,8 +16,7 @@ import androidx.work.*
 import com.yy.chiyaole.MainActivity
 import com.yy.chiyaole.R
 import com.yy.chiyaole.data.model.MedicationReminder
-import com.yy.chiyaole.receiver.MedicationActionReceiver
-import com.yy.chiyaole.worker.RepeatReminderWorker
+//import com.yy.chiyaole.worker.RepeatReminderWorker
 import kotlinx.coroutines.*
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -91,7 +90,7 @@ object NotificationUtil {
         notificationManager.notify(reminder.id.toInt(), notification)
 
         // 更新摘要通知
-        updateSummaryNotification(context, notificationManager)
+//        updateSummaryNotification(context, notificationManager)
 
         // 播放语音提醒
         if (enableVoice) {
@@ -105,29 +104,29 @@ object NotificationUtil {
         }
 
         // 调度重复提醒
-        scheduleRepeatReminder(context, reminder)
+//        scheduleRepeatReminder(context, reminder)
     }
 
-    private fun scheduleRepeatReminder(context: Context, reminder: MedicationReminder) {
-        val workManager = WorkManager.getInstance(context)
-        
-        // 创建重复提醒的工作请求
-        val repeatWorkRequest = OneTimeWorkRequestBuilder<RepeatReminderWorker>()
-            .setInitialDelay(REPEAT_INTERVAL, TimeUnit.SECONDS)
-            .setInputData(workDataOf(
-                "reminderId" to reminder.id,
-                "notificationId" to reminder.id.toInt(),
-                "enableVoice" to true  // 添加语音提醒标志
-            ))
-            .addTag("repeat_reminder_${reminder.id}")
-            .build()
-
-        // 取消之前的重复提醒（如果有）
-        workManager.cancelAllWorkByTag("repeat_reminder_${reminder.id}")
-        
-        // 开始新的重复提醒
-        workManager.enqueue(repeatWorkRequest)
-    }
+//    private fun scheduleRepeatReminder(context: Context, reminder: MedicationReminder) {
+//        val workManager = WorkManager.getInstance(context)
+//
+//        // 创建重复提醒的工作请求
+//        val repeatWorkRequest = OneTimeWorkRequestBuilder<RepeatReminderWorker>()
+//            .setInitialDelay(REPEAT_INTERVAL, TimeUnit.SECONDS)
+//            .setInputData(workDataOf(
+//                "reminderId" to reminder.id,
+//                "notificationId" to reminder.id.toInt(),
+//                "enableVoice" to true  // 添加语音提醒标志
+//            ))
+//            .addTag("repeat_reminder_${reminder.id}")
+//            .build()
+//
+//        // 取消之前的重复提醒（如果有）
+//        workManager.cancelAllWorkByTag("repeat_reminder_${reminder.id}")
+//
+//        // 开始新的重复提醒
+//        workManager.enqueue(repeatWorkRequest)
+//    }
 
     private suspend fun speakMessage(context: Context, message: String) = suspendCancellableCoroutine { continuation ->
         try {
@@ -263,12 +262,12 @@ object NotificationUtil {
         coroutineScope.cancel()
     }
 
-    fun createOngoingNotification(context: Context): android.app.Notification {
-        return NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification_medicine)
-            .setContentTitle("服药提醒")
-            .setContentText("正在运行服药提醒服务")
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-    }
+//    fun createOngoingNotification(context: Context): android.app.Notification {
+//        return NotificationCompat.Builder(context, CHANNEL_ID)
+//            .setSmallIcon(R.drawable.ic_notification_medicine)
+//            .setContentTitle("服药提醒")
+//            .setContentText("正在运行服药提醒服务")
+//            .setPriority(NotificationCompat.PRIORITY_LOW)
+//            .build()
+//    }
 }

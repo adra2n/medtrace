@@ -35,7 +35,7 @@ class ReminderPreviewUtil(private val context: Context) {
         }
     }
 
-    fun previewVoiceReminder() {
+    fun previewVoiceReminder(volume: Int = 60) {
         stopAll()
         workManager.cancelAllWorkByTag("preview_reminder")
 
@@ -47,7 +47,8 @@ class ReminderPreviewUtil(private val context: Context) {
             "dosageAmount" to 1f,
             "dosageUnit" to "片",
             "scheduledTime" to LocalDateTime.now().toString(),
-            "isPreview" to true
+            "isPreview" to true,
+            "volume" to volume
         )
 
         val previewRequest = OneTimeWorkRequestBuilder<MedicationReminderWorker>()
