@@ -36,10 +36,10 @@ data class MedicationRecord(
      * 实际服药时间
      */
     val actualTime: LocalDateTime?,
-    /**
-     * 延迟到的时间（如果状态为DELAYED）
-     */
-    val delayedTime: LocalDateTime?,
+//    /**
+//     * 延迟到的时间（如果状态为DELAYED）
+//     */
+//    val delayedTime: LocalDateTime?,
     /**
      * 服药状态
      */
@@ -48,8 +48,8 @@ data class MedicationRecord(
      * 备注（如：副作用、漏服原因等）
      */
     val note: String = "",
-    /**
-     * 延迟原因（如果状态为DELAYED）
-     */
-    val delayReason: String = ""
+//    /**
+//     * 延迟原因（如果状态为DELAYED）
+//     */
+//    val delayReason: String = ""
 )

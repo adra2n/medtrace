@@ -2,6 +2,8 @@ package com.yy.chiyaole.ui.screens
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,6 +17,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicationReminderForm(
@@ -180,7 +183,7 @@ fun MedicationReminderForm(
                     }
                 },
                 label = "每次用量",
-                modifier = Modifier.weight(1f)
+//                modifier = Modifier.weight(1f)
             )
             
             Box {

@@ -2,6 +2,8 @@ package com.yy.chiyaole.ui.screens
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,7 +22,9 @@ import androidx.navigation.NavController
 import androidx.work.*
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicationReminder
-import com.yy.chiyaole.util.ReminderScheduler
+import com.yy.chiyaole.data.model.MedicationRecord
+import com.yy.chiyaole.data.model.MedicationStatus
+//import com.yy.chiyaole.util.ReminderScheduler
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -28,12 +32,13 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.Duration
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMedicationReminderScreen(
     database: AppDatabase,
     navController: NavController,
-    workManager: WorkManager,
+//    workManager: WorkManager,
     reminderId: Long?
 ) {
     val scope = rememberCoroutineScope()
@@ -85,7 +90,7 @@ fun AddMedicationReminderScreen(
                 title = { Text(if (reminderId == null) "添加用药提醒" else "编辑用药提醒") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "返回")
+                        Icon(Icons.Filled.ArrowBack, "返回")
                     }
                 }
             )
@@ -142,7 +147,7 @@ fun AddMedicationReminderScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.DateRange, "选择日期")
+                Icon(Icons.Filled.DateRange, "选择日期")
                 Spacer(Modifier.width(8.dp))
                 Text("开始日期：${startDate.format(dateFormatter)}")
             }
@@ -169,7 +174,7 @@ fun AddMedicationReminderScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.DateRange, "选择日期")
+                Icon(Icons.Filled.DateRange, "选择日期")
                 Spacer(Modifier.width(8.dp))
                 Text("结束日期：${endDate.format(dateFormatter)}")
             }
@@ -310,19 +315,29 @@ fun AddMedicationReminderScreen(
                                 isActive = true
                             )
                             
-                            // 获取用户设置的提前提醒时间
-                            val settings = database.userSettingsDao().getUserSettings().first()
-                            val advanceMinutes = settings?.reminderAdvanceMinutes ?: 30
-                            
                             // 保存提醒到数据库
-                            database.medicationReminderDao().insertOrUpdate(reminder)
+                            val savedReminderId = database.medicationReminderDao().insertOrUpdate(reminder)
                             
-                            // 使用 ReminderScheduler 调度提醒
-                            ReminderScheduler.scheduleReminder(
-                                context = context,
-                                reminder = reminder,
-                                advanceMinutes = advanceMinutes
-                            )
+                            // 创建服药记录
+                            var currentDate = startDate.toLocalDate()
+                            val endLocalDate = endDate.toLocalDate()
+                            
+                            while (!currentDate.isAfter(endLocalDate)) {
+                                medicationTimes.forEach { time ->
+                                    val scheduledTime = currentDate.atTime(time)
+                                    if (!scheduledTime.isBefore(LocalDateTime.now())) {
+                                        val record = MedicationRecord(
+                                            reminderId = savedReminderId,
+                                            scheduledTime = scheduledTime,
+                                            actualTime = null,
+                                            status = MedicationStatus.PENDING,
+                                            note = ""
+                                        )
+                                        database.medicationRecordDao().insert(record)
+                                    }
+                                }
+                                currentDate = currentDate.plusDays(1)
+                            }
                             
                             navController.popBackStack()
                         } catch (e: Exception) {

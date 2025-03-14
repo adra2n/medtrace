@@ -1,5 +1,7 @@
 package com.yy.chiyaole.data.model
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
@@ -25,7 +27,7 @@ import java.time.LocalTime
  */
 @Entity(tableName = "medication_reminders")
 @TypeConverters(Converters::class)
-data class MedicationReminder(
+data class MedicationReminder @RequiresApi(Build.VERSION_CODES.O) constructor(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     
@@ -46,6 +48,7 @@ data class MedicationReminder(
  * Room 类型转换器
  */
 class Converters {
+    @RequiresApi(Build.VERSION_CODES.O)
     @TypeConverter
     fun fromString(value: String): List<LocalTime> {
         return if (value.isEmpty()) {
