@@ -5,17 +5,116 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# 基础配置
+-optimizationpasses 5
+-dontusemixedcaseclassnames
+-dontskipnonpubliclibraryclasses
+-dontskipnonpubliclibraryclassmembers
+-dontpreverify
+-verbose
+-printmapping proguardMapping.txt
+-optimizations !code/simplification/cast,!field/*,!class/merging/*
+-keepattributes *Annotation*,InnerClasses
+-keepattributes Signature
+-keepattributes SourceFile,LineNumberTable
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Android 相关
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
+-keep public class * extends android.app.backup.BackupAgentHelper
+-keep public class * extends android.preference.Preference
+-keep public class * extends android.view.View
+-keep public class com.android.vending.licensing.ILicensingService
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# 保持 native 方法
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# 保持自定义控件
+-keepclasseswithmembers class * {
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+}
+
+# 保持 Parcelable 序列化的类不被混淆
+-keep class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
+}
+
+# 保持 Serializable 序列化的类不被混淆
+-keepnames class * implements java.io.Serializable
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    !static !transient <fields>;
+    !private <fields>;
+    !private <methods>;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}
+
+# 保持枚举类不被混淆
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# Room 数据库
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-keep @androidx.room.Dao class *
+-keep class * extends androidx.room.TypeConverter
+
+# WorkManager
+-keep class * extends androidx.work.Worker
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context,androidx.work.WorkerParameters);
+}
+
+# 保持 Model 类不被混淆
+-keep class com.yy.chiyaole.data.model.** { *; }
+
+# Compose
+-keep class androidx.compose.** { *; }
+-keepclassmembers class androidx.compose.** { *; }
+-keep class org.jetbrains.skia.** { *; }
+-keep class org.jetbrains.skiko.** { *; }
+
+# 保持 View Model
+-keep class * extends androidx.lifecycle.ViewModel {
+    <init>();
+}
+-keep class * extends androidx.lifecycle.AndroidViewModel {
+    <init>(android.app.Application);
+}
+
+# Kotlin 协程
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
+-keepclassmembers class kotlin.coroutines.Continuation {
+    *;
+}
+
+# 移除日志
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+}
+
+# 保持自定义应用程序类和组件
+-keep class com.yy.chiyaole.ChiyaoleApplication { *; }
+-keep class com.yy.chiyaole.worker.** { *; }
+-keep class com.yy.chiyaole.data.dao.** { *; }
+-keep class com.yy.chiyaole.ui.** { *; }
+
+# 压缩优化配置
+-repackageclasses ''
+-allowaccessmodification

@@ -7,14 +7,15 @@ import java.time.LocalDateTime
 
 @Dao
 interface MedicationReminderDao {
-    @Query("SELECT * FROM medication_reminders ORDER BY firstDoseTime ASC")
+    @Query("SELECT * FROM medication_reminders ORDER BY startDate ASC")
     fun getAll(): Flow<List<MedicationReminder>>
     
     @Query("""
         SELECT * FROM medication_reminders 
         WHERE date(startDate) <= date(:today) 
         AND date(endDate) >= date(:today) 
-        ORDER BY firstDoseTime ASC
+        AND isActive = 1
+        ORDER BY startDate ASC
     """)
     fun getTodayReminders(today: LocalDateTime): Flow<List<MedicationReminder>>
     
@@ -32,4 +33,14 @@ interface MedicationReminderDao {
     
     @Query("DELETE FROM medication_reminders WHERE id = :id")
     suspend fun delete(id: Long)
+    
+    @Transaction
+    suspend fun insertOrUpdate(reminder: MedicationReminder): Long {
+        return if (reminder.id == 0L) {
+            insert(reminder)
+        } else {
+            update(reminder)
+            reminder.id
+        }
+    }
 }

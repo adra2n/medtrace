@@ -1,27 +1,107 @@
 package com.yy.chiyaole.data
 
 import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
-import com.yy.chiyaole.data.converter.DateTimeConverter
+import androidx.room.*
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.yy.chiyaole.data.converter.LocalDateConverter
+import com.yy.chiyaole.data.converter.LocalDateTimeConverter
+import com.yy.chiyaole.data.converter.LocalTimeConverter
+import com.yy.chiyaole.data.converter.LocalTimeListConverter
 import com.yy.chiyaole.data.dao.MedicalRecordDao
+import com.yy.chiyaole.data.dao.MedicationRecordDao
 import com.yy.chiyaole.data.dao.MedicationReminderDao
+import com.yy.chiyaole.data.dao.UserSettingsDao
 import com.yy.chiyaole.data.model.MedicalRecord
+import com.yy.chiyaole.data.model.MedicationRecord
 import com.yy.chiyaole.data.model.MedicationReminder
+import com.yy.chiyaole.data.model.UserSettings
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Database(
-    entities = [MedicationReminder::class, MedicalRecord::class],
-    version = 1,
+    entities = [
+        MedicationReminder::class,
+        MedicalRecord::class,
+        UserSettings::class,
+        MedicationRecord::class
+    ],
+    version = 3,
     exportSchema = false
 )
-@TypeConverters(DateTimeConverter::class)
+@TypeConverters(
+    LocalDateConverter::class,
+    LocalDateTimeConverter::class,
+    LocalTimeConverter::class,
+    LocalTimeListConverter::class
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun medicationReminderDao(): MedicationReminderDao
     abstract fun medicalRecordDao(): MedicalRecordDao
+    abstract fun userSettingsDao(): UserSettingsDao
+    abstract fun medicationRecordDao(): MedicationRecordDao
 
     companion object {
+//        private val MIGRATION_1_2 = object : Migration(1, 2) {
+//            override fun migrate(database: SupportSQLiteDatabase) {
+//                // 创建新的用户设置表，不包含睡眠时间字段
+//                database.execSQL("""
+//                    CREATE TABLE IF NOT EXISTS user_settings_new (
+//                        id INTEGER PRIMARY KEY NOT NULL,
+//                        enableVoiceReminder INTEGER NOT NULL,
+//                        enableNotificationSound INTEGER NOT NULL,
+//                        enableVibration INTEGER NOT NULL,
+//                        reminderAdvanceMinutes INTEGER NOT NULL,
+//                        darkMode INTEGER NOT NULL
+//                    )
+//                """)
+//
+//                // 复制旧数据到新表，忽略睡眠时间字段
+//                database.execSQL("""
+//                    INSERT INTO user_settings_new (
+//                        id, enableVoiceReminder, enableNotificationSound,
+//                        enableVibration, reminderAdvanceMinutes, darkMode
+//                    )
+//                    SELECT id, enableVoiceReminder, enableNotificationSound,
+//                           enableVibration, reminderAdvanceMinutes, darkMode
+//                    FROM user_settings
+//                """)
+//
+//                // 删除旧表
+//                database.execSQL("DROP TABLE user_settings")
+//
+//                // 重命名新表
+//                database.execSQL("ALTER TABLE user_settings_new RENAME TO user_settings")
+//            }
+//        }
+//
+//        private val MIGRATION_2_3 = object : Migration(2, 3) {
+//            override fun migrate(database: SupportSQLiteDatabase) {
+//                // 创建服药记录表
+//                database.execSQL("""
+//                    CREATE TABLE IF NOT EXISTS medication_records (
+//                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+//                        reminderId INTEGER NOT NULL,
+//                        scheduledTime TEXT NOT NULL,
+//                        actualTime TEXT,
+//                        status TEXT NOT NULL,
+//                        note TEXT NOT NULL DEFAULT '',
+//                        FOREIGN KEY (reminderId) REFERENCES medication_reminders(id) ON DELETE CASCADE
+//                    )
+//                """)
+//
+//                // 创建 reminderId 列的索引
+//                database.execSQL("""
+//                    CREATE INDEX IF NOT EXISTS index_medication_records_reminderId
+//                    ON medication_records(reminderId)
+//                """)
+//            }
+//        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -32,7 +112,18 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                .fallbackToDestructiveMigration()
+//                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        super.onCreate(db)
+                        INSTANCE?.let { database ->
+                            CoroutineScope(Dispatchers.IO).launch {
+                                // 初始化默认设置
+                                database.userSettingsDao().insertOrUpdate(UserSettings())
+                            }
+                        }
+                    }
+                })
                 .build()
                 INSTANCE = instance
                 instance

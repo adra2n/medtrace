@@ -2,7 +2,11 @@ package com.yy.chiyaole.ui.screens
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,19 +22,23 @@ import androidx.navigation.NavController
 import androidx.work.*
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicationReminder
-import com.yy.chiyaole.worker.MedicationReminderWorker
+import com.yy.chiyaole.data.model.MedicationRecord
+import com.yy.chiyaole.data.model.MedicationStatus
+//import com.yy.chiyaole.util.ReminderScheduler
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
-import java.util.concurrent.TimeUnit
+import java.time.Duration
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMedicationReminderScreen(
     database: AppDatabase,
     navController: NavController,
-    workManager: WorkManager,
+//    workManager: WorkManager,
     reminderId: Long?
 ) {
     val scope = rememberCoroutineScope()
@@ -42,14 +50,16 @@ fun AddMedicationReminderScreen(
     var medicineName by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf(LocalDateTime.now()) }
     var endDate by remember { mutableStateOf(LocalDateTime.now().plusDays(7)) }
-    var firstDoseTime by remember { mutableStateOf(LocalDateTime.now()) }
-    var intervalHours by remember { mutableStateOf("8") }
-    var frequency by remember { mutableStateOf("") }
-    var dosage by remember { mutableStateOf("") }
+    var dailyFrequency by remember { mutableStateOf(1) }
+    var medicationTimes by remember { mutableStateOf(List(1) { LocalTime.of(8, 0) }) }
+    var dosageAmount by remember { mutableStateOf("1") }
+    var dosageUnit by remember { mutableStateOf("片") }
     var instructions by remember { mutableStateOf("") }
     
     val dateFormatter = remember { DateTimeFormatter.ofPattern("yyyy年MM月dd日") }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
+    val dosageUnits = listOf("片", "袋", "ml")
+    var showDosageUnitMenu by remember { mutableStateOf(false) }
     
     // 如果是编辑模式，加载现有数据
     LaunchedEffect(reminderId) {
@@ -61,10 +71,10 @@ fun AddMedicationReminderScreen(
                     medicineName = it.medicineName
                     startDate = it.startDate
                     endDate = it.endDate
-                    firstDoseTime = it.firstDoseTime
-                    intervalHours = it.intervalHours.toString()
-                    frequency = it.frequency
-                    dosage = it.dosage
+                    dailyFrequency = it.timesPerDay
+                    medicationTimes = it.medicationTimes
+                    dosageAmount = it.dosageAmount.toString()
+                    dosageUnit = it.dosageUnit
                     instructions = it.instructions
                 }
             } catch (e: Exception) {
@@ -80,7 +90,7 @@ fun AddMedicationReminderScreen(
                 title = { Text(if (reminderId == null) "添加用药提醒" else "编辑用药提醒") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "返回")
+                        Icon(Icons.Filled.ArrowBack, "返回")
                     }
                 }
             )
@@ -137,7 +147,7 @@ fun AddMedicationReminderScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.DateRange, "选择日期")
+                Icon(Icons.Filled.DateRange, "选择日期")
                 Spacer(Modifier.width(8.dp))
                 Text("开始日期：${startDate.format(dateFormatter)}")
             }
@@ -164,56 +174,106 @@ fun AddMedicationReminderScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.DateRange, "选择日期")
+                Icon(Icons.Filled.DateRange, "选择日期")
                 Spacer(Modifier.width(8.dp))
                 Text("结束日期：${endDate.format(dateFormatter)}")
             }
             
-            // 第一次服药时间选择
-            OutlinedButton(
-                onClick = {
-                    TimePickerDialog(
-                        context,
-                        { _, hourOfDay, minute ->
-                            firstDoseTime = firstDoseTime
-                                .withHour(hourOfDay)
-                                .withMinute(minute)
-                        },
-                        firstDoseTime.hour,
-                        firstDoseTime.minute,
-                        true
-                    ).show()
-                },
-                modifier = Modifier.fillMaxWidth()
+            // 每天服用次数选择
+            Text("每日服药次数", style = MaterialTheme.typography.bodyLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("第一次服药时间：${firstDoseTime.format(timeFormatter)}")
+                (1..4).forEach { count ->
+                    OutlinedButton(
+                        onClick = {
+                            dailyFrequency = count
+                            medicationTimes = List(count) { index ->
+                                when (index) {
+                                    0 -> LocalTime.of(8, 0)  // 早上8点
+                                    1 -> LocalTime.of(12, 0) // 中午12点
+                                    2 -> LocalTime.of(18, 0) // 晚上6点
+                                    else -> LocalTime.of(21, 0) // 睡前9点
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (dailyFrequency == count) 
+                                MaterialTheme.colorScheme.primaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Text(count.toString())
+                    }
+                }
+            }
+
+            // 服药时间选择
+            Text("服药时间", style = MaterialTheme.typography.bodyLarge)
+            medicationTimes.forEachIndexed { index, time ->
+                OutlinedButton(
+                    onClick = {
+                        TimePickerDialog(
+                            context,
+                            { _, hourOfDay, minute ->
+                                medicationTimes = medicationTimes.toMutableList().apply {
+                                    this[index] = LocalTime.of(hourOfDay, minute)
+                                }
+                            },
+                            time.hour,
+                            time.minute,
+                            true
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("第${index + 1}次：${time.format(timeFormatter)}")
+                }
             }
             
-            // 服药间隔
-            OutlinedTextField(
-                value = intervalHours,
-                onValueChange = { 
-                    if (it.isEmpty() || it.toIntOrNull() != null) {
-                        intervalHours = it
+            // 用药剂量
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = dosageAmount,
+                    onValueChange = { 
+                        if (it.isEmpty() || it.toFloatOrNull() != null) {
+                            dosageAmount = it
+                        }
+                    },
+                    label = { Text("每次用量") },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                Box {
+                    OutlinedButton(
+                        onClick = { showDosageUnitMenu = true }
+                    ) {
+                        Text(dosageUnit)
                     }
-                },
-                label = { Text("服药间隔（小时）") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = frequency,
-                onValueChange = { frequency = it },
-                label = { Text("服药频率") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = dosage,
-                onValueChange = { dosage = it },
-                label = { Text("用药剂量") },
-                modifier = Modifier.fillMaxWidth()
-            )
+                    
+                    DropdownMenu(
+                        expanded = showDosageUnitMenu,
+                        onDismissRequest = { showDosageUnitMenu = false }
+                    ) {
+                        dosageUnits.forEach { unit ->
+                            DropdownMenuItem(
+                                text = { Text(unit) },
+                                onClick = {
+                                    dosageUnit = unit
+                                    showDosageUnitMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
 
             OutlinedTextField(
                 value = instructions,
@@ -225,46 +285,60 @@ fun AddMedicationReminderScreen(
 
             Button(
                 onClick = {
+                    if (patientName.isBlank()) {
+                        error = "请输入患者姓名"
+                        return@Button
+                    }
+                    if (medicineName.isBlank()) {
+                        error = "请输入药品名称"
+                        return@Button
+                    }
+                    val dosageAmountFloat = dosageAmount.toFloatOrNull()
+                    if (dosageAmountFloat == null || dosageAmountFloat <= 0) {
+                        error = "请输入有效的用药剂量"
+                        return@Button
+                    }
+                    
                     scope.launch {
                         try {
-                            if (patientName.isBlank() || medicineName.isBlank() || 
-                                frequency.isBlank() || dosage.isBlank() || intervalHours.isBlank()
-                            ) {
-                                error = "请填写必要信息"
-                                return@launch
-                            }
-                            
-                            val intervalHoursInt = intervalHours.toIntOrNull()
-                            if (intervalHoursInt == null || intervalHoursInt <= 0) {
-                                error = "请输入有效的服药间隔时间"
-                                return@launch
-                            }
-                            
                             val reminder = MedicationReminder(
                                 id = reminderId ?: 0,
                                 patientName = patientName,
                                 medicineName = medicineName,
                                 startDate = startDate,
                                 endDate = endDate,
-                                firstDoseTime = firstDoseTime,
-                                intervalHours = intervalHoursInt,
-                                frequency = frequency,
-                                dosage = dosage,
-                                instructions = instructions
+                                timesPerDay = dailyFrequency,
+                                medicationTimes = medicationTimes,
+                                dosageAmount = dosageAmountFloat,
+                                dosageUnit = dosageUnit,
+                                instructions = instructions,
+                                isActive = true
                             )
-
-                            if (reminderId == null) {
-                                // 添加新提醒
-                                val id = database.medicationReminderDao().insert(reminder)
-                                scheduleReminder(workManager, reminder.copy(id = id))
-                            } else {
-                                // 更新现有提醒
-                                database.medicationReminderDao().update(reminder)
-                                // 取消旧的提醒并创建新的
-                                workManager.cancelAllWorkByTag("reminder_$reminderId")
-                                scheduleReminder(workManager, reminder)
+                            
+                            // 保存提醒到数据库
+                            val savedReminderId = database.medicationReminderDao().insertOrUpdate(reminder)
+                            
+                            // 创建服药记录
+                            var currentDate = startDate.toLocalDate()
+                            val endLocalDate = endDate.toLocalDate()
+                            
+                            while (!currentDate.isAfter(endLocalDate)) {
+                                medicationTimes.forEach { time ->
+                                    val scheduledTime = currentDate.atTime(time)
+                                    if (!scheduledTime.isBefore(LocalDateTime.now())) {
+                                        val record = MedicationRecord(
+                                            reminderId = savedReminderId,
+                                            scheduledTime = scheduledTime,
+                                            actualTime = null,
+                                            status = MedicationStatus.PENDING,
+                                            note = ""
+                                        )
+                                        database.medicationRecordDao().insert(record)
+                                    }
+                                }
+                                currentDate = currentDate.plusDays(1)
                             }
-
+                            
                             navController.popBackStack()
                         } catch (e: Exception) {
                             error = e.message
@@ -274,32 +348,8 @@ fun AddMedicationReminderScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (reminderId == null) "添加提醒" else "保存修改")
+                Text(if (reminderId == null) "添加" else "保存")
             }
         }
     }
-}
-
-private fun scheduleReminder(workManager: WorkManager, reminder: MedicationReminder) {
-    val now = LocalDateTime.now()
-    val initialDelay = ChronoUnit.MINUTES.between(now, reminder.firstDoseTime)
-    
-    val reminderRequest = PeriodicWorkRequestBuilder<MedicationReminderWorker>(
-        reminder.intervalHours.toLong(),
-        TimeUnit.HOURS
-    )
-        .setInitialDelay(initialDelay, TimeUnit.MINUTES)
-        .addTag("reminder_${reminder.id}")
-        .setInputData(
-            workDataOf(
-                "reminder_id" to reminder.id,
-                "patient_name" to reminder.patientName,
-                "medicine_name" to reminder.medicineName,
-                "dosage" to reminder.dosage,
-                "instructions" to reminder.instructions
-            )
-        )
-        .build()
-
-    workManager.enqueue(reminderRequest)
 }

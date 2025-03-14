@@ -6,6 +6,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".ChiyaoleApplication"
         android:allowBackup="true"
@@ -26,6 +32,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".receiver.MedicationActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.yy.chiyaole.ACTION_MEDICATION_TAKEN" />
+                <action android:name="com.yy.chiyaole.ACTION_MEDICATION_SKIP" />
+                <action android:name="com.yy.chiyaole.ACTION_MEDICATION_DELAY" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="androidx.startup.InitializationProvider"
