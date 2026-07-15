@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yy.chiyaole.data.model.MedicalRecord
+import com.yy.chiyaole.ui.theme.cardContainerColor
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -30,7 +32,8 @@ fun MedicalRecordCard(record: MedicalRecord) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = cardContainerColor())
     ) {
         Column(
             modifier = Modifier
@@ -60,10 +63,34 @@ fun MedicalRecordCard(record: MedicalRecord) {
                 overflow = TextOverflow.Ellipsis
             )
 
-            Text(
-                text = "用药：${record.medications}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            if (record.hospital.isNotBlank()) {
+                Text(
+                    text = "就诊医院：${record.hospital}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            if (record.medItems.isNotEmpty()) {
+                Text(
+                    text = "用药：",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                record.medItems.forEach { med ->
+                    val parts = listOf(med.name, med.dose, med.freq, med.duration)
+                        .filter { it.isNotBlank() }
+                        .joinToString(" ")
+                    Text(
+                        text = "· $parts",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            } else {
+                Text(
+                    text = "用药：无",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
             if (record.notes.isNotBlank()) {
                 Text(

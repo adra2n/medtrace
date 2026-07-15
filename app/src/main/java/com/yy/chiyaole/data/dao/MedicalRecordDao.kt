@@ -18,6 +18,9 @@ interface MedicalRecordDao {
     @Insert
     suspend fun insert(record: MedicalRecord): Long
 
+    @Query("SELECT COUNT(*) FROM medical_records")
+    suspend fun count(): Int
+
     @Update
     suspend fun update(record: MedicalRecord)
 

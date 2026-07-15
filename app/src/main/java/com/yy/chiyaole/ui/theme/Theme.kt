@@ -11,7 +11,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -19,17 +21,22 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.yy.chiyaole.data.AppDatabase
 
+val LocalIsDark = compositionLocalOf { false }
+
+@Composable
+fun cardContainerColor(): Color = if (LocalIsDark.current) CardSurfaceDark else CardSurface
+
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryDark,
-    secondary = AccentDark,
-    tertiary = Warning,
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
-    onPrimary = Color(0xFFFFFFFF),
-    onSecondary = Color(0xFFFFFFFF),
-    onTertiary = Color(0xFF000000),
-    onBackground = Color(0xFFE0E0E0),
-    onSurface = Color(0xFFE0E0E0),
+    primary = PrimaryLight,
+    secondary = AccentLight,
+    tertiary = PrimaryDark,
+    background = Color(0xFF0F1A1B),
+    surface = Color(0xFF1A2729),
+    onPrimary = Color(0xFF06201F),
+    onSecondary = Color(0xFF1A1206),
+    onTertiary = Color(0xFFD7F2F0),
+    onBackground = Color(0xFFE2EAEA),
+    onSurface = Color(0xFFE2EAEA),
     error = Error,
     onError = Color(0xFFFFFFFF)
 )
@@ -78,9 +85,11 @@ fun ChiyaoleTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalIsDark provides useDarkTheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

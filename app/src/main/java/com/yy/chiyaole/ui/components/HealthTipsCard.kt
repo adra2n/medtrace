@@ -35,7 +35,10 @@ fun HealthTipsCard() {
             )
 
             Text(
-                text = "定时服药的重要性：按时服药不仅能保证药物疗效，还能预防疾病复发。建议设置手机提醒，帮助您准时服药。",
+                text = "用药安全提示：\n" +
+                      "• 就诊时主动告知医生正在服用的所有药品，避免重复或冲突用药。\n" +
+                      "• 保留处方与检查报告，复诊时方便对比病情变化。\n" +
+                      "• 药品请严格按医嘱的剂量与疗程服用，勿自行增减或停药。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )

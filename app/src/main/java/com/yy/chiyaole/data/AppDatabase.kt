@@ -8,13 +8,10 @@ import com.yy.chiyaole.data.converter.LocalDateConverter
 import com.yy.chiyaole.data.converter.LocalDateTimeConverter
 import com.yy.chiyaole.data.converter.LocalTimeConverter
 import com.yy.chiyaole.data.converter.LocalTimeListConverter
+import com.yy.chiyaole.data.converter.MedicationItemListConverter
 import com.yy.chiyaole.data.dao.MedicalRecordDao
-import com.yy.chiyaole.data.dao.MedicationRecordDao
-import com.yy.chiyaole.data.dao.MedicationReminderDao
 import com.yy.chiyaole.data.dao.UserSettingsDao
 import com.yy.chiyaole.data.model.MedicalRecord
-import com.yy.chiyaole.data.model.MedicationRecord
-import com.yy.chiyaole.data.model.MedicationReminder
 import com.yy.chiyaole.data.model.UserSettings
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -25,25 +22,22 @@ import kotlinx.coroutines.launch
 
 @Database(
     entities = [
-        MedicationReminder::class,
         MedicalRecord::class,
-        UserSettings::class,
-        MedicationRecord::class
+        UserSettings::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(
     LocalDateConverter::class,
     LocalDateTimeConverter::class,
     LocalTimeConverter::class,
-    LocalTimeListConverter::class
+    LocalTimeListConverter::class,
+    MedicationItemListConverter::class
 )
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun medicationReminderDao(): MedicationReminderDao
     abstract fun medicalRecordDao(): MedicalRecordDao
     abstract fun userSettingsDao(): UserSettingsDao
-    abstract fun medicationRecordDao(): MedicationRecordDao
 
     companion object {
 //        private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -113,6 +107,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "app_database"
                 )
 //                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .fallbackToDestructiveMigration()
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

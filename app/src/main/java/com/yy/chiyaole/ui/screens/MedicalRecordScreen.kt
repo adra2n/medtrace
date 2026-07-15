@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.MedicalRecord
+import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -84,7 +86,8 @@ fun MedicalRecordScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp)
+                            .padding(vertical = 8.dp),
+                        colors = CardDefaults.cardColors(containerColor = cardContainerColor())
                     ) {
                         Column(
                             modifier = Modifier
@@ -100,19 +103,26 @@ fun MedicalRecordScreen(
                                     text = record.patientName,
                                     style = MaterialTheme.typography.titleMedium
                                 )
-                                IconButton(
-                                    onClick = {
-                                        scope.launch {
-                                            try {
-                                                database.medicalRecordDao().delete(record)
-                                            } catch (e: Exception) {
-                                                error = e.message
-                                                e.printStackTrace()
+                                Row {
+                                    IconButton(
+                                        onClick = { navController.navigate("add_record/${record.id}") }
+                                    ) {
+                                        Icon(Icons.Default.Edit, "编辑")
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            scope.launch {
+                                                try {
+                                                    database.medicalRecordDao().delete(record)
+                                                } catch (e: Exception) {
+                                                    error = e.message
+                                                    e.printStackTrace()
+                                                }
                                             }
                                         }
+                                    ) {
+                                        Icon(Icons.Default.Delete, "删除")
                                     }
-                                ) {
-                                    Icon(Icons.Default.Delete, "删除")
                                 }
                             }
                             
@@ -127,22 +137,31 @@ fun MedicalRecordScreen(
                                 text = "就诊时间：${record.onsetTime.format(dateFormatter)}",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            
-                            Text(
-                                text = "开具药品：${record.medications}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            
-                            Text(
-                                text = "服药频率：${record.frequency}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            
-                            Text(
-                                text = "用药剂量：${record.dosage}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            
+
+                            if (record.hospital.isNotBlank()) {
+                                Text(
+                                    text = "就诊医院：${record.hospital}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+
+                            if (record.medItems.isNotEmpty()) {
+                                Text(
+                                    text = "开具药品：",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                record.medItems.forEach { med ->
+                                    val parts = listOf(med.name, med.dose, med.freq, med.duration)
+                                        .filter { it.isNotBlank() }
+                                        .joinToString(" ")
+                                    Text(
+                                        text = "· $parts",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+                            }
+
                             if (record.notes.isNotBlank()) {
                                 Text(
                                     text = "备注：${record.notes}",

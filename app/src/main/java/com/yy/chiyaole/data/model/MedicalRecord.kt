@@ -11,7 +11,8 @@ data class MedicalRecord(
     val patientName: String,
     val diagnosis: String,
     val onsetTime: LocalDateTime,
-    val medications: String,
+    val hospital: String = "",
+    val medItems: List<MedicationItem> = emptyList(),
     val frequency: String,    // 服药频率，如"每天三次"
     val dosage: String,       // 用药剂量，如"每次一片"
     val notes: String = ""
