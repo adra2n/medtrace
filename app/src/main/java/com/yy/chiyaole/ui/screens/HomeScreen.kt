@@ -5,6 +5,9 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
@@ -21,6 +24,8 @@ import com.yy.chiyaole.ui.components.MedicalRecordCard
 import com.yy.chiyaole.ui.components.MemberSelector
 import com.yy.chiyaole.ui.components.SectionCard
 import com.yy.chiyaole.ui.components.InfoRow
+import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.cardContainerColor
 import com.yy.chiyaole.SettingsAction
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import kotlinx.coroutines.flow.catch
@@ -117,6 +122,43 @@ fun HomeScreen(
                         }
                     }
                 )
+            }
+
+            item {
+                Card(
+                    onClick = { navController.navigate("trends") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.medium,
+                    colors = CardDefaults.cardColors(containerColor = cardContainerColor())
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.ShowChart,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("健康趋势", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "查看 AI 识别的血压、血糖等指标变化",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            Icons.Filled.ArrowForward,
+                            contentDescription = "进入",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             currentMember?.let { member ->
