@@ -24,6 +24,23 @@ interface MedicalRecordDao {
     @Query("SELECT * FROM medical_records WHERE patientId = :patientId ORDER BY onsetTime DESC LIMIT :limit")
     fun getRecentRecordsByMember(patientId: Long, limit: Int): Flow<List<MedicalRecord>>
 
+    @Query(
+        """
+        SELECT * FROM medical_records
+        WHERE patientId = :patientId
+          AND (:keyword IS NULL OR :keyword = '' OR diagnosis LIKE :likePattern OR hospital LIKE :likePattern OR notes LIKE :likePattern)
+          AND onsetTime >= :from AND onsetTime <= :to
+        ORDER BY onsetTime DESC
+        """
+    )
+    fun searchByMember(
+        patientId: Long,
+        keyword: String?,
+        likePattern: String,
+        from: java.time.LocalDateTime,
+        to: java.time.LocalDateTime
+    ): Flow<List<MedicalRecord>>
+
     @Query("SELECT * FROM medical_records ORDER BY onsetTime DESC LIMIT 1")
     suspend fun getLatestRecord(): MedicalRecord?
 
