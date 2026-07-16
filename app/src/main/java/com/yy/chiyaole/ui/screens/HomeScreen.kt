@@ -82,7 +82,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "智药乐",
+                            text = "医迹",
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(

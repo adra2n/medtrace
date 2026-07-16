@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">智药乐</string>
+    <string name="app_name">医迹</string>
     
     <!-- 通知相关 -->
     <string name="notification_channel_name">用药提醒</string>

@@ -12,6 +12,7 @@ import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.POST
 import java.util.concurrent.TimeUnit
+import com.yy.chiyaole.BuildConfig
 
 @Serializable data class Message(val role: String, val content: JsonElement)
 @Serializable data class ChatRequest(val model: String, val messages: List<Message>)
@@ -26,12 +27,16 @@ interface LlmApi {
     companion object {
         fun create(baseUrl: String): LlmApi {
             val json = Json { ignoreUnknownKeys = true }
-            val client = OkHttpClient.Builder()
+            val clientBuilder = OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(120, TimeUnit.SECONDS)
                 .writeTimeout(60, TimeUnit.SECONDS)
-                .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
-                .build()
+            if (BuildConfig.DEBUG) {
+                clientBuilder.addInterceptor(
+                    HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
+                )
+            }
+            val client = clientBuilder.build()
             return Retrofit.Builder()
                 .baseUrl(baseUrl)
                 .client(client)

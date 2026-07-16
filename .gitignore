@@ -25,7 +25,11 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
+keystore/
 keystore.properties
+
+# Build artifacts
+app/proguardMapping.txt
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json

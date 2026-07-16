@@ -4,19 +4,29 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LifecycleEventObserver
+import com.yy.chiyaole.data.security.BiometricHelper
+import com.yy.chiyaole.data.security.PinManager
+import com.yy.chiyaole.data.settings.SecuritySettingsStore
+import com.yy.chiyaole.ui.screens.LockScreen
+import com.yy.chiyaole.ui.theme.Primary
 import androidx.activity.compose.BackHandler
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -38,7 +48,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,27 +81,23 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-sealed class Screen(val route: String, val icon: @Composable () -> Unit, val label: String) {
-    object Home : Screen(
-        route = "home",
-        icon = { Icon(Icons.Default.Home, "首页") },
-        label = "首页"
-    )
-    object Family : Screen(
-        route = "family",
-        icon = { Icon(Icons.Filled.People, "家庭") },
-        label = "家庭"
-    )
-    object MedicalRecords : Screen(
-        route = "medical_records",
-        icon = { Icon(Icons.Default.Person, "医疗记录") },
-        label = "医疗记录"
-    )
-    object Settings : Screen(
-        route = "settings",
-        icon = { Icon(Icons.Default.Settings, "设置") },
-        label = "设置"
-    )
+sealed class Screen(
+    val route: String,
+    val label: String,
+    val icon: @Composable (tint: androidx.compose.ui.graphics.Color, size: androidx.compose.ui.unit.Dp) -> Unit
+) {
+    object Home : Screen("home", "首页", { tint, size ->
+        Icon(Icons.Filled.Home, "首页", tint = tint, modifier = Modifier.size(size))
+    })
+    object Family : Screen("family", "家庭", { tint, size ->
+        Icon(Icons.Filled.People, "家庭", tint = tint, modifier = Modifier.size(size))
+    })
+    object MedicalRecords : Screen("medical_records", "记录", { tint, size ->
+        Icon(Icons.Filled.MedicalInformation, "记录", tint = tint, modifier = Modifier.size(size))
+    })
+    object Settings : Screen("settings", "设置", { tint, size ->
+        Icon(Icons.Filled.Settings, "设置", tint = tint, modifier = Modifier.size(size))
+    })
 }
 
 @Composable
@@ -116,35 +122,145 @@ fun MainScreen(database: AppDatabase) {
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = currentRoute != "splash" && currentRoute != null
 
-    val topLevelRoutes = listOf(Screen.Home.route, Screen.Family.route, Screen.MedicalRecords.route)
+    val topLevelRoutes = screens.map { it.route }
     val activity = LocalContext.current as? ComponentActivity
     BackHandler(enabled = currentRoute in topLevelRoutes) {
-        activity?.finish()
+        if (currentRoute == Screen.Home.route) {
+            activity?.finish()
+        } else {
+            navController.popBackStack(Screen.Home.route, false)
+        }
+    }
+
+    val fragmentActivity = activity as? androidx.fragment.app.FragmentActivity
+    var appLockEnabled by remember { mutableStateOf(false) }
+    var autoLockSeconds by remember { mutableStateOf(0) }
+    var secureScreen by remember { mutableStateOf(false) }
+    var locked by remember { mutableStateOf(false) }
+
+    val secStore = remember(fragmentActivity) {
+        fragmentActivity?.let { SecuritySettingsStore(it) }
+    }
+    val pinSet = remember(fragmentActivity) {
+        fragmentActivity?.let { PinManager.isPinSet(it) } ?: false
+    }
+    val biometricAvailable = remember(fragmentActivity) {
+        fragmentActivity?.let { BiometricHelper.canAuthenticate(it) } ?: false
+    }
+
+    LaunchedEffect(Unit) {
+        appLockEnabled = secStore?.getAppLockEnabled() ?: false
+        autoLockSeconds = secStore?.getAutoLockSeconds() ?: 0
+        secureScreen = secStore?.getSecureScreen() ?: false
+        activity?.window?.setFlags(
+            if (secureScreen) android.view.WindowManager.LayoutParams.FLAG_SECURE else 0,
+            android.view.WindowManager.LayoutParams.FLAG_SECURE
+        )
+        locked = appLockEnabled
+    }
+
+    var backgroundedAt by remember { mutableStateOf(0L) }
+    DisposableEffect(fragmentActivity) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> {
+                    if (appLockEnabled) {
+                        backgroundedAt = android.os.SystemClock.elapsedRealtime()
+                        locked = true
+                    }
+                }
+                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> {
+                    if (appLockEnabled && backgroundedAt > 0) {
+                        val elapsed = (android.os.SystemClock.elapsedRealtime() - backgroundedAt) / 1000
+                        if (elapsed >= autoLockSeconds) locked = true
+                        backgroundedAt = 0
+                    }
+                }
+                else -> {}
+            }
+        }
+        fragmentActivity?.lifecycle?.addObserver(observer)
+        onDispose { fragmentActivity?.lifecycle?.removeObserver(observer) }
+    }
+
+    fun promptBiometric() {
+        fragmentActivity?.let {
+            BiometricHelper.authenticate(
+                activity = it,
+                onSuccess = { locked = false },
+                onError = { /* 保持锁定 */ }
+            )
+        } ?: run { locked = false }
+    }
+
+    if (locked) {
+        LockScreen(
+            pinEnabled = pinSet,
+            biometricEnabled = biometricAvailable,
+            onBiometricClick = { promptBiometric() },
+            onPinEntered = { pin ->
+                val ok = fragmentActivity?.let { PinManager.verify(it, pin) } ?: false
+                if (ok) locked = false
+                ok
+            }
+        )
+        return
     }
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 8.dp)
                 ) {
-                    screens.forEach { screen ->
-                        NavigationBarItem(
-                            icon = screen.icon,
-                            label = { Text(screen.label) },
-                            selected = currentRoute == screen.route,
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp,
+                        shadowElevation = 8.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp, horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            screens.forEach { screen ->
+                                val selected = currentRoute == screen.route
+                                val contentColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(
+                                            if (selected) Primary.copy(alpha = 0.12f) else Color.Transparent
+                                        )
+                                        .clickable {
+                                            navController.navigate(screen.route) {
+                                                popUpTo(Screen.Home.route) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                        .weight(1f)
+                                ) {
+                                    screen.icon(contentColor, if (selected) 26.dp else 22.dp)
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        screen.label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = contentColor
+                                    )
                                 }
                             }
-                        )
+                        }
                     }
                 }
             }

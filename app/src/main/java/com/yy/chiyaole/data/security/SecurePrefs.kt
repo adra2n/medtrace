@@ -1,0 +1,28 @@
+package com.yy.chiyaole.data.security
+
+import android.content.Context
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import android.util.Base64
+import java.security.SecureRandom
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
+
+object SecurePrefs {
+    private const val FILE_NAME = "chiyaole_secure_prefs"
+    const val PIN_HASH = "pin_hash"
+
+    private fun masterKey(context: Context): MasterKey =
+        MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+    fun get(context: Context) =
+        EncryptedSharedPreferences.create(
+            context,
+            FILE_NAME,
+            masterKey(context),
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+}

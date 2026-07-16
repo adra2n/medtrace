@@ -9,6 +9,9 @@ interface MedicalRecordDao {
     @Query("SELECT * FROM medical_records")
     fun getAllRecords(): Flow<List<MedicalRecord>>
 
+    @Query("SELECT * FROM medical_records")
+    suspend fun getAllRecordsList(): List<MedicalRecord>
+
     @Query("SELECT * FROM medical_records WHERE patientId = :patientId ORDER BY onsetTime DESC")
     fun getRecordsByMember(patientId: Long): Flow<List<MedicalRecord>>
 
@@ -38,4 +41,10 @@ interface MedicalRecordDao {
 
     @Delete
     suspend fun delete(record: MedicalRecord)
+
+    @Insert
+    suspend fun insertAll(records: List<MedicalRecord>)
+
+    @Query("DELETE FROM medical_records")
+    suspend fun clear()
 }
