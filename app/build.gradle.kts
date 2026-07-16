@@ -37,12 +37,31 @@ android {
     }
 
     // 配置签名信息 - 移到 buildTypes 之前
+    // 密码仅从本地 keystore.properties（已 gitignore）或环境变量读取，不写死在仓库中
+    val keyPropsFile = rootProject.file("keystore.properties")
+    val keyProps = if (keyPropsFile.exists()) {
+        keyPropsFile.readLines().mapNotNull { line ->
+            val trimmed = line.trim()
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) return@mapNotNull null
+            val eq = trimmed.indexOf('=')
+            if (eq < 0) return@mapNotNull null
+            trimmed.substring(0, eq).trim() to trimmed.substring(eq + 1).trim()
+        }.toMap()
+    } else {
+        emptyMap()
+    }
+    val getSecret: (envKey: String, propKey: String) -> String? = { envKey, propKey ->
+        System.getenv(envKey) ?: keyProps[propKey]
+    }
+
     signingConfigs {
         create("release") {
             storeFile = file("../keystore/release.keystore")
-            storePassword = System.getenv("CHIYAOLE_KEYSTORE_PASSWORD") ?: "***REDACTED***"
-            keyAlias = System.getenv("CHIYAOLE_KEY_ALIAS") ?: "chiyaole_key"
-            keyPassword = System.getenv("CHIYAOLE_KEY_PASSWORD") ?: "***REDACTED***"
+            storePassword = getSecret("CHIYAOLE_KEYSTORE_PASSWORD", "storePassword")
+                ?: error("未配置签名密码：请在 keystore.properties 设置 storePassword，或设置环境变量 CHIYAOLE_KEYSTORE_PASSWORD")
+            keyAlias = getSecret("CHIYAOLE_KEY_ALIAS", "keyAlias") ?: "chiyaole_key"
+            keyPassword = getSecret("CHIYAOLE_KEY_PASSWORD", "keyPassword")
+                ?: error("未配置签名密码：请在 keystore.properties 设置 keyPassword，或设置环境变量 CHIYAOLE_KEY_PASSWORD")
         }
     }
 
