@@ -12,8 +12,8 @@ val Accent = Color(0xFFC98A4B)       // 暖沙金
 val AccentLight = Color(0xFFE2B585)  // 浅沙金
 val AccentDark = Color(0xFF9C6630)   // 深沙金
 
-// 背景色：偏冷的浅灰白，干净通透
-val Background = Color(0xFFF6F8F8)    // 浅冷灰白
+// 背景色：带青绿调的浅灰，与主题呼应，柔和通透
+val Background = Color(0xFFEFF5F4)    // 浅青灰
 val Surface = Color(0xFFFFFFFF)       // 纯白
 val BackgroundDark = Color(0xFFE1E7E7) // 深冷灰
 

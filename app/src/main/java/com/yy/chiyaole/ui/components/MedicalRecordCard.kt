@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,68 +41,108 @@ fun MedicalRecordCard(record: MedicalRecord) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Icon(
+                    imageVector = Icons.Filled.LocalHospital,
+                    contentDescription = "医疗记录",
+                    tint = MaterialTheme.colorScheme.primary
+                )
                 Text(
                     text = record.patientName,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = record.onsetTime.format(DateTimeFormatter.ofPattern("yyyy年MM月dd日")),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.End
                 )
             }
 
-            Text(
-                text = "诊断：${record.diagnosis}",
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            LabeledRow(label = "诊断", value = record.diagnosis)
 
             if (record.hospital.isNotBlank()) {
-                Text(
-                    text = "就诊医院：${record.hospital}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                LabeledRow(label = "就诊医院", value = record.hospital)
             }
 
             if (record.medItems.isNotEmpty()) {
-                Text(
-                    text = "用药：",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                record.medItems.forEach { med ->
-                    val parts = listOf(med.name, med.dose, med.freq, med.duration)
-                        .filter { it.isNotBlank() }
-                        .joinToString(" ")
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "· $parts",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(start = 8.dp)
+                        text = "用药",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    record.medItems.forEach { med ->
+                        val detail = listOf(med.dose, med.freq, med.duration)
+                            .filter { it.isNotBlank() }
+                            .joinToString(" · ")
+                        Text(
+                            text = buildString {
+                                append("· ${med.name}")
+                                if (detail.isNotBlank()) append("（$detail）")
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                 }
             } else {
-                Text(
-                    text = "用药：无",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                LabeledRow(label = "用药", value = "无")
             }
 
             if (record.notes.isNotBlank()) {
-                Text(
-                    text = "备注：${record.notes}",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "备注",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = record.notes,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
             }
         }
     }
 }
+
+@Composable
+private fun LabeledRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(0.28f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(0.72f),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
 
 
 @Composable

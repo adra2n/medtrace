@@ -8,6 +8,7 @@ import java.time.LocalDateTime
 data class MedicalRecord(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val patientId: Long = 0,
     val patientName: String,
     val diagnosis: String,
     val onsetTime: LocalDateTime,

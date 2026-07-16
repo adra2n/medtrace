@@ -9,8 +9,10 @@ import com.yy.chiyaole.data.converter.LocalDateTimeConverter
 import com.yy.chiyaole.data.converter.LocalTimeConverter
 import com.yy.chiyaole.data.converter.LocalTimeListConverter
 import com.yy.chiyaole.data.converter.MedicationItemListConverter
+import com.yy.chiyaole.data.dao.FamilyMemberDao
 import com.yy.chiyaole.data.dao.MedicalRecordDao
 import com.yy.chiyaole.data.dao.UserSettingsDao
+import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.data.model.UserSettings
 import java.time.LocalDate
@@ -23,9 +25,10 @@ import kotlinx.coroutines.launch
 @Database(
     entities = [
         MedicalRecord::class,
-        UserSettings::class
+        UserSettings::class,
+        FamilyMember::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(
@@ -38,6 +41,7 @@ import kotlinx.coroutines.launch
 abstract class AppDatabase : RoomDatabase() {
     abstract fun medicalRecordDao(): MedicalRecordDao
     abstract fun userSettingsDao(): UserSettingsDao
+    abstract fun familyMemberDao(): FamilyMemberDao
 
     companion object {
 //        private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -111,12 +115,6 @@ abstract class AppDatabase : RoomDatabase() {
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
-                        INSTANCE?.let { database ->
-                            CoroutineScope(Dispatchers.IO).launch {
-                                // 初始化默认设置
-                                database.userSettingsDao().insertOrUpdate(UserSettings())
-                            }
-                        }
                     }
                 })
                 .build()

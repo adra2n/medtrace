@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -27,9 +28,11 @@ import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.llm.AnalysisResult
 import com.yy.chiyaole.data.llm.AnalysisUseCase
 import com.yy.chiyaole.data.llm.preferredVisitDateTime
+import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.data.model.MedicationItem
 import com.yy.chiyaole.data.settings.LlmSettingsStore
+import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import com.yy.chiyaole.util.bitmapToBase64
 import com.yy.chiyaole.util.uriToBitmap
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +53,8 @@ fun AddMedicalRecordScreen(
     navController: NavController,
     recordId: Long = -1L
 ) {
-    var patientName by remember { mutableStateOf("") }
+    var selectedMemberId by remember { mutableStateOf<Long?>(null) }
+    var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
     var diagnosis by remember { mutableStateOf("") }
     var hospital by remember { mutableStateOf("") }
     var medItems by remember { mutableStateOf<List<MedicationItem>>(emptyList()) }
@@ -70,11 +74,20 @@ fun AddMedicalRecordScreen(
     val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val analysisUseCase = remember { AnalysisUseCase(LlmSettingsStore(context)) }
 
+    LaunchedEffect(Unit) {
+        database.familyMemberDao().getAllMembers().collect { list ->
+            members = list
+            if (selectedMemberId == null && list.isNotEmpty()) {
+                selectedMemberId = list.first().id
+            }
+        }
+    }
+
     LaunchedEffect(recordId) {
         if (recordId != -1L) {
             database.medicalRecordDao().getRecordById(recordId)?.let { r ->
                 existingId = r.id
-                patientName = r.patientName
+                selectedMemberId = r.patientId
                 diagnosis = r.diagnosis
                 hospital = r.hospital
                 medItems = r.medItems
@@ -196,12 +209,21 @@ fun AddMedicalRecordScreen(
                 maxLines = 3
             )
 
-            OutlinedTextField(
-                value = patientName,
-                onValueChange = { patientName = it },
-                label = { Text("患者姓名") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Text("所属家庭成员", style = MaterialTheme.typography.bodyLarge)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                members.forEach { member ->
+                    FilterChip(
+                        selected = member.id == selectedMemberId,
+                        onClick = { selectedMemberId = member.id },
+                        label = { Text(member.name) }
+                    )
+                }
+            }
 
             OutlinedTextField(
                 value = diagnosis,
@@ -321,8 +343,13 @@ fun AddMedicalRecordScreen(
             ) {
                 Button(
                     onClick = {
-                        if (patientName.isBlank() || diagnosis.isBlank() || medItems.isEmpty()) {
-                            error = "请填写患者姓名、诊断结果与至少一项药品"
+                        val selectedMember = members.firstOrNull { it.id == selectedMemberId }
+                        if (selectedMemberId == null || selectedMember == null) {
+                            error = "请选择所属家庭成员"
+                            return@Button
+                        }
+                        if (diagnosis.isBlank() || medItems.isEmpty()) {
+                            error = "请填写诊断结果与至少一项药品"
                             return@Button
                         }
 
@@ -332,7 +359,8 @@ fun AddMedicalRecordScreen(
 
                         val record = MedicalRecord(
                             id = existingId ?: 0,
-                            patientName = patientName,
+                            patientId = selectedMember.id,
+                            patientName = selectedMember.name,
                             diagnosis = diagnosis,
                             onsetTime = onsetTime,
                             hospital = hospital,
@@ -352,6 +380,7 @@ fun AddMedicalRecordScreen(
                                     val count = database.medicalRecordDao().count()
                                     android.util.Log.d("AddRecord", "inserted id=$id, total=$count")
                                 }
+                                SelectedMemberHolder.recordsSelectedMemberId.value = selectedMember.id
                                 Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
                                 navController.navigate("medical_records") {
                                     popUpTo("medical_records") { inclusive = true }

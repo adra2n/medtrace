@@ -9,11 +9,20 @@ interface MedicalRecordDao {
     @Query("SELECT * FROM medical_records")
     fun getAllRecords(): Flow<List<MedicalRecord>>
 
+    @Query("SELECT * FROM medical_records WHERE patientId = :patientId ORDER BY onsetTime DESC")
+    fun getRecordsByMember(patientId: Long): Flow<List<MedicalRecord>>
+
     @Query("SELECT * FROM medical_records WHERE id = :id")
     suspend fun getRecordById(id: Long): MedicalRecord?
 
     @Query("SELECT * FROM medical_records ORDER BY onsetTime DESC LIMIT :limit")
     fun getRecentRecords(limit: Int): Flow<List<MedicalRecord>>
+
+    @Query("SELECT * FROM medical_records WHERE patientId = :patientId ORDER BY onsetTime DESC LIMIT :limit")
+    fun getRecentRecordsByMember(patientId: Long, limit: Int): Flow<List<MedicalRecord>>
+
+    @Query("SELECT * FROM medical_records ORDER BY onsetTime DESC LIMIT 1")
+    suspend fun getLatestRecord(): MedicalRecord?
 
     @Insert
     suspend fun insert(record: MedicalRecord): Long

@@ -4,6 +4,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +21,8 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import com.yy.chiyaole.data.AppDatabase
+import com.yy.chiyaole.data.model.FamilyMember
+import com.yy.chiyaole.data.model.UserSettings
 import com.yy.chiyaole.ui.screens.AboutScreen
 import com.yy.chiyaole.ui.screens.AddMedicalRecordScreen
 import com.yy.chiyaole.ui.screens.SettingsScreen
@@ -27,6 +30,10 @@ import com.yy.chiyaole.ui.screens.HomeScreen
 import com.yy.chiyaole.ui.screens.MedicalRecordScreen
 import com.yy.chiyaole.ui.screens.SplashScreen
 import com.yy.chiyaole.ui.theme.ChiyaoleTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
@@ -34,6 +41,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val database = AppDatabase.getDatabase(applicationContext)
+
+        // 初始化默认数据（默认设置 + 默认家庭成员「我自己」）
+        lifecycleScope.launch(Dispatchers.IO) {
+            if (database.userSettingsDao().getUserSettings().firstOrNull() == null) {
+                database.userSettingsDao().insertOrUpdate(UserSettings())
+            }
+            if (database.familyMemberDao().getDefaultMember() == null) {
+                database.familyMemberDao().insert(
+                    FamilyMember(name = "我自己", relation = "本人", isDefault = true)
+                )
+            }
+        }
 
         setContent {
             val settings by database.userSettingsDao().getUserSettings().collectAsState(initial = null)
