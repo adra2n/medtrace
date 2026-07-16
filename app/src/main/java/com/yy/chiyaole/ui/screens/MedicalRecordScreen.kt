@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -22,6 +21,7 @@ import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.ui.components.MemberSelector
 import com.yy.chiyaole.SettingsAction
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
+import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.catch
@@ -162,8 +162,9 @@ fun MedicalRecordScreen(
                 items(records) { record ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = cardContainerColor())
+                        shape = AppShapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
                         Column(
                             modifier = Modifier

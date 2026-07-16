@@ -2,7 +2,6 @@ package com.yy.chiyaole.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +13,7 @@ import com.yy.chiyaole.BuildConfig
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.UserSettings
 import com.yy.chiyaole.data.settings.LlmSettingsStore
+import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
 
@@ -161,7 +161,7 @@ fun SettingsSection(
         )
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
+            shape = AppShapes.medium,
             color = cardContainerColor(),
             tonalElevation = 0.dp
         ) {

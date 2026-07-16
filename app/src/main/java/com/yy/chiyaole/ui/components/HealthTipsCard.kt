@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.cardContainerColor
 
 @Composable
@@ -24,9 +25,11 @@ fun HealthTipsCard() {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
+        shape = AppShapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier

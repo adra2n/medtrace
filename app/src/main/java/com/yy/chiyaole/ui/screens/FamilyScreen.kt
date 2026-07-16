@@ -21,6 +21,7 @@ import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.SettingsAction
+import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -84,7 +85,9 @@ fun FamilyScreen(
             members.forEach { member ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = cardContainerColor())
+                    shape = AppShapes.medium,
+                    colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Row(
                         modifier = Modifier

@@ -33,6 +33,7 @@ import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.data.model.MedicationItem
 import com.yy.chiyaole.data.settings.LlmSettingsStore
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
+import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.util.bitmapToBase64
 import com.yy.chiyaole.util.uriToBitmap
 import kotlinx.coroutines.Dispatchers
@@ -209,7 +210,7 @@ fun AddMedicalRecordScreen(
                 maxLines = 3
             )
 
-            Text("所属家庭成员", style = MaterialTheme.typography.bodyLarge)
+            Text("所属家庭成员", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -270,10 +271,11 @@ fun AddMedicalRecordScreen(
                 Text("就诊时间：${onsetTime.format(dateTimeFormatter)}")
             }
 
-            Text("开具药品", style = MaterialTheme.typography.bodyLarge)
+            Text("开具药品", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
             medItems.forEachIndexed { index, item ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.medium,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )

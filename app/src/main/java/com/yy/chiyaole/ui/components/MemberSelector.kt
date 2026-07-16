@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
@@ -15,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yy.chiyaole.data.model.FamilyMember
+import com.yy.chiyaole.ui.theme.AppShapes
 
 @Composable
 fun MemberSelector(
@@ -45,7 +45,7 @@ fun MemberSelector(
                 modifier = Modifier
                     .width(110.dp)
                     .clickable { onSelect(member) },
-                shape = RoundedCornerShape(12.dp),
+                shape = AppShapes.medium,
                 colors = CardDefaults.cardColors(
                     containerColor = if (selected)
                         MaterialTheme.colorScheme.primaryContainer
@@ -55,7 +55,8 @@ fun MemberSelector(
                 border = if (selected)
                     BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
                 else
-                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 2.dp else 0.dp)
             ) {
                 Column(
                     modifier = Modifier

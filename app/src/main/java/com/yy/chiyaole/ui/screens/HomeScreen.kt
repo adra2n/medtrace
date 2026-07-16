@@ -76,7 +76,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("智药乐") },
+                title = { Text("智药乐", style = MaterialTheme.typography.titleLarge) },
                 actions = { SettingsAction(navController) }
             )
         }
@@ -89,6 +89,24 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "家庭健康管理",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "为家人记录每一次就诊",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
             item {
                 MemberSelector(
                     members = members,
@@ -138,7 +156,7 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = "最新医疗记录",
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleMedium
                     )
                     TextButton(onClick = { navController.navigate("medical_records") }) {
                         Text("查看全部")
