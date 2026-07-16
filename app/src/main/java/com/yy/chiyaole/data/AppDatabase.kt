@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
         UserSettings::class,
         FamilyMember::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(
@@ -100,6 +100,21 @@ abstract class AppDatabase : RoomDatabase() {
 //            }
 //        }
 
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // family_members: 新增结构化个人/医疗信息字段（加列不丢数据）
+                database.execSQL("ALTER TABLE family_members ADD COLUMN gender TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE family_members ADD COLUMN birthday TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE family_members ADD COLUMN bloodType TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE family_members ADD COLUMN allergy TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE family_members ADD COLUMN chronic TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE family_members ADD COLUMN medicationNote TEXT NOT NULL DEFAULT ''")
+                database.execSQL("ALTER TABLE family_members ADD COLUMN otherNote TEXT NOT NULL DEFAULT ''")
+                // user_settings: 新增当前选中成员字段
+                database.execSQL("ALTER TABLE user_settings ADD COLUMN selectedMemberId INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -111,7 +126,8 @@ abstract class AppDatabase : RoomDatabase() {
                     "app_database"
                 )
 //                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_6_7)
+                    .fallbackToDestructiveMigration()
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

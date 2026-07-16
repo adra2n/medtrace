@@ -2,14 +2,11 @@ package com.yy.chiyaole.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -17,12 +14,18 @@ import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
+import com.yy.chiyaole.data.model.UserSettings
 import com.yy.chiyaole.ui.components.EmptyRecords
-import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import com.yy.chiyaole.ui.components.HealthTipsCard
 import com.yy.chiyaole.ui.components.MedicalRecordCard
+import com.yy.chiyaole.ui.components.MemberSelector
+import com.yy.chiyaole.ui.components.SectionCard
+import com.yy.chiyaole.ui.components.InfoRow
+import com.yy.chiyaole.SettingsAction
+import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -51,10 +54,11 @@ fun HomeScreen(
                     return@collect
                 }
                 members = list
+                val persisted = database.userSettingsDao().getUserSettings().firstOrNull()?.selectedMemberId
+                val validPersisted = if (persisted != null && persisted != 0L && list.any { it.id == persisted }) persisted else null
                 if (SelectedMemberHolder.homeSelectedMemberId.value == null) {
-                    val latest = database.medicalRecordDao().getLatestRecord()
                     SelectedMemberHolder.homeSelectedMemberId.value =
-                        latest?.patientId ?: list.first().id
+                        validPersisted ?: (database.medicalRecordDao().getLatestRecord()?.patientId ?: list.first().id)
                 }
             }
     }
@@ -67,10 +71,13 @@ fun HomeScreen(
         } ?: run { recentRecords = emptyList() }
     }
 
+    val currentMember = members.firstOrNull { it.id == selectedMemberId }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("智药乐") }
+                title = { Text("智药乐") },
+                actions = { SettingsAction(navController) }
             )
         }
     ) { padding ->
@@ -83,41 +90,64 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
             item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    members.forEach { member ->
-                        FilterChip(
-                            selected = member.id == selectedMemberId,
-                            onClick = { SelectedMemberHolder.homeSelectedMemberId.value = member.id },
-                            label = { Text(if (member.relation.isNotBlank()) "${member.name}（${member.relation}）" else member.name) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = if (member.isDefault) Icons.Filled.Person else Icons.Filled.People,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                MemberSelector(
+                    members = members,
+                    selectedMemberId = selectedMemberId,
+                    onSelect = { member ->
+                        SelectedMemberHolder.homeSelectedMemberId.value = member.id
+                        scope.launch {
+                            database.userSettingsDao().getUserSettings().firstOrNull()?.let { s ->
+                                database.userSettingsDao().insertOrUpdate(s.copy(selectedMemberId = member.id))
                             }
-                        )
+                        }
+                    }
+                )
+            }
+
+            currentMember?.let { member ->
+                item {
+                    SectionCard(title = "个人信息") {
+                        InfoRow("姓名", member.name)
+                        if (member.relation.isNotBlank()) InfoRow("关系", member.relation)
+                        if (member.gender.isNotBlank()) InfoRow("性别", member.gender)
+                        if (member.birthday.isNotBlank()) InfoRow("生日", member.birthday)
+                        if (member.bloodType.isNotBlank()) InfoRow("血型", member.bloodType)
+                    }
+                }
+
+                item {
+                    val notes = buildList {
+                        if (member.allergy.isNotBlank()) add("过敏史" to member.allergy)
+                        if (member.chronic.isNotBlank()) add("慢性病" to member.chronic)
+                        if (member.medicationNote.isNotBlank()) add("用药注意" to member.medicationNote)
+                        if (member.otherNote.isNotBlank()) add("其他备注" to member.otherNote)
+                    }
+                    if (notes.isNotEmpty()) {
+                        SectionCard(title = "医疗注意事项") {
+                            notes.forEach { (label, value) -> InfoRow(label, value) }
+                        }
                     }
                 }
             }
 
             item {
-                Text(
-                    text = "最新医疗记录",
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "最新医疗记录",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    TextButton(onClick = { navController.navigate("medical_records") }) {
+                        Text("查看全部")
+                    }
+                }
             }
 
             if (recentRecords.isEmpty()) {
-                item {
-                    EmptyRecords()
-                }
+                item { EmptyRecords() }
             } else {
                 items(recentRecords) { record ->
                     MedicalRecordCard(record)

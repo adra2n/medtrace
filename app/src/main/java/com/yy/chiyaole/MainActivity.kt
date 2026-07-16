@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -23,11 +24,11 @@ import androidx.navigation.compose.*
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.UserSettings
-import com.yy.chiyaole.ui.screens.AboutScreen
 import com.yy.chiyaole.ui.screens.AddMedicalRecordScreen
-import com.yy.chiyaole.ui.screens.SettingsScreen
+import com.yy.chiyaole.ui.screens.FamilyScreen
 import com.yy.chiyaole.ui.screens.HomeScreen
 import com.yy.chiyaole.ui.screens.MedicalRecordScreen
+import com.yy.chiyaole.ui.screens.SettingsScreen
 import com.yy.chiyaole.ui.screens.SplashScreen
 import com.yy.chiyaole.ui.theme.ChiyaoleTheme
 import kotlinx.coroutines.Dispatchers
@@ -74,21 +75,28 @@ sealed class Screen(val route: String, val icon: @Composable () -> Unit, val lab
         icon = { Icon(Icons.Default.Home, "首页") },
         label = "首页"
     )
+    object Family : Screen(
+        route = "family",
+        icon = { Icon(Icons.Filled.People, "家庭") },
+        label = "家庭"
+    )
     object MedicalRecords : Screen(
         route = "medical_records",
         icon = { Icon(Icons.Default.Person, "医疗记录") },
         label = "医疗记录"
-    )
-    object About : Screen(
-        route = "about",
-        icon = { Icon(Icons.Filled.Info, "关于") },
-        label = "关于"
     )
     object Settings : Screen(
         route = "settings",
         icon = { Icon(Icons.Default.Settings, "设置") },
         label = "设置"
     )
+}
+
+@Composable
+fun SettingsAction(navController: NavController) {
+    IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
+        Icon(Icons.Default.Settings, "设置")
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -98,9 +106,8 @@ fun MainScreen(database: AppDatabase) {
     val navController = rememberNavController()
     val screens = listOf(
         Screen.Home,
-        Screen.MedicalRecords,
-        Screen.Settings,
-        Screen.About
+        Screen.Family,
+        Screen.MedicalRecords
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -147,11 +154,11 @@ fun MainScreen(database: AppDatabase) {
             composable(Screen.Home.route) {
                 HomeScreen(database, navController)
             }
+            composable(Screen.Family.route) {
+                FamilyScreen(database, navController)
+            }
             composable(Screen.MedicalRecords.route) {
                 MedicalRecordScreen(database, navController)
-            }
-            composable(Screen.About.route) {
-                AboutScreen()
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(database)

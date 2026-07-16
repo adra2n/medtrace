@@ -1,20 +1,15 @@
 package com.yy.chiyaole.ui.screens
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,12 +19,13 @@ import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
+import com.yy.chiyaole.ui.components.MemberSelector
+import com.yy.chiyaole.SettingsAction
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +78,8 @@ fun MedicalRecordScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("医疗记录") }
+                title = { Text("医疗记录") },
+                actions = { SettingsAction(navController) }
             )
         },
         floatingActionButton = {
@@ -105,7 +102,10 @@ fun MedicalRecordScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             Icons.Filled.People,
                             contentDescription = null,
@@ -119,87 +119,20 @@ fun MedicalRecordScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(Modifier.weight(1f))
-                        if (selectedMemberId != null) {
-                            val current = members.firstOrNull { it.id == selectedMemberId }
-                            if (current != null) {
-                                Text(
-                                    text = "当前：${current.name}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                        members.firstOrNull { it.id == selectedMemberId }?.let { current ->
+                            Text(
+                                text = "当前：${current.name}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
-                    if (members.isEmpty()) {
-                        Text(
-                            text = "暂无家庭成员，请先在设置中添加",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            members.forEach { member ->
-                                val selected = member.id == selectedMemberId
-                                Card(
-                                    modifier = Modifier
-                                        .width(110.dp)
-                                        .clickable { SelectedMemberHolder.recordsSelectedMemberId.value = member.id },
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (selected)
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.surface
-                                    ),
-                                    border = if (selected)
-                                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                                    else
-                                        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(14.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (member.isDefault) Icons.Filled.Person else Icons.Filled.People,
-                                            contentDescription = null,
-                                            tint = if (selected)
-                                                MaterialTheme.colorScheme.onPrimaryContainer
-                                            else
-                                                MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(30.dp)
-                                        )
-                                        Text(
-                                            text = member.name,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            color = if (selected)
-                                                MaterialTheme.colorScheme.onPrimaryContainer
-                                            else
-                                                MaterialTheme.colorScheme.onSurface
-                                        )
-                                        if (member.relation.isNotBlank()) {
-                                            Text(
-                                                text = member.relation,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = if (selected)
-                                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                                else
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    MemberSelector(
+                        members = members,
+                        selectedMemberId = selectedMemberId,
+                        onSelect = { SelectedMemberHolder.recordsSelectedMemberId.value = it.id },
+                        emptyHint = "暂无家庭成员，请先在家庭中添加"
+                    )
                 }
             }
 
