@@ -14,8 +14,8 @@ android {
         applicationId = "com.yy.chiyaole"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "v1.1.0"
+        versionCode = 5
+        versionName = "v1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
