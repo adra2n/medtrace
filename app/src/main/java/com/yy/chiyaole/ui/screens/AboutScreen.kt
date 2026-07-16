@@ -51,7 +51,7 @@ fun AboutScreen() {
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "智药乐",
+                            text = "医迹",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary

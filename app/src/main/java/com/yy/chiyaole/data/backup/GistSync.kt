@@ -23,7 +23,7 @@ class GistSync(private val token: String) {
         val body = JSONObject().apply {
             put("public", false)
             put("files", files)
-            if (existingGistId == null) put("description", "智药乐 数据备份")
+            if (existingGistId == null) put("description", "医迹 数据备份")
         }
 
         val request = if (existingGistId == null) {

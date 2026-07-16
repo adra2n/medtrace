@@ -27,7 +27,11 @@ import com.yy.chiyaole.data.backup.decodeBackup
 import com.yy.chiyaole.data.backup.encodeBackup
 import com.yy.chiyaole.data.model.UserSettings
 import com.yy.chiyaole.data.settings.LlmSettingsStore
+import com.yy.chiyaole.data.settings.SecuritySettingsStore
 import com.yy.chiyaole.data.settings.SyncSettingsStore
+import com.yy.chiyaole.data.security.BiometricHelper
+import com.yy.chiyaole.data.security.PinManager
+import androidx.fragment.app.FragmentActivity
 import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
@@ -51,6 +55,7 @@ fun SettingsScreen(
 
     val backupRepository = remember { BackupRepository(database) }
     val syncSettings = remember { SyncSettingsStore(context) }
+    val securitySettings = remember { SecuritySettingsStore(context) }
     var githubToken by remember { mutableStateOf("") }
     var encryptPassword by remember { mutableStateOf("") }
     var existingGistId by remember { mutableStateOf<String?>(null) }
@@ -59,11 +64,24 @@ fun SettingsScreen(
     var backupError by remember { mutableStateOf<String?>(null) }
     var showToken by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
+    var appLockEnabled by remember { mutableStateOf(false) }
+    var autoLockSeconds by remember { mutableStateOf(0) }
+    var secureScreen by remember { mutableStateOf(false) }
+    var biometricAvailable by remember { mutableStateOf(false) }
+    var pinSet by remember { mutableStateOf(false) }
+    var showPinDialog by remember { mutableStateOf(false) }
+
+    val activity = LocalContext.current as? FragmentActivity
 
     LaunchedEffect(Unit) {
         githubToken = syncSettings.getGithubToken() ?: ""
         encryptPassword = syncSettings.getEncryptPassword() ?: ""
         existingGistId = syncSettings.getGistId()
+        appLockEnabled = securitySettings.getAppLockEnabled()
+        autoLockSeconds = securitySettings.getAutoLockSeconds()
+        secureScreen = securitySettings.getSecureScreen()
+        biometricAvailable = activity?.let { BiometricHelper.canAuthenticate(it) } ?: false
+        pinSet = activity?.let { PinManager.isPinSet(it) } ?: false
     }
 
     // 将备份数据编码为“文件内容”：若设置了加密密码则输出密文（ENC: 前缀）
@@ -296,6 +314,112 @@ fun SettingsScreen(
                 }
             }
 
+            SettingsSection(title = "安全") {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        "开启应用锁后，每次进入或回到医迹都需要验证身份，保护你的家庭医疗数据。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("应用锁（指纹 / 面容 / PIN）")
+                        Switch(
+                            checked = appLockEnabled,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    activity?.let {
+                                        BiometricHelper.authenticate(
+                                            activity = it,
+                                            onSuccess = {
+                                                appLockEnabled = true
+                                                scope.launch { securitySettings.setAppLockEnabled(true) }
+                                            },
+                                            onError = { msg -> backupError = "验证失败：$msg" }
+                                        )
+                                    }
+                                } else {
+                                    appLockEnabled = false
+                                    scope.launch { securitySettings.setAppLockEnabled(false) }
+                                }
+                            }
+                        )
+                    }
+
+                    if (appLockEnabled) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("自动锁定", style = MaterialTheme.typography.labelMedium)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val options = listOf(0 to "立即", 60 to "1 分钟后", 300 to "5 分钟后")
+                                options.forEach { (sec, label) ->
+                                    FilterChip(
+                                        selected = autoLockSeconds == sec,
+                                        onClick = {
+                                            autoLockSeconds = sec
+                                            scope.launch { securitySettings.setAutoLockSeconds(sec) }
+                                        },
+                                        label = { Text(label) }
+                                    )
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("PIN 备用密码")
+                            TextButton(onClick = { showPinDialog = true }) {
+                                Text(if (pinSet) "清除" else "设置")
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("阻止截屏与录屏")
+                        Switch(
+                            checked = secureScreen,
+                            onCheckedChange = { checked ->
+                                secureScreen = checked
+                                scope.launch { securitySettings.setSecureScreen(checked) }
+                                activity?.window?.setFlags(
+                                    if (checked) android.view.WindowManager.LayoutParams.FLAG_SECURE else 0,
+                                    android.view.WindowManager.LayoutParams.FLAG_SECURE
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (showPinDialog) {
+                PinSetupDialog(
+                    pinSet = pinSet,
+                    onConfirm = { pin ->
+                        activity?.let {
+                            PinManager.setPin(it, pin)
+                            pinSet = true
+                        }
+                        showPinDialog = false
+                    },
+                    onClear = {
+                        activity?.let { PinManager.clearPin(it) }
+                        pinSet = false
+                        showPinDialog = false
+                    },
+                    onDismiss = { showPinDialog = false }
+                )
+            }
+
             SettingsSection(title = "数据备份与恢复") {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
@@ -382,7 +506,7 @@ fun SettingsScreen(
             SettingsSection(title = "关于") {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "智药乐",
+                        "医迹",
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
@@ -428,4 +552,79 @@ fun SettingsSection(
             }
         }
     }
+}
+
+@Composable
+fun PinSetupDialog(
+    pinSet: Boolean,
+    onConfirm: (String) -> Unit,
+    onClear: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (pinSet) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("清除 PIN") },
+            text = { Text("确定清除备用 PIN？清除后仅能使用指纹 / 面容解锁。") },
+            confirmButton = { TextButton(onClick = onClear) { Text("清除") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+        )
+        return
+    }
+
+    var pin by remember { mutableStateOf("") }
+    var confirm by remember { mutableStateOf("") }
+    var step by remember { mutableStateOf(1) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("设置备用 PIN") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    if (step == 1) "请输入 4-8 位数字 PIN" else "请再次输入以确认",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = if (step == 1) pin else confirm,
+                    onValueChange = { v ->
+                        val digits = v.filter { it.isDigit() }.take(8)
+                        error = null
+                        if (step == 1) pin = digits else confirm = digits
+                    },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                error?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = (if (step == 1) pin else confirm).length >= 4,
+                onClick = {
+                    if (step == 1) {
+                        if (pin.length < 4) {
+                            error = "PIN 至少 4 位"
+                            return@TextButton
+                        }
+                        step = 2
+                    } else {
+                        if (confirm != pin) {
+                            error = "两次输入不一致"
+                            confirm = ""
+                            return@TextButton
+                        }
+                        onConfirm(pin)
+                    }
+                }
+            ) { Text(if (step == 1) "下一步" else "确定") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
 }

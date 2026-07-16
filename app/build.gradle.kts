@@ -155,6 +155,12 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     
+    // Biometric (fingerprint / face unlock)
+    implementation(libs.androidx.biometric)
+
+    // EncryptedSharedPreferences for PIN hash storage
+    implementation(libs.androidx.security.crypto)
+    
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
@@ -176,4 +182,10 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+androidComponents {
+    onVariants(selector().withName("debug")) {
+        // 调试包文件名可在此自定义；保持默认输出，避免配置错误
+    }
 }

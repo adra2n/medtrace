@@ -4,6 +4,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LifecycleEventObserver
+import com.yy.chiyaole.data.security.BiometricHelper
+import com.yy.chiyaole.data.security.PinManager
+import com.yy.chiyaole.data.settings.SecuritySettingsStore
+import com.yy.chiyaole.ui.screens.LockScreen
 import com.yy.chiyaole.ui.theme.Primary
 import androidx.activity.compose.BackHandler
 import androidx.navigation.NavController
@@ -42,7 +48,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -124,6 +130,81 @@ fun MainScreen(database: AppDatabase) {
         } else {
             navController.popBackStack(Screen.Home.route, false)
         }
+    }
+
+    val fragmentActivity = activity as? androidx.fragment.app.FragmentActivity
+    var appLockEnabled by remember { mutableStateOf(false) }
+    var autoLockSeconds by remember { mutableStateOf(0) }
+    var secureScreen by remember { mutableStateOf(false) }
+    var locked by remember { mutableStateOf(false) }
+
+    val secStore = remember(fragmentActivity) {
+        fragmentActivity?.let { SecuritySettingsStore(it) }
+    }
+    val pinSet = remember(fragmentActivity) {
+        fragmentActivity?.let { PinManager.isPinSet(it) } ?: false
+    }
+    val biometricAvailable = remember(fragmentActivity) {
+        fragmentActivity?.let { BiometricHelper.canAuthenticate(it) } ?: false
+    }
+
+    LaunchedEffect(Unit) {
+        appLockEnabled = secStore?.getAppLockEnabled() ?: false
+        autoLockSeconds = secStore?.getAutoLockSeconds() ?: 0
+        secureScreen = secStore?.getSecureScreen() ?: false
+        activity?.window?.setFlags(
+            if (secureScreen) android.view.WindowManager.LayoutParams.FLAG_SECURE else 0,
+            android.view.WindowManager.LayoutParams.FLAG_SECURE
+        )
+        locked = appLockEnabled
+    }
+
+    var backgroundedAt by remember { mutableStateOf(0L) }
+    DisposableEffect(fragmentActivity) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> {
+                    if (appLockEnabled) {
+                        backgroundedAt = android.os.SystemClock.elapsedRealtime()
+                        locked = true
+                    }
+                }
+                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> {
+                    if (appLockEnabled && backgroundedAt > 0) {
+                        val elapsed = (android.os.SystemClock.elapsedRealtime() - backgroundedAt) / 1000
+                        if (elapsed >= autoLockSeconds) locked = true
+                        backgroundedAt = 0
+                    }
+                }
+                else -> {}
+            }
+        }
+        fragmentActivity?.lifecycle?.addObserver(observer)
+        onDispose { fragmentActivity?.lifecycle?.removeObserver(observer) }
+    }
+
+    fun promptBiometric() {
+        fragmentActivity?.let {
+            BiometricHelper.authenticate(
+                activity = it,
+                onSuccess = { locked = false },
+                onError = { /* 保持锁定 */ }
+            )
+        } ?: run { locked = false }
+    }
+
+    if (locked) {
+        LockScreen(
+            pinEnabled = pinSet,
+            biometricEnabled = biometricAvailable,
+            onBiometricClick = { promptBiometric() },
+            onPinEntered = { pin ->
+                val ok = fragmentActivity?.let { PinManager.verify(it, pin) } ?: false
+                if (ok) locked = false
+                ok
+            }
+        )
+        return
     }
 
     Scaffold(
