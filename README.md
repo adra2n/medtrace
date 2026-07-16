@@ -89,4 +89,6 @@ app/src/main/java/com/yy/chiyaole/
 
 ## 许可
 
-本项目基于 [MIT License](LICENSE) 开源。
+本项目基于 [GNU General Public License v3.0 (GPL-3.0)](LICENSE) 开源（强 copyleft，衍生作品须同样以 GPL-3.0 开源）。
+
+若需将本项目与 AGPL-3.0 程序组合，或对其他许可方式有疑问，请参考 [GNU GPL 说明](https://www.gnu.org/licenses/gpl-3.0.html)。
