@@ -42,6 +42,7 @@ fun HomeScreen(
 ) {
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
     var recentRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
+    var tipRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val selectedMemberId = SelectedMemberHolder.homeSelectedMemberId.value
@@ -73,7 +74,13 @@ fun HomeScreen(
             database.medicalRecordDao().getRecentRecordsByMember(id, 1)
                 .catch { e -> error = e.message }
                 .collect { records -> recentRecords = records }
-        } ?: run { recentRecords = emptyList() }
+            database.medicalRecordDao().getRecentRecordsByMember(id, 12)
+                .catch { e -> error = e.message }
+                .collect { records -> tipRecords = records }
+        } ?: run {
+            recentRecords = emptyList()
+            tipRecords = emptyList()
+        }
     }
 
     val currentMember = members.firstOrNull { it.id == selectedMemberId }
@@ -212,7 +219,7 @@ fun HomeScreen(
             }
 
             item {
-                HealthTipsCard()
+                HealthTipsCard(member = currentMember, recentRecords = tipRecords)
             }
         }
     }
