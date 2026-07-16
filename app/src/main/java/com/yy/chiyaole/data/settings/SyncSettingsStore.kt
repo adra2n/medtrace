@@ -1,31 +1,51 @@
 package com.yy.chiyaole.data.settings
 
 import android.content.Context
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-
-private val Context.dataStore by preferencesDataStore(name = "sync_settings")
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class SyncSettingsStore(private val context: Context) {
-    private object Keys {
-        val GITHUB_TOKEN = stringPreferencesKey("github_token")
-        val ENCRYPT_PASSWORD = stringPreferencesKey("encrypt_password")
-        val GIST_ID = stringPreferencesKey("gist_id")
+    private val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
+    private val prefs = EncryptedSharedPreferences.create(
+        context,
+        "sync_settings",
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+
+    suspend fun getGithubToken(): String? = withContext(Dispatchers.IO) {
+        prefs.getString(KEY_GITHUB_TOKEN, null)
     }
 
-    val githubToken: Flow<String?> = context.dataStore.data.map { it[Keys.GITHUB_TOKEN] }
-    val encryptPassword: Flow<String?> = context.dataStore.data.map { it[Keys.ENCRYPT_PASSWORD] }
-    val gistId: Flow<String?> = context.dataStore.data.map { it[Keys.GIST_ID] }
+    suspend fun getEncryptPassword(): String? = withContext(Dispatchers.IO) {
+        prefs.getString(KEY_ENCRYPT_PASSWORD, null)
+    }
 
-    suspend fun getGithubToken(): String? = context.dataStore.data.first()[Keys.GITHUB_TOKEN]
-    suspend fun getEncryptPassword(): String? = context.dataStore.data.first()[Keys.ENCRYPT_PASSWORD]
-    suspend fun getGistId(): String? = context.dataStore.data.first()[Keys.GIST_ID]
+    suspend fun getGistId(): String? = withContext(Dispatchers.IO) {
+        prefs.getString(KEY_GIST_ID, null)
+    }
 
-    suspend fun setGithubToken(value: String) = context.dataStore.edit { it[Keys.GITHUB_TOKEN] = value }
-    suspend fun setEncryptPassword(value: String) = context.dataStore.edit { it[Keys.ENCRYPT_PASSWORD] = value }
-    suspend fun setGistId(value: String) = context.dataStore.edit { it[Keys.GIST_ID] = value }
+    suspend fun setGithubToken(value: String) = withContext(Dispatchers.IO) {
+        prefs.edit().putString(KEY_GITHUB_TOKEN, value).apply()
+    }
+
+    suspend fun setEncryptPassword(value: String) = withContext(Dispatchers.IO) {
+        prefs.edit().putString(KEY_ENCRYPT_PASSWORD, value).apply()
+    }
+
+    suspend fun setGistId(value: String) = withContext(Dispatchers.IO) {
+        prefs.edit().putString(KEY_GIST_ID, value).apply()
+    }
+
+    companion object {
+        private const val KEY_GITHUB_TOKEN = "github_token"
+        private const val KEY_ENCRYPT_PASSWORD = "encrypt_password"
+        private const val KEY_GIST_ID = "gist_id"
+    }
 }

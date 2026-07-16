@@ -10,15 +10,14 @@ object PinManager {
     private const val ITERATIONS = 120_000
     private const val KEY_LENGTH = 256
     private const val SALT_LENGTH = 16
-    private const val PIN_MIN = 4
-    private const val PIN_MAX = 8
+    private const val PIN_LENGTH = 6
 
     fun isPinSet(context: Context): Boolean =
         !SecurePrefs.get(context).getString(SecurePrefs.PIN_HASH, null).isNullOrBlank()
 
     fun setPin(context: Context, pin: String) {
-        require(pin.length in PIN_MIN..PIN_MAX && pin.all { it.isDigit() }) {
-            "PIN 需为 $PIN_MIN-$PIN_MAX 位数字"
+        require(pin.length == PIN_LENGTH && pin.all { it.isDigit() }) {
+            "PIN 需为 $PIN_LENGTH 位数字"
         }
         val salt = ByteArray(SALT_LENGTH).also { SecureRandom().nextBytes(it) }
         val hash = derive(pin, salt)

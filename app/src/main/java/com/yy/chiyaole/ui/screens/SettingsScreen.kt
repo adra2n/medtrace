@@ -583,7 +583,7 @@ fun PinSetupDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    if (step == 1) "请输入 4-8 位数字 PIN" else "请再次输入以确认",
+                    if (step == 1) "请输入 6 位数字 PIN" else "请再次输入以确认",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
@@ -610,7 +610,7 @@ fun PinSetupDialog(
                 onClick = {
                     if (step == 1) {
                         if (pin.length < 4) {
-                            error = "PIN 至少 4 位"
+                            error = "PIN 需为 6 位数字"
                             return@TextButton
                         }
                         step = 2
