@@ -16,5 +16,6 @@ data class MedicalRecord(
     val medItems: List<MedicationItem> = emptyList(),
     val frequency: String,    // 服药频率，如"每天三次"
     val dosage: String,       // 用药剂量，如"每次一片"
-    val notes: String = ""
+    val notes: String = "",
+    val metricsJson: String = ""  // AI 解析的检查指标 JSON（Metric 列表），用于健康趋势
 )

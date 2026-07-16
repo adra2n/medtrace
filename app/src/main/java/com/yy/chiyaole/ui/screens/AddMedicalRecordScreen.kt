@@ -27,12 +27,14 @@ import android.widget.Toast
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.llm.AnalysisResult
 import com.yy.chiyaole.data.llm.AnalysisUseCase
+import com.yy.chiyaole.data.llm.Metric
 import com.yy.chiyaole.data.llm.preferredVisitDateTime
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.data.model.MedicationItem
 import com.yy.chiyaole.data.settings.LlmSettingsStore
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
+import kotlinx.serialization.json.Json
 import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.util.bitmapToBase64
 import com.yy.chiyaole.util.uriToBitmap
@@ -46,6 +48,9 @@ private fun List<MedicationItem>.updateAt(
     index: Int,
     transform: MedicationItem.() -> MedicationItem
 ): List<MedicationItem> = mapIndexed { i, m -> if (i == index) m.transform() else m }
+
+private fun encodeMetrics(metrics: List<Metric>): String =
+    Json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Metric.serializer()), metrics)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +68,7 @@ fun AddMedicalRecordScreen(
     var onsetTime by remember { mutableStateOf(LocalDateTime.now()) }
     var error by remember { mutableStateOf<String?>(null) }
     var existingId by remember { mutableStateOf<Long?>(null) }
+    var existingMetricsJson by remember { mutableStateOf("") }
 
     var noteText by remember { mutableStateOf("") }
     var images by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
@@ -94,6 +100,7 @@ fun AddMedicalRecordScreen(
                 medItems = r.medItems
                 notes = r.notes
                 onsetTime = r.onsetTime
+                existingMetricsJson = r.metricsJson
             }
         }
     }
@@ -359,6 +366,10 @@ fun AddMedicalRecordScreen(
                         val frequency = medItems.map { it.freq }.filter { it.isNotBlank() }
                             .distinct().joinToString("；")
 
+                        val metricsJson = analysisResult?.metrics?.takeIf { it.isNotEmpty() }
+                            ?.let { encodeMetrics(it) }
+                            ?: existingMetricsJson
+
                         val record = MedicalRecord(
                             id = existingId ?: 0,
                             patientId = selectedMember.id,
@@ -369,7 +380,8 @@ fun AddMedicalRecordScreen(
                             medItems = medItems,
                             frequency = frequency,
                             dosage = dosage,
-                            notes = notes
+                            notes = notes,
+                            metricsJson = metricsJson
                         )
 
                         scope.launch {

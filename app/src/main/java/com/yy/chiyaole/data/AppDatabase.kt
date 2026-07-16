@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
         UserSettings::class,
         FamilyMember::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(
@@ -115,6 +115,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // medical_records: 新增 AI 解析指标字段（加列不丢数据）
+                database.execSQL("ALTER TABLE medical_records ADD COLUMN metrics_json TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -126,7 +133,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "app_database"
                 )
 //                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                    .addMigrations(MIGRATION_6_7)
+                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigration()
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {

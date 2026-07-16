@@ -45,6 +45,7 @@ import com.yy.chiyaole.ui.screens.HomeScreen
 import com.yy.chiyaole.ui.screens.MedicalRecordScreen
 import com.yy.chiyaole.ui.screens.SettingsScreen
 import com.yy.chiyaole.ui.screens.SplashScreen
+import com.yy.chiyaole.ui.screens.TrendsScreen
 import com.yy.chiyaole.ui.theme.ChiyaoleTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -295,6 +296,9 @@ fun MainScreen(database: AppDatabase) {
             }
             composable(Screen.MedicalRecords.route) {
                 MedicalRecordScreen(database, navController)
+            }
+            composable("trends") {
+                TrendsScreen(database, navController)
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(database)
