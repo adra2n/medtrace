@@ -36,7 +36,8 @@ private fun parseMetrics(records: List<MedicalRecord>): List<Metric> {
 @Composable
 fun HealthTipsCard(
     member: FamilyMember? = null,
-    recentRecords: List<MedicalRecord> = emptyList()
+    recentRecords: List<MedicalRecord> = emptyList(),
+    aiAdvice: String? = null
 ) {
     val tips = buildList {
         // 基于成员档案
@@ -100,6 +101,14 @@ fun HealthTipsCard(
                 Text(
                     text = if (member != null) "${member.name} 的健康建议" else "健康小贴士",
                     style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+
+            aiAdvice?.takeIf { it.isNotBlank() }?.let { advice ->
+                Text(
+                    text = "AI 建议：\n$advice",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             }

@@ -117,7 +117,7 @@ internal fun extractJson(raw: String): String {
     return s
 }
 
-private fun String.normalizeBaseUrl(): String {
+internal fun String.normalizeBaseUrl(): String {
     var u = this.trim().removeSuffix("/").removeSuffix("/chat/completions")
     if (!u.endsWith("/")) u = "$u/"
     return u

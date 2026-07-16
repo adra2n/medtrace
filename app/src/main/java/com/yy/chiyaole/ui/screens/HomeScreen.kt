@@ -7,17 +7,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
+import com.yy.chiyaole.data.llm.ComprehensiveAnalysisUseCase
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.data.model.UserSettings
+import com.yy.chiyaole.data.settings.LlmSettingsStore
 import com.yy.chiyaole.ui.components.EmptyRecords
 import com.yy.chiyaole.ui.components.HealthTipsCard
 import com.yy.chiyaole.ui.components.MedicalRecordCard
@@ -44,8 +48,29 @@ fun HomeScreen(
     var recentRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var tipRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    var aiAdvice by remember { mutableStateOf<String?>(null) }
+    var aiAnalyzing by remember { mutableStateOf(false) }
+    var aiError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val selectedMemberId = SelectedMemberHolder.homeSelectedMemberId.value
+
+    fun runAiAdvice() {
+        val member = members.firstOrNull { it.id == selectedMemberId } ?: return
+        aiError = null
+        aiAnalyzing = true
+        scope.launch {
+            try {
+                val result = ComprehensiveAnalysisUseCase(LlmSettingsStore(context))
+                    .analyze(member, tipRecords)
+                aiAdvice = result.advice.ifBlank { result.raw }
+            } catch (e: Exception) {
+                aiError = e.message ?: "分析失败"
+            } finally {
+                aiAnalyzing = false
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         database.familyMemberDao().getAllMembers()
@@ -219,7 +244,25 @@ fun HomeScreen(
             }
 
             item {
-                HealthTipsCard(member = currentMember, recentRecords = tipRecords)
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = { runAiAdvice() },
+                        enabled = !aiAnalyzing && members.any { it.id == selectedMemberId },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (aiAnalyzing) "AI 生成中…" else "AI 生成建议")
+                    }
+                    aiError?.let {
+                        Text("分析失败：$it", color = MaterialTheme.colorScheme.error)
+                    }
+                    HealthTipsCard(
+                        member = currentMember,
+                        recentRecords = tipRecords,
+                        aiAdvice = aiAdvice
+                    )
+                }
             }
         }
     }
