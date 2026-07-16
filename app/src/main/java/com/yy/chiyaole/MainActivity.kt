@@ -116,8 +116,9 @@ fun MainScreen(database: AppDatabase) {
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = currentRoute != "splash" && currentRoute != null
 
+    val topLevelRoutes = listOf(Screen.Home.route, Screen.Family.route, Screen.MedicalRecords.route)
     val activity = LocalContext.current as? ComponentActivity
-    BackHandler(enabled = currentRoute != "splash") {
+    BackHandler(enabled = currentRoute in topLevelRoutes) {
         activity?.finish()
     }
 
