@@ -47,7 +47,7 @@ fun SplashScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center
         ) {
             Image(
-                painter = painterResource(id = R.mipmap.ic_launcher_round),
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "应用图标",
                 modifier = Modifier
                     .size(120.dp)
