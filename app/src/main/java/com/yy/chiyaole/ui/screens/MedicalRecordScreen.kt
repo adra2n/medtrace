@@ -38,6 +38,7 @@ fun MedicalRecordScreen(
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
     var records by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
+    var pendingDelete by remember { mutableStateOf<MedicalRecord?>(null) }
     val selectedMemberId = SelectedMemberHolder.recordsSelectedMemberId.value
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
@@ -188,16 +189,7 @@ fun MedicalRecordScreen(
                                         Icon(Icons.Default.Edit, "编辑")
                                     }
                                     IconButton(
-                                        onClick = {
-                                            scope.launch {
-                                                try {
-                                                    database.medicalRecordDao().delete(record)
-                                                } catch (e: Exception) {
-                                                    error = e.message
-                                                    e.printStackTrace()
-                                                }
-                                            }
-                                        }
+                                        onClick = { pendingDelete = record }
                                     ) {
                                         Icon(Icons.Default.Delete, "删除")
                                     }
@@ -249,5 +241,29 @@ fun MedicalRecordScreen(
                 }
             }
         }
+    }
+
+    pendingDelete?.let { record ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("删除医疗记录") },
+            text = { Text("确定删除「${record.diagnosis}」这条记录？此操作不可撤销。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        try {
+                            database.medicalRecordDao().delete(record)
+                        } catch (e: Exception) {
+                            error = e.message
+                            e.printStackTrace()
+                        }
+                    }
+                    pendingDelete = null
+                }) { Text("删除") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) { Text("取消") }
+            }
+        )
     }
 }

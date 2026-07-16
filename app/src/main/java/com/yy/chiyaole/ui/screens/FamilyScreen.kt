@@ -133,7 +133,17 @@ fun FamilyScreen(
             text = { Text("确定删除「${member.name}」？其医疗记录将予以保留。") },
             confirmButton = {
                 TextButton(onClick = {
-                    scope.launch { database.familyMemberDao().deleteById(member.id) }
+                    scope.launch {
+                        database.familyMemberDao().deleteById(member.id)
+                        if (SelectedMemberHolder.homeSelectedMemberId.value == member.id) {
+                            SelectedMemberHolder.homeSelectedMemberId.value =
+                                database.familyMemberDao().getDefaultMember()?.id
+                        }
+                        if (SelectedMemberHolder.recordsSelectedMemberId.value == member.id) {
+                            SelectedMemberHolder.recordsSelectedMemberId.value =
+                                database.familyMemberDao().getDefaultMember()?.id
+                        }
+                    }
                     pendingDelete = null
                 }) { Text("删除") }
             },
