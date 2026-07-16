@@ -118,3 +118,9 @@
 # 压缩优化配置
 -repackageclasses ''
 -allowaccessmodification
+
+# security-crypto 依赖 Tink，引用了未打包的 errorprone 注解（仅编译期，可忽略）
+-dontwarn com.google.errorprone.annotations.CanIgnoreReturnValue
+-dontwarn com.google.errorprone.annotations.CheckReturnValue
+-dontwarn com.google.errorprone.annotations.Immutable
+-dontwarn com.google.errorprone.annotations.RestrictedApi
