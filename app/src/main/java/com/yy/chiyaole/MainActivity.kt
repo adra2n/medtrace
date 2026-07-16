@@ -2,6 +2,9 @@ package com.yy.chiyaole
 
 import android.os.Build
 import android.os.Bundle
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.FragmentActivity
@@ -202,6 +205,15 @@ fun MainScreen(database: AppDatabase) {
                 val ok = fragmentActivity?.let { PinManager.verify(it, pin) } ?: false
                 if (ok) locked = false
                 ok
+            },
+            onForgotPin = {
+                activity?.let { act ->
+                    val intent = Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", act.packageName, null)
+                    )
+                    act.startActivity(intent)
+                }
             }
         )
         return

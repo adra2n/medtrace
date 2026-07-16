@@ -1,6 +1,7 @@
 package com.yy.chiyaole.ui.screens
 
 import androidx.compose.foundation.layout.*
+import android.content.Intent
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -23,8 +24,10 @@ import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.backup.BackupRepository
 import com.yy.chiyaole.data.backup.CryptoUtil
 import com.yy.chiyaole.data.backup.GistSync
+import com.yy.chiyaole.data.backup.buildRecordsCsv
 import com.yy.chiyaole.data.backup.decodeBackup
 import com.yy.chiyaole.data.backup.encodeBackup
+import com.yy.chiyaole.data.backup.shareCsvIntent
 import com.yy.chiyaole.data.model.UserSettings
 import com.yy.chiyaole.data.settings.LlmSettingsStore
 import com.yy.chiyaole.data.settings.SecuritySettingsStore
@@ -500,6 +503,29 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f)
                         ) { Text("从 Gist 恢复") }
                     }
+
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    val csv = buildRecordsCsv(database)
+                                    withContext(Dispatchers.Main) {
+                                        context.startActivity(
+                                            Intent.createChooser(
+                                                shareCsvIntent(context, csv),
+                                                "导出医疗记录 CSV"
+                                            )
+                                        )
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "CSV 导出失败：${e.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("导出 CSV 报告") }
                 }
             }
 

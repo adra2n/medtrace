@@ -162,7 +162,7 @@ fun HomeScreen(
             }
 
             if (recentRecords.isEmpty()) {
-                item { EmptyRecords() }
+                item { EmptyRecords(onAdd = { navController.navigate("add_record") }) }
             } else {
                 items(recentRecords) { record ->
                     MedicalRecordCard(record)

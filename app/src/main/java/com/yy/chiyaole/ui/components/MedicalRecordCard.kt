@@ -9,9 +9,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -150,7 +154,7 @@ private fun LabeledRow(label: String, value: String) {
 
 
 @Composable
-fun EmptyRecords() {
+fun EmptyRecords(onAdd: (() -> Unit)? = null) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -181,6 +185,13 @@ fun EmptyRecords() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+            if (onAdd != null) {
+                Button(onClick = onAdd) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("去添加记录")
+                }
+            }
         }
     }
 }
