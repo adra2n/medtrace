@@ -30,6 +30,9 @@ interface MedicalRecordDao {
     @Query("SELECT COUNT(*) FROM medical_records")
     suspend fun count(): Int
 
+    @Query("SELECT COUNT(*) FROM medical_records WHERE patientId = :patientId")
+    suspend fun countByMember(patientId: Long): Int
+
     @Update
     suspend fun update(record: MedicalRecord)
 

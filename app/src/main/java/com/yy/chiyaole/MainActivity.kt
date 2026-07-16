@@ -15,7 +15,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -113,6 +115,12 @@ fun MainScreen(database: AppDatabase) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = currentRoute != "splash" && currentRoute != null
+
+    val topLevelRoutes = listOf(Screen.Home.route, Screen.Family.route, Screen.MedicalRecords.route)
+    val activity = LocalContext.current as? ComponentActivity
+    BackHandler(enabled = currentRoute in topLevelRoutes) {
+        activity?.finish()
+    }
 
     Scaffold(
         bottomBar = {

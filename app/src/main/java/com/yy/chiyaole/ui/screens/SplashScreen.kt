@@ -67,7 +67,7 @@ fun SplashScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "您的用药助手",
+                text = "为您的家人记录每一次就诊",
                 color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 16.sp,
                 modifier = Modifier.alpha(alphaAnim.value)
