@@ -89,4 +89,4 @@ app/src/main/java/com/yy/chiyaole/
 
 ## 许可
 
-详见仓库内许可文件（如有）。
+本项目基于 [MIT License](LICENSE) 开源。
