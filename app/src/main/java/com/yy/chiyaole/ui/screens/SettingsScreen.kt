@@ -8,14 +8,30 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.activity.compose.rememberLauncherForActivityResult
+import kotlinx.coroutines.Dispatchers
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import com.yy.chiyaole.BuildConfig
 import com.yy.chiyaole.data.AppDatabase
+import com.yy.chiyaole.data.backup.BackupRepository
+import com.yy.chiyaole.data.backup.CryptoUtil
+import com.yy.chiyaole.data.backup.GistSync
+import com.yy.chiyaole.data.backup.decodeBackup
+import com.yy.chiyaole.data.backup.encodeBackup
 import com.yy.chiyaole.data.model.UserSettings
 import com.yy.chiyaole.data.settings.LlmSettingsStore
+import com.yy.chiyaole.data.settings.SyncSettingsStore
 import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +47,165 @@ fun SettingsScreen(
         database.userSettingsDao().getUserSettings().collect { userSettings ->
             settings = userSettings ?: UserSettings()
         }
+    }
+
+    val backupRepository = remember { BackupRepository(database) }
+    val syncSettings = remember { SyncSettingsStore(context) }
+    var githubToken by remember { mutableStateOf("") }
+    var encryptPassword by remember { mutableStateOf("") }
+    var existingGistId by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var showImportConfirm by remember { mutableStateOf(false) }
+    var backupError by remember { mutableStateOf<String?>(null) }
+    var showToken by remember { mutableStateOf(false) }
+    var showPassword by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        githubToken = syncSettings.getGithubToken() ?: ""
+        encryptPassword = syncSettings.getEncryptPassword() ?: ""
+        existingGistId = syncSettings.getGistId()
+    }
+
+    // 将备份数据编码为“文件内容”：若设置了加密密码则输出密文（ENC: 前缀）
+    suspend fun buildBackupContent(): String {
+        val json = encodeBackup(backupRepository.exportAll())
+        return if (encryptPassword.isNotBlank()) "ENC:" + CryptoUtil.encrypt(json, encryptPassword)
+        else json
+    }
+
+    // 将文件/网络内容解析为 BackupData：自动识别 ENC: 密文并按加密密码解密
+    suspend fun parseBackupContent(content: String): com.yy.chiyaole.data.backup.BackupData {
+        val text = if (content.startsWith("ENC:")) {
+            if (encryptPassword.isBlank()) throw IllegalStateException("该备份已加密，请先在上方填写加密密码")
+            CryptoUtil.decrypt(content.removePrefix("ENC:"), encryptPassword)
+        } else {
+            content
+        }
+        return decodeBackup(text)
+    }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch(Dispatchers.IO) {
+            try {
+                val content = buildBackupContent()
+                context.contentResolver.openOutputStream(uri)?.use { os ->
+                    os.write(content.toByteArray(Charsets.UTF_8))
+                }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "备份已导出", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "导出失败：${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch(Dispatchers.IO) {
+            try {
+                val content = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader(Charsets.UTF_8)?.readText()
+                    ?: throw IllegalStateException("无法读取文件")
+                val data = parseBackupContent(content)
+                backupRepository.importAll(data)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "备份已恢复", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "恢复失败：${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    fun syncToGist() {
+        if (githubToken.isBlank()) {
+            backupError = "请先填写 GitHub Token"
+            return
+        }
+        scope.launch(Dispatchers.IO) {
+            busy = true
+            try {
+                val content = buildBackupContent()
+                val id = GistSync(githubToken).upload(content, existingGistId)
+                syncSettings.setGistId(id)
+                existingGistId = id
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "已同步到 Gist", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "同步失败：${e.message}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun restoreFromGist() {
+        if (githubToken.isBlank()) {
+            backupError = "请先填写 GitHub Token"
+            return
+        }
+        if (existingGistId == null) {
+            backupError = "尚未同步过 Gist，无可用备份"
+            return
+        }
+        scope.launch(Dispatchers.IO) {
+            busy = true
+            try {
+                val content = GistSync(githubToken).download(existingGistId!!)
+                val data = parseBackupContent(content)
+                backupRepository.importAll(data)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "已从 Gist 恢复", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "恢复失败：${e.message}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    if (showImportConfirm) {
+        AlertDialog(
+            onDismissRequest = { showImportConfirm = false },
+            title = { Text("恢复备份") },
+            text = { Text("将用备份文件覆盖当前所有家庭成员与医疗记录，确定继续？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showImportConfirm = false
+                    importLauncher.launch(arrayOf("application/json"))
+                }) { Text("继续") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportConfirm = false }) { Text("取消") }
+            }
+        )
+    }
+
+    backupError?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { backupError = null },
+            title = { Text("提示") },
+            text = { Text(msg) },
+            confirmButton = {
+                TextButton(onClick = { backupError = null }) { Text("知道了") }
+            }
+        )
     }
 
     Scaffold(
@@ -117,6 +292,89 @@ fun SettingsScreen(
                                 }
                             }
                         )
+                    }
+                }
+            }
+
+            SettingsSection(title = "数据备份与恢复") {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "将家庭成员与医疗记录导出为文件，或导入此前导出的备份恢复数据。可设置加密密码对备份加密，并同步到 GitHub Gist。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    OutlinedTextField(
+                        value = githubToken,
+                        onValueChange = {
+                            githubToken = it
+                            scope.launch { syncSettings.setGithubToken(it) }
+                        },
+                        label = { Text("GitHub Token（需 gist 权限）") },
+                        singleLine = true,
+                        visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showToken = !showToken }) {
+                                Icon(
+                                    imageVector = if (showToken) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (showToken) "隐藏 Token" else "显示 Token"
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = encryptPassword,
+                        onValueChange = {
+                            encryptPassword = it
+                            scope.launch { syncSettings.setEncryptPassword(it) }
+                        },
+                        label = { Text("加密密码（留空则不加密）") },
+                        singleLine = true,
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (showPassword) "隐藏密码" else "显示密码"
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                val time = java.time.LocalDateTime.now()
+                                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                                exportLauncher.launch("chiyaole_backup_$time.json")
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("导出备份") }
+                        OutlinedButton(
+                            onClick = { showImportConfirm = true },
+                            modifier = Modifier.weight(1f)
+                        ) { Text("导入恢复") }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { syncToGist() },
+                            enabled = !busy,
+                            modifier = Modifier.weight(1f)
+                        ) { Text(if (existingGistId != null) "更新到 Gist" else "同步到 Gist") }
+                        OutlinedButton(
+                            onClick = { restoreFromGist() },
+                            enabled = !busy && existingGistId != null,
+                            modifier = Modifier.weight(1f)
+                        ) { Text("从 Gist 恢复") }
                     }
                 }
             }
