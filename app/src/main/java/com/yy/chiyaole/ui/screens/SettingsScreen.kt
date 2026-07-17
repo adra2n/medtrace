@@ -38,6 +38,7 @@ import androidx.fragment.app.FragmentActivity
 import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,6 +63,10 @@ fun SettingsScreen(
     var githubToken by remember { mutableStateOf("") }
     var encryptPassword by remember { mutableStateOf("") }
     var existingGistId by remember { mutableStateOf<String?>(null) }
+    var llmBaseUrl by remember { mutableStateOf("") }
+    var llmApiKey by remember { mutableStateOf("") }
+    var llmModel by remember { mutableStateOf("") }
+    var showApiKey by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var showImportConfirm by remember { mutableStateOf(false) }
     var backupError by remember { mutableStateOf<String?>(null) }
@@ -73,18 +78,62 @@ fun SettingsScreen(
     var biometricAvailable by remember { mutableStateOf(false) }
     var pinSet by remember { mutableStateOf(false) }
     var showPinDialog by remember { mutableStateOf(false) }
+    var darkMode by remember { mutableStateOf(false) }
 
     val activity = LocalContext.current as? FragmentActivity
 
+    // 所有可编辑项先写入本地草稿状态，点「保存」才持久化；「取消」则重新从存储加载（放弃修改）
+    fun applySecureScreenFlag(enabled: Boolean) {
+        activity?.window?.setFlags(
+            if (enabled) android.view.WindowManager.LayoutParams.FLAG_SECURE else 0,
+            android.view.WindowManager.LayoutParams.FLAG_SECURE
+        )
+    }
+
+    fun loadAll() {
+        scope.launch {
+            llmSettings.getBaseUrl()?.let { llmBaseUrl = it }
+            llmSettings.getApiKey()?.let { llmApiKey = it }
+            llmSettings.getModel()?.let { llmModel = it }
+            githubToken = syncSettings.getGithubToken() ?: ""
+            encryptPassword = syncSettings.getEncryptPassword() ?: ""
+            existingGistId = syncSettings.getGistId()
+            appLockEnabled = securitySettings.getAppLockEnabled()
+            autoLockSeconds = securitySettings.getAutoLockSeconds()
+            secureScreen = securitySettings.getSecureScreen()
+            applySecureScreenFlag(secureScreen)
+            biometricAvailable = activity?.let { BiometricHelper.canAuthenticate(it) } ?: false
+            pinSet = activity?.let { PinManager.isPinSet(it) } ?: false
+            darkMode = database.userSettingsDao().getUserSettings().first()?.darkMode ?: false
+        }
+    }
+
+    fun saveAll() {
+        scope.launch {
+            llmSettings.setBaseUrl(llmBaseUrl)
+            llmSettings.setApiKey(llmApiKey)
+            llmSettings.setModel(llmModel)
+            syncSettings.setGithubToken(githubToken)
+            syncSettings.setEncryptPassword(encryptPassword)
+            existingGistId?.let { syncSettings.setGistId(it) }
+            securitySettings.setAppLockEnabled(appLockEnabled)
+            securitySettings.setAutoLockSeconds(autoLockSeconds)
+            securitySettings.setSecureScreen(secureScreen)
+            applySecureScreenFlag(secureScreen)
+            database.userSettingsDao().insertOrUpdate((settings ?: UserSettings()).copy(darkMode = darkMode))
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    fun cancelAll() {
+        loadAll()
+        Toast.makeText(context, "已放弃未保存的修改", Toast.LENGTH_SHORT).show()
+    }
+
     LaunchedEffect(Unit) {
-        githubToken = syncSettings.getGithubToken() ?: ""
-        encryptPassword = syncSettings.getEncryptPassword() ?: ""
-        existingGistId = syncSettings.getGistId()
-        appLockEnabled = securitySettings.getAppLockEnabled()
-        autoLockSeconds = securitySettings.getAutoLockSeconds()
-        secureScreen = securitySettings.getSecureScreen()
-        biometricAvailable = activity?.let { BiometricHelper.canAuthenticate(it) } ?: false
-        pinSet = activity?.let { PinManager.isPinSet(it) } ?: false
+        loadAll()
     }
 
     // 将备份数据编码为“文件内容”：若设置了加密密码则输出密文（ENC: 前缀）
@@ -234,6 +283,29 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text("设置") }
             )
+        },
+        bottomBar = {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                tonalElevation = 3.dp,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { cancelAll() },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("取消") }
+                    Button(
+                        onClick = { saveAll() },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("保存") }
+                }
+            }
         }
     ) { padding ->
         Column(
@@ -246,15 +318,6 @@ fun SettingsScreen(
         ) {
             // AI 识别设置
             SettingsSection(title = "AI 识别设置") {
-                var llmBaseUrl by remember { mutableStateOf("") }
-                var llmApiKey by remember { mutableStateOf("") }
-                var llmModel by remember { mutableStateOf("") }
-                var showApiKey by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    llmBaseUrl = llmSettings.getBaseUrl() ?: ""
-                    llmApiKey = llmSettings.getApiKey() ?: ""
-                    llmModel = llmSettings.getModel() ?: ""
-                }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         "配置你自己的 OpenAI 兼容大模型（Base URL / Key / 模型名）。密钥仅保存在本机。",
@@ -263,20 +326,14 @@ fun SettingsScreen(
                     )
                     OutlinedTextField(
                         value = llmBaseUrl,
-                        onValueChange = {
-                            llmBaseUrl = it
-                            scope.launch { llmSettings.setBaseUrl(it) }
-                        },
+                        onValueChange = { llmBaseUrl = it },
                         label = { Text("API Base URL（如 https://api.openai.com/v1）") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = llmApiKey,
-                        onValueChange = {
-                            llmApiKey = it
-                            scope.launch { llmSettings.setApiKey(it) }
-                        },
+                        onValueChange = { llmApiKey = it },
                         label = { Text("API Key") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -292,10 +349,7 @@ fun SettingsScreen(
                     )
                     OutlinedTextField(
                         value = llmModel,
-                        onValueChange = {
-                            llmModel = it
-                            scope.launch { llmSettings.setModel(it) }
-                        },
+                        onValueChange = { llmModel = it },
                         label = { Text("模型名（如 gpt-4o）") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
@@ -312,15 +366,9 @@ fun SettingsScreen(
                     ) {
                         Text("深色模式")
                         Switch(
-                            checked = settings?.darkMode ?: false,
+                            checked = darkMode,
                             onCheckedChange = { isChecked ->
-                                scope.launch {
-                                    settings?.let { currentSettings ->
-                                        database.userSettingsDao().insertOrUpdate(
-                                            currentSettings.copy(darkMode = isChecked)
-                                        )
-                                    }
-                                }
+                                darkMode = isChecked
                             }
                         )
                     }
@@ -348,16 +396,12 @@ fun SettingsScreen(
                                     activity?.let {
                                         BiometricHelper.authenticate(
                                             activity = it,
-                                            onSuccess = {
-                                                appLockEnabled = true
-                                                scope.launch { securitySettings.setAppLockEnabled(true) }
-                                            },
+                                            onSuccess = { appLockEnabled = true },
                                             onError = { msg -> backupError = "验证失败：$msg" }
                                         )
                                     }
                                 } else {
                                     appLockEnabled = false
-                                    scope.launch { securitySettings.setAppLockEnabled(false) }
                                 }
                             }
                         )
@@ -371,10 +415,7 @@ fun SettingsScreen(
                                 options.forEach { (sec, label) ->
                                     FilterChip(
                                         selected = autoLockSeconds == sec,
-                                        onClick = {
-                                            autoLockSeconds = sec
-                                            scope.launch { securitySettings.setAutoLockSeconds(sec) }
-                                        },
+                                        onClick = { autoLockSeconds = sec },
                                         label = { Text(label) }
                                     )
                                 }
@@ -403,11 +444,6 @@ fun SettingsScreen(
                             checked = secureScreen,
                             onCheckedChange = { checked ->
                                 secureScreen = checked
-                                scope.launch { securitySettings.setSecureScreen(checked) }
-                                activity?.window?.setFlags(
-                                    if (checked) android.view.WindowManager.LayoutParams.FLAG_SECURE else 0,
-                                    android.view.WindowManager.LayoutParams.FLAG_SECURE
-                                )
                             }
                         )
                     }
@@ -443,10 +479,7 @@ fun SettingsScreen(
 
                     OutlinedTextField(
                         value = githubToken,
-                        onValueChange = {
-                            githubToken = it
-                            scope.launch { syncSettings.setGithubToken(it) }
-                        },
+                        onValueChange = { githubToken = it },
                         label = { Text("GitHub Token（需 gist 权限）") },
                         singleLine = true,
                         visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
@@ -462,10 +495,7 @@ fun SettingsScreen(
                     )
                     OutlinedTextField(
                         value = encryptPassword,
-                        onValueChange = {
-                            encryptPassword = it
-                            scope.launch { syncSettings.setEncryptPassword(it) }
-                        },
+                        onValueChange = { encryptPassword = it },
                         label = { Text("加密密码（留空则不加密）") },
                         singleLine = true,
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
