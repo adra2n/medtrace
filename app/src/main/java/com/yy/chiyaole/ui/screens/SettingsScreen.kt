@@ -249,6 +249,7 @@ fun SettingsScreen(
                 var llmBaseUrl by remember { mutableStateOf("") }
                 var llmApiKey by remember { mutableStateOf("") }
                 var llmModel by remember { mutableStateOf("") }
+                var showApiKey by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
                     llmBaseUrl = llmSettings.getBaseUrl() ?: ""
                     llmApiKey = llmSettings.getApiKey() ?: ""
@@ -278,7 +279,16 @@ fun SettingsScreen(
                         },
                         label = { Text("API Key") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showApiKey = !showApiKey }) {
+                                Icon(
+                                    imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (showApiKey) "隐藏 Key" else "显示 Key"
+                                )
+                            }
+                        }
                     )
                     OutlinedTextField(
                         value = llmModel,
