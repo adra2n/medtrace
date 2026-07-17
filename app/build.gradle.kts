@@ -184,6 +184,17 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 }
 
+configurations.all {
+    resolutionStrategy {
+        eachDependency {
+            if (requested.group == "androidx.fragment") {
+                useVersion("1.8.8")
+                because("旧版 fragment:1.2.5 的 FragmentActivity 对 requestCode 做 16 位静态校验，与 activity 1.10.x 生成的大 requestCode 冲突导致 startActivityForResult 崩溃")
+            }
+        }
+    }
+}
+
 androidComponents {
     onVariants(selector().withName("debug")) {
         // 调试包文件名可在此自定义；保持默认输出，避免配置错误
