@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.yy.chiyaole.R
+import com.yy.chiyaole.ui.theme.PrimaryGradient
 import kotlinx.coroutines.delay
 
 @Composable
@@ -39,7 +40,7 @@ fun SplashScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary),
+            .background(PrimaryGradient),
         contentAlignment = Alignment.Center
     ) {
         Column(

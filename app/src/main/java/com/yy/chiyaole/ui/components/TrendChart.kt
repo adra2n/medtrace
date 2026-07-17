@@ -17,6 +17,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Brush
+import com.yy.chiyaole.ui.theme.AppShapes
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -101,7 +103,7 @@ fun TrendSection(
             current?.let { s ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppShapes.large,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Column(Modifier.padding(16.dp)) {
@@ -176,7 +178,7 @@ fun TrendLineChart(series: MetricSeries, dayFmt: DateTimeFormatter) {
         fun y(v: Double): Float = (pad + innerH * (1f - ((v - minV) / span).toFloat()))
 
         drawLine(
-            color = outline.copy(alpha = 0.3f),
+            color = outline.copy(alpha = 0.25f),
             start = Offset(pad, h - pad),
             end = Offset(w - pad, h - pad),
             strokeWidth = 1.dp.toPx()
@@ -188,16 +190,43 @@ fun TrendLineChart(series: MetricSeries, dayFmt: DateTimeFormatter) {
             val py = y(p.value)
             if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
         }
-        drawPath(path, primary, style = Stroke(2.dp.toPx()))
+
+        // 线下渐变填充（面积图）
+        val fillPath = Path().apply {
+            addPath(path)
+            lineTo(x(pts.size - 1), h - pad)
+            lineTo(pad, h - pad)
+            close()
+        }
+        drawPath(
+            fillPath,
+            Brush.verticalGradient(
+                colors = listOf(primary.copy(alpha = 0.28f), primary.copy(alpha = 0.02f)),
+                startY = pad,
+                endY = h - pad
+            )
+        )
+
+        // 折线上方细高光线
+        drawPath(path, primary.copy(alpha = 0.15f), style = Stroke(5.dp.toPx()))
+
+        drawPath(path, primary, style = Stroke(2.5.dp.toPx()))
 
         pts.forEachIndexed { i, p ->
             val px = x(i)
             val py = y(p.value)
             drawCircle(
                 color = if (p.abnormal) errorColor else primary,
-                radius = 4.dp.toPx(),
+                radius = 4.5.dp.toPx(),
                 center = Offset(px, py)
             )
+            if (p.abnormal) {
+                drawCircle(
+                    color = errorColor.copy(alpha = 0.2f),
+                    radius = 9.dp.toPx(),
+                    center = Offset(px, py)
+                )
+            }
             val label = pts[i].time.format(dayFmt)
             val text = measurer.measure(label, androidx.compose.ui.text.TextStyle(fontSize = 9.sp, color = textColor))
             drawText(text, topLeft = Offset(px - text.size.width / 2f, h - pad + 6.dp.toPx()))

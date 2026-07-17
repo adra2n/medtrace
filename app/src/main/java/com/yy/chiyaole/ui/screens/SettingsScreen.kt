@@ -14,6 +14,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -38,6 +39,7 @@ import com.yy.chiyaole.data.security.BiometricHelper
 import com.yy.chiyaole.data.security.PinManager
 import androidx.fragment.app.FragmentActivity
 import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.GradientTopBar
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
@@ -286,8 +288,13 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("设置") }
+            GradientTopBar(
+                title = "设置",
+                navigationIcon = {
+                    IconButton(onClick = { backToPrevious() }) {
+                        Icon(Icons.Default.ArrowBack, "返回")
+                    }
+                }
             )
         },
         bottomBar = {
@@ -365,19 +372,17 @@ fun SettingsScreen(
 
             SettingsSection(title = "外观设置") {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("深色模式")
-                        Switch(
-                            checked = darkMode,
-                            onCheckedChange = { isChecked ->
-                                darkMode = isChecked
-                            }
-                        )
-                    }
+                    SettingsRow(
+                        label = "深色模式",
+                        trailing = {
+                            Switch(
+                                checked = darkMode,
+                                onCheckedChange = { isChecked ->
+                                    darkMode = isChecked
+                                }
+                            )
+                        }
+                    )
                 }
             }
 
@@ -389,29 +394,27 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("应用锁（指纹 / 面容 / PIN）")
-                        Switch(
-                            checked = appLockEnabled,
-                            onCheckedChange = { checked ->
-                                if (checked) {
-                                    activity?.let {
-                                        BiometricHelper.authenticate(
-                                            activity = it,
-                                            onSuccess = { appLockEnabled = true },
-                                            onError = { msg -> backupError = "验证失败：$msg" }
-                                        )
+                    SettingsRow(
+                        label = "应用锁（指纹 / 面容 / PIN）",
+                        trailing = {
+                            Switch(
+                                checked = appLockEnabled,
+                                onCheckedChange = { checked ->
+                                    if (checked) {
+                                        activity?.let {
+                                            BiometricHelper.authenticate(
+                                                activity = it,
+                                                onSuccess = { appLockEnabled = true },
+                                                onError = { msg -> backupError = "验证失败：$msg" }
+                                            )
+                                        }
+                                    } else {
+                                        appLockEnabled = false
                                     }
-                                } else {
-                                    appLockEnabled = false
                                 }
-                            }
-                        )
-                    }
+                            )
+                        }
+                    )
 
                     if (appLockEnabled) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -428,31 +431,27 @@ fun SettingsScreen(
                             }
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("PIN 备用密码")
-                            TextButton(onClick = { showPinDialog = true }) {
-                                Text(if (pinSet) "清除" else "设置")
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("阻止截屏与录屏")
-                        Switch(
-                            checked = secureScreen,
-                            onCheckedChange = { checked ->
-                                secureScreen = checked
+                        SettingsRow(
+                            label = "PIN 备用密码",
+                            trailing = {
+                                TextButton(onClick = { showPinDialog = true }) {
+                                    Text(if (pinSet) "清除" else "设置")
+                                }
                             }
                         )
                     }
+
+                    SettingsRow(
+                        label = "阻止截屏与录屏",
+                        trailing = {
+                            Switch(
+                                checked = secureScreen,
+                                onCheckedChange = { checked ->
+                                    secureScreen = checked
+                                }
+                            )
+                        }
+                    )
                 }
             }
 
@@ -615,7 +614,7 @@ fun SettingsSection(
         )
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = AppShapes.medium,
+            shape = AppShapes.large,
             color = cardContainerColor(),
             tonalElevation = 0.dp
         ) {
@@ -623,6 +622,22 @@ fun SettingsSection(
                 content()
             }
         }
+    }
+}
+
+@Composable
+fun SettingsRow(
+    label: String,
+    modifier: Modifier = Modifier,
+    trailing: @Composable () -> Unit = {}
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        trailing()
     }
 }
 

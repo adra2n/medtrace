@@ -35,7 +35,10 @@ val AppShapes = Shapes(
 )
 
 @Composable
-fun cardContainerColor(): Color = if (LocalIsDark.current) CardSurfaceDark else CardSurface
+fun cardContainerColor(): Color = if (LocalIsDark.current) CardSurfaceDark else Color.White
+
+@Composable
+fun screenBackground(): Color = if (LocalIsDark.current) BackgroundDark else Background
 
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryLight,

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
@@ -22,9 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.FamilyMember
-import com.yy.chiyaole.SettingsAction
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.SoftElevation
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -68,9 +70,13 @@ fun FamilyScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("家庭") },
-                actions = { SettingsAction(navController) }
+            GradientTopBar(
+                title = "家庭管理",
+                actions = {
+                    IconButton(onClick = { navController.navigate("settings") }) {
+                        Icon(Icons.Default.Settings, "设置")
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -209,9 +215,9 @@ private fun MemberProfileCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.medium,
+        shape = AppShapes.large,
         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Column(
             modifier = Modifier

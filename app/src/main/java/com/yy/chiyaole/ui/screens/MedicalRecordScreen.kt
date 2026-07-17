@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,9 +23,10 @@ import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.ui.components.MemberSelector
-import com.yy.chiyaole.SettingsAction
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.SoftElevation
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.catch
@@ -94,10 +96,12 @@ fun MedicalRecordScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("医疗记录") },
+            GradientTopBar(
+                title = "医疗记录",
                 actions = {
-                    SettingsAction(navController)
+                    IconButton(onClick = { navController.navigate("settings") }) {
+                        Icon(Icons.Default.Settings, "设置")
+                    }
                 }
             )
         },
@@ -238,9 +242,9 @@ fun MedicalRecordScreen(
                 items(records) { record ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = AppShapes.medium,
+                        shape = AppShapes.large,
                         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
                     ) {
                         Column(
                             modifier = Modifier

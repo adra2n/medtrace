@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
@@ -17,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.llm.ComprehensiveAnalysisUseCase
+import com.yy.chiyaole.data.llm.Metric
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.data.model.UserSettings
@@ -27,15 +29,22 @@ import com.yy.chiyaole.ui.components.TrendSection
 import com.yy.chiyaole.ui.components.buildSeries
 import com.yy.chiyaole.ui.components.MemberSelector
 import com.yy.chiyaole.ui.components.SectionCard
+import com.yy.chiyaole.ui.components.parseNumeric
 import com.yy.chiyaole.ui.components.InfoRow
 import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.PrimaryGradient
+import com.yy.chiyaole.ui.theme.SoftElevation
 import com.yy.chiyaole.ui.theme.cardContainerColor
-import com.yy.chiyaole.SettingsAction
+import com.yy.chiyaole.Screen
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import kotlinx.serialization.json.Json
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,6 +103,37 @@ fun HomeScreen(
             }
     }
 
+    val greeting = remember {
+        val hour = java.time.LocalTime.now().hour
+        when {
+            hour < 6 -> "凌晨好"
+            hour < 12 -> "早上好"
+            hour < 14 -> "中午好"
+            hour < 18 -> "下午好"
+            else -> "晚上好"
+        }
+    }
+    val todayLabel = remember {
+        val today = LocalDate.now()
+        val week = listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六")[today.dayOfWeek.value % 7]
+        today.format(DateTimeFormatter.ofPattern("M月d日")) + " · " + week
+    }
+
+    fun latestMetrics(records: List<MedicalRecord>): List<Triple<Metric, Metric?, Boolean>> {
+        val byName = LinkedHashMap<String, MutableList<Metric>>()
+        for (r in records) {
+            if (r.metricsJson.isBlank()) continue
+            runCatching { Json.decodeFromString<List<Metric>>(r.metricsJson) }
+                .getOrElse { emptyList() }
+                .forEach { m -> byName.getOrPut(m.name) { mutableListOf() }.add(m) }
+        }
+        return byName.mapNotNull { (_, list) ->
+            val latest = list.lastOrNull() ?: return@mapNotNull null
+            val prev = list.getOrNull(list.lastIndex - 1)
+            Triple(latest, prev, latest.abnormal)
+        }.take(3)
+    }
+
     LaunchedEffect(selectedMemberId) {
         selectedMemberId?.let { id ->
             database.medicalRecordDao().getRecentRecordsByMember(id, 1)
@@ -109,27 +149,18 @@ fun HomeScreen(
     }
 
     val currentMember = members.firstOrNull { it.id == selectedMemberId }
+    val overviewMetrics = remember(trendRecords) { latestMetrics(trendRecords) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "医迹",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = "家庭健康管理",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            GradientTopBar(
+                title = if (currentMember != null) "$greeting，${currentMember.name}" else "医迹",
+                subtitle = todayLabel,
+                actions = {
+                    IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
+                        Icon(Icons.Default.Settings, "设置")
                     }
-                },
-                actions = { SettingsAction(navController) }
+                }
             )
         }
     ) { padding ->
@@ -156,17 +187,76 @@ fun HomeScreen(
                 )
             }
 
-            currentMember?.let { member ->
-                item {
-                    SectionCard(title = "个人信息") {
-                        InfoRow("姓名", member.name)
-                        if (member.relation.isNotBlank()) InfoRow("关系", member.relation)
-                        if (member.gender.isNotBlank()) InfoRow("性别", member.gender)
-                        if (member.birthday.isNotBlank()) InfoRow("生日", member.birthday)
-                        if (member.bloodType.isNotBlank()) InfoRow("血型", member.bloodType)
+            item {
+                SectionCard(title = "健康概览") {
+                    if (overviewMetrics.isEmpty()) {
+                        Text(
+                            "暂无 AI 解析的健康指标。在添加记录时使用拍照识别 / 文本分析，AI 提取的指标会显示在这里。",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            overviewMetrics.forEach { (metric, prev, abnormal) ->
+                                val num = parseNumeric(metric.value)
+                                val prevNum = prev?.let { parseNumeric(it.value) }
+                                val changed = if (num != null && prevNum != null && prevNum != 0.0)
+                                    ((num - prevNum) / prevNum) * 100 else null
+                                Card(
+                                    modifier = Modifier.weight(1f),
+                                    shape = AppShapes.medium,
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (abnormal)
+                                            MaterialTheme.colorScheme.errorContainer
+                                        else
+                                            MaterialTheme.colorScheme.primaryContainer
+                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            metric.name,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (abnormal)
+                                                MaterialTheme.colorScheme.onErrorContainer
+                                            else
+                                                MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        Text(
+                                            metric.value + if (metric.unit.isNotBlank()) " ${metric.unit}" else "",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            color = if (abnormal)
+                                                MaterialTheme.colorScheme.onErrorContainer
+                                            else
+                                                MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        changed?.let {
+                                            val pct = kotlin.math.abs(it).toInt()
+                                            Text(
+                                                (if (it >= 0) "▲ " else "▼ ") + "$pct%",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (abnormal)
+                                                    MaterialTheme.colorScheme.onErrorContainer
+                                                else
+                                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+            }
 
+            currentMember?.let { member ->
                 item {
                     val notes = buildList {
                         if (member.allergy.isNotBlank()) add("过敏史" to member.allergy)
@@ -210,16 +300,18 @@ fun HomeScreen(
                 val series = remember(trendRecords) { buildSeries(trendRecords) }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = AppShapes.medium,
-                    colors = CardDefaults.cardColors(containerColor = cardContainerColor())
+                    shape = AppShapes.large,
+                    colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                    elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("健康趋势", style = MaterialTheme.typography.titleMedium)
+                        Text("健康趋势", style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary)
                         TrendSection(series = series)
 
                         Button(
@@ -237,7 +329,7 @@ fun HomeScreen(
                         aiTrend?.let { trend ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = AppShapes.medium,
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                             ) {
                                 Column(Modifier.padding(16.dp)) {

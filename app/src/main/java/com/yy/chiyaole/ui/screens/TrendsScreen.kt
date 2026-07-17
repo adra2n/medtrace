@@ -3,7 +3,6 @@ package com.yy.chiyaole.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -23,6 +22,10 @@ import com.yy.chiyaole.ui.components.MemberSelector
 import com.yy.chiyaole.ui.components.TrendSection
 import com.yy.chiyaole.ui.components.buildSeries
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
+import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.SoftElevation
+import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -85,8 +88,8 @@ fun TrendsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("健康趋势") },
+            GradientTopBar(
+                title = "健康趋势",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, "返回")
@@ -129,7 +132,7 @@ fun TrendsScreen(
             aiTrend?.let { trend ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppShapes.medium,
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                 ) {
                     Column(Modifier.padding(16.dp)) {
@@ -145,7 +148,16 @@ fun TrendsScreen(
             if (error != null) {
                 Text("加载出错：$error", color = MaterialTheme.colorScheme.error)
             } else {
-                TrendSection(series = series)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.large,
+                    colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                    elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+                ) {
+                    Column(Modifier.padding(20.dp)) {
+                        TrendSection(series = series)
+                    }
+                }
             }
         }
     }
