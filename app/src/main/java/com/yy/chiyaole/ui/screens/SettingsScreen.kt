@@ -613,7 +613,7 @@ fun SettingsSection(
             color = cardContainerColor(),
             tonalElevation = 0.dp
         ) {
-            Box(modifier = Modifier.padding(8.dp)) {
+            Box(modifier = Modifier.padding(16.dp)) {
                 content()
             }
         }

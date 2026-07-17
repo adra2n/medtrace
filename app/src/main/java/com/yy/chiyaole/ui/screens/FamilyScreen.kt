@@ -88,7 +88,7 @@ fun FamilyScreen(
                 .padding(padding)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (members.isEmpty()) {
                 EmptyFamily()
