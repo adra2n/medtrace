@@ -120,6 +120,16 @@
 -keep class com.yy.chiyaole.data.dao.** { *; }
 -keep class com.yy.chiyaole.ui.** { *; }
 
+# kotlinx.serialization：保留 @Serializable 类及其生成的 Serializer，避免 release 下反序列化失败
+-keepattributes *Annotation*,InnerClasses
+-dontnote kotlinx.serialization.AnnotationsKt
+-keep class kotlinx.serialization.** { *; }
+-keep class com.yy.chiyaole.data.llm.** { *; }
+-keepclassmembers class com.yy.chiyaole.data.llm.** {
+    *** Companion;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
 # 压缩优化配置
 -repackageclasses ''
 -allowaccessmodification
