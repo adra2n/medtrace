@@ -191,7 +191,7 @@ fun HomeScreen(
                 SectionCard(title = "健康概览") {
                     if (overviewMetrics.isEmpty()) {
                         Text(
-                            "暂无 AI 解析的健康指标。在添加记录时使用拍照识别 / 文本分析，AI 提取的指标会显示在这里。",
+                            "暂无 AI 解析的健康指标。\n添加记录时使用「拍照识别 / 文本分析」，AI 提取的指标（如血压、血糖）会显示在这里；仅手动填写处方不会生成指标。",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

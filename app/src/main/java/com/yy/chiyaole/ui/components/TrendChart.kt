@@ -82,7 +82,7 @@ fun TrendSection(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (series.isEmpty()) {
             Text(
-                "该成员暂无 AI 解析的健康指标。\n在添加记录时使用「拍照识别 / 文本分析」，AI 提取的检查指标（如血压、血糖）会自动生成趋势图。",
+                "该成员暂无 AI 解析的健康指标。\n添加记录时使用「拍照识别 / 文本分析」，AI 提取的检查指标（如血压、血糖）会自动生成趋势图；仅手动填写处方不会生成趋势。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

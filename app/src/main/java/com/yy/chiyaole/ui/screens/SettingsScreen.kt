@@ -115,6 +115,14 @@ fun SettingsScreen(
         }
     }
 
+    fun backToPrevious() {
+        if (!navController.popBackStack()) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Home.route) { inclusive = true }
+            }
+        }
+    }
+
     fun saveAll() {
         scope.launch {
             llmSettings.setBaseUrl(llmBaseUrl)
@@ -130,14 +138,7 @@ fun SettingsScreen(
             database.userSettingsDao().insertOrUpdate((settings ?: UserSettings()).copy(darkMode = darkMode))
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    fun backToPrevious() {
-        if (!navController.popBackStack()) {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Home.route) { inclusive = true }
+                backToPrevious()
             }
         }
     }

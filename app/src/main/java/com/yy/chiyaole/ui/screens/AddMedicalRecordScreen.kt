@@ -251,8 +251,8 @@ fun AddMedicalRecordScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { launchCamera() }) { Text("拍照识别") }
-                        Button(onClick = { galleryLauncher.launch("image/*") }) { Text("从相册选择") }
+                        Button(onClick = { launchCamera() }, enabled = !analyzing) { Text("拍照识别") }
+                        Button(onClick = { galleryLauncher.launch("image/*") }, enabled = !analyzing) { Text("从相册选择") }
                     }
                     if (images.isNotEmpty()) {
                         Text("待识别图片：${images.size} 张", style = MaterialTheme.typography.bodyMedium)
@@ -281,6 +281,7 @@ fun AddMedicalRecordScreen(
                     if (noteText.isNotBlank()) {
                         OutlinedButton(
                             onClick = { runAnalysis() },
+                            enabled = !analyzing,
                             modifier = Modifier.fillMaxWidth()
                         ) { Text("分析文本") }
                     }
