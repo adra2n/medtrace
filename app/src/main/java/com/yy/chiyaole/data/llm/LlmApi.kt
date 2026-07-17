@@ -29,8 +29,8 @@ interface LlmApi {
             val json = Json { ignoreUnknownKeys = true }
             val clientBuilder = OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(300, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS)
             if (BuildConfig.DEBUG) {
                 clientBuilder.addInterceptor(
                     HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
