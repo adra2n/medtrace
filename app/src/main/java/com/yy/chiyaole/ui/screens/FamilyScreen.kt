@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
@@ -22,9 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.FamilyMember
-import com.yy.chiyaole.SettingsAction
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.SoftElevation
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -68,9 +70,13 @@ fun FamilyScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("家庭") },
-                actions = { SettingsAction(navController) }
+            GradientTopBar(
+                title = "家庭管理",
+                actions = {
+                    IconButton(onClick = { navController.navigate("settings") }) {
+                        Icon(Icons.Default.Settings, "设置")
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -88,7 +94,7 @@ fun FamilyScreen(
                 .padding(padding)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (members.isEmpty()) {
                 EmptyFamily()
@@ -103,7 +109,7 @@ fun FamilyScreen(
                         },
                         onDelete = { pendingDelete = member },
                         onOpenRecords = {
-                            SelectedMemberHolder.recordsSelectedMemberId.value = member.id
+                            scope.launch { SelectedMemberHolder.select(member.id, database) }
                             navController.navigate("medical_records")
                         }
                     )
@@ -133,7 +139,18 @@ fun FamilyScreen(
             text = { Text("确定删除「${member.name}」？其医疗记录将予以保留。") },
             confirmButton = {
                 TextButton(onClick = {
-                    scope.launch { database.familyMemberDao().deleteById(member.id) }
+                    scope.launch {
+                        database.familyMemberDao().deleteById(member.id)
+                        if (SelectedMemberHolder.selectedMemberId.value == member.id) {
+                            val fallback = database.familyMemberDao().getDefaultMember()?.id
+                                ?: database.familyMemberDao().getAllMembersList().firstOrNull()?.id
+                            if (fallback != null) {
+                                SelectedMemberHolder.select(fallback, database)
+                            } else {
+                                SelectedMemberHolder.selectedMemberId.value = null
+                            }
+                        }
+                    }
                     pendingDelete = null
                 }) { Text("删除") }
             },
@@ -199,9 +216,9 @@ private fun MemberProfileCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.medium,
+        shape = AppShapes.large,
         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Column(
             modifier = Modifier

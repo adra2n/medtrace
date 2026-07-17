@@ -80,6 +80,11 @@
 # 保持 Model 类不被混淆
 -keep class com.yy.chiyaole.data.model.** { *; }
 
+# Gson / TypeToken：保留泛型签名，供 Room TypeConverter 的匿名 TypeToken 子类使用
+-keepattributes Signature
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+
 # Compose
 -keep class androidx.compose.** { *; }
 -keepclassmembers class androidx.compose.** { *; }
@@ -114,6 +119,16 @@
 -keep class com.yy.chiyaole.worker.** { *; }
 -keep class com.yy.chiyaole.data.dao.** { *; }
 -keep class com.yy.chiyaole.ui.** { *; }
+
+# kotlinx.serialization：保留 @Serializable 类及其生成的 Serializer，避免 release 下反序列化失败
+-keepattributes *Annotation*,InnerClasses
+-dontnote kotlinx.serialization.AnnotationsKt
+-keep class kotlinx.serialization.** { *; }
+-keep class com.yy.chiyaole.data.llm.** { *; }
+-keepclassmembers class com.yy.chiyaole.data.llm.** {
+    *** Companion;
+    kotlinx.serialization.KSerializer serializer(...);
+}
 
 # 压缩优化配置
 -repackageclasses ''

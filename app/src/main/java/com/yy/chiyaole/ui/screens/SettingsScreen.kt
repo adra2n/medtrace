@@ -1,17 +1,21 @@
 package com.yy.chiyaole.ui.screens
 
 import androidx.compose.foundation.layout.*
+import android.content.Intent
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,24 +27,31 @@ import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.backup.BackupRepository
 import com.yy.chiyaole.data.backup.CryptoUtil
 import com.yy.chiyaole.data.backup.GistSync
+import com.yy.chiyaole.data.backup.buildRecordsCsv
 import com.yy.chiyaole.data.backup.decodeBackup
 import com.yy.chiyaole.data.backup.encodeBackup
+import com.yy.chiyaole.data.backup.shareCsvIntent
 import com.yy.chiyaole.data.model.UserSettings
 import com.yy.chiyaole.data.settings.LlmSettingsStore
 import com.yy.chiyaole.data.settings.SecuritySettingsStore
+import com.yy.chiyaole.Screen
 import com.yy.chiyaole.data.settings.SyncSettingsStore
 import com.yy.chiyaole.data.security.BiometricHelper
 import com.yy.chiyaole.data.security.PinManager
 import androidx.fragment.app.FragmentActivity
 import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.Primary
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    database: AppDatabase
+    database: AppDatabase,
+    navController: NavController
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -59,6 +70,10 @@ fun SettingsScreen(
     var githubToken by remember { mutableStateOf("") }
     var encryptPassword by remember { mutableStateOf("") }
     var existingGistId by remember { mutableStateOf<String?>(null) }
+    var llmBaseUrl by remember { mutableStateOf("") }
+    var llmApiKey by remember { mutableStateOf("") }
+    var llmModel by remember { mutableStateOf("") }
+    var showApiKey by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var showImportConfirm by remember { mutableStateOf(false) }
     var backupError by remember { mutableStateOf<String?>(null) }
@@ -70,18 +85,66 @@ fun SettingsScreen(
     var biometricAvailable by remember { mutableStateOf(false) }
     var pinSet by remember { mutableStateOf(false) }
     var showPinDialog by remember { mutableStateOf(false) }
+    var darkMode by remember { mutableStateOf(false) }
 
     val activity = LocalContext.current as? FragmentActivity
 
+    // 所有可编辑项先写入本地草稿状态，点「保存」才持久化；「取消」则重新从存储加载（放弃修改）
+    fun applySecureScreenFlag(enabled: Boolean) {
+        activity?.window?.setFlags(
+            if (enabled) android.view.WindowManager.LayoutParams.FLAG_SECURE else 0,
+            android.view.WindowManager.LayoutParams.FLAG_SECURE
+        )
+    }
+
+    fun loadAll() {
+        scope.launch {
+            llmSettings.getBaseUrl()?.let { llmBaseUrl = it }
+            llmSettings.getApiKey()?.let { llmApiKey = it }
+            llmSettings.getModel()?.let { llmModel = it }
+            githubToken = syncSettings.getGithubToken() ?: ""
+            encryptPassword = syncSettings.getEncryptPassword() ?: ""
+            existingGistId = syncSettings.getGistId()
+            appLockEnabled = securitySettings.getAppLockEnabled()
+            autoLockSeconds = securitySettings.getAutoLockSeconds()
+            secureScreen = securitySettings.getSecureScreen()
+            applySecureScreenFlag(secureScreen)
+            biometricAvailable = activity?.let { BiometricHelper.canAuthenticate(it) } ?: false
+            pinSet = activity?.let { PinManager.isPinSet(it) } ?: false
+            darkMode = database.userSettingsDao().getUserSettings().first()?.darkMode ?: false
+        }
+    }
+
+    fun backToPrevious() {
+        if (!navController.popBackStack()) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Home.route) { inclusive = true }
+            }
+        }
+    }
+
+    fun saveAll() {
+        scope.launch {
+            llmSettings.setBaseUrl(llmBaseUrl)
+            llmSettings.setApiKey(llmApiKey)
+            llmSettings.setModel(llmModel)
+            syncSettings.setGithubToken(githubToken)
+            syncSettings.setEncryptPassword(encryptPassword)
+            existingGistId?.let { syncSettings.setGistId(it) }
+            securitySettings.setAppLockEnabled(appLockEnabled)
+            securitySettings.setAutoLockSeconds(autoLockSeconds)
+            securitySettings.setSecureScreen(secureScreen)
+            applySecureScreenFlag(secureScreen)
+            database.userSettingsDao().insertOrUpdate((settings ?: UserSettings()).copy(darkMode = darkMode))
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
+                backToPrevious()
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
-        githubToken = syncSettings.getGithubToken() ?: ""
-        encryptPassword = syncSettings.getEncryptPassword() ?: ""
-        existingGistId = syncSettings.getGistId()
-        appLockEnabled = securitySettings.getAppLockEnabled()
-        autoLockSeconds = securitySettings.getAutoLockSeconds()
-        secureScreen = securitySettings.getSecureScreen()
-        biometricAvailable = activity?.let { BiometricHelper.canAuthenticate(it) } ?: false
-        pinSet = activity?.let { PinManager.isPinSet(it) } ?: false
+        loadAll()
     }
 
     // 将备份数据编码为“文件内容”：若设置了加密密码则输出密文（ENC: 前缀）
@@ -228,8 +291,26 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("设置") }
+            GradientTopBar(
+                title = "设置",
+                navigationIcon = {
+                    IconButton(onClick = { backToPrevious() }) {
+                        Icon(Icons.Default.ArrowBack, "返回")
+                    }
+                },
+                actions = {
+                    Button(
+                        onClick = { saveAll() },
+                        shape = AppShapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Primary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp)
+                    ) {
+                        Text("保存", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
             )
         }
     ) { padding ->
@@ -243,14 +324,6 @@ fun SettingsScreen(
         ) {
             // AI 识别设置
             SettingsSection(title = "AI 识别设置") {
-                var llmBaseUrl by remember { mutableStateOf("") }
-                var llmApiKey by remember { mutableStateOf("") }
-                var llmModel by remember { mutableStateOf("") }
-                LaunchedEffect(Unit) {
-                    llmBaseUrl = llmSettings.getBaseUrl() ?: ""
-                    llmApiKey = llmSettings.getApiKey() ?: ""
-                    llmModel = llmSettings.getModel() ?: ""
-                }
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         "配置你自己的 OpenAI 兼容大模型（Base URL / Key / 模型名）。密钥仅保存在本机。",
@@ -259,30 +332,30 @@ fun SettingsScreen(
                     )
                     OutlinedTextField(
                         value = llmBaseUrl,
-                        onValueChange = {
-                            llmBaseUrl = it
-                            scope.launch { llmSettings.setBaseUrl(it) }
-                        },
+                        onValueChange = { llmBaseUrl = it },
                         label = { Text("API Base URL（如 https://api.openai.com/v1）") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = llmApiKey,
-                        onValueChange = {
-                            llmApiKey = it
-                            scope.launch { llmSettings.setApiKey(it) }
-                        },
+                        onValueChange = { llmApiKey = it },
                         label = { Text("API Key") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showApiKey = !showApiKey }) {
+                                Icon(
+                                    imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (showApiKey) "隐藏 Key" else "显示 Key"
+                                )
+                            }
+                        }
                     )
                     OutlinedTextField(
                         value = llmModel,
-                        onValueChange = {
-                            llmModel = it
-                            scope.launch { llmSettings.setModel(it) }
-                        },
+                        onValueChange = { llmModel = it },
                         label = { Text("模型名（如 gpt-4o）") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
@@ -292,25 +365,22 @@ fun SettingsScreen(
 
             SettingsSection(title = "外观设置") {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("深色模式")
-                        Switch(
-                            checked = settings?.darkMode ?: false,
-                            onCheckedChange = { isChecked ->
-                                scope.launch {
-                                    settings?.let { currentSettings ->
-                                        database.userSettingsDao().insertOrUpdate(
-                                            currentSettings.copy(darkMode = isChecked)
-                                        )
+                    SettingsRow(
+                        label = "深色模式",
+                        trailing = {
+                            Switch(
+                                checked = darkMode,
+                                onCheckedChange = { isChecked ->
+                                    darkMode = isChecked
+                                    // 即时预览：切换即落库，MainActivity 的主题 Flow 会重新收集并应用。
+                                    scope.launch {
+                                        database.userSettingsDao()
+                                            .insertOrUpdate((settings ?: UserSettings()).copy(darkMode = isChecked))
                                     }
                                 }
-                            }
-                        )
-                    }
+                            )
+                        }
+                    )
                 }
             }
 
@@ -322,33 +392,27 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("应用锁（指纹 / 面容 / PIN）")
-                        Switch(
-                            checked = appLockEnabled,
-                            onCheckedChange = { checked ->
-                                if (checked) {
-                                    activity?.let {
-                                        BiometricHelper.authenticate(
-                                            activity = it,
-                                            onSuccess = {
-                                                appLockEnabled = true
-                                                scope.launch { securitySettings.setAppLockEnabled(true) }
-                                            },
-                                            onError = { msg -> backupError = "验证失败：$msg" }
-                                        )
+                    SettingsRow(
+                        label = "应用锁（指纹 / 面容 / PIN）",
+                        trailing = {
+                            Switch(
+                                checked = appLockEnabled,
+                                onCheckedChange = { checked ->
+                                    if (checked) {
+                                        activity?.let {
+                                            BiometricHelper.authenticate(
+                                                activity = it,
+                                                onSuccess = { appLockEnabled = true },
+                                                onError = { msg -> backupError = "验证失败：$msg" }
+                                            )
+                                        }
+                                    } else {
+                                        appLockEnabled = false
                                     }
-                                } else {
-                                    appLockEnabled = false
-                                    scope.launch { securitySettings.setAppLockEnabled(false) }
                                 }
-                            }
-                        )
-                    }
+                            )
+                        }
+                    )
 
                     if (appLockEnabled) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -358,46 +422,34 @@ fun SettingsScreen(
                                 options.forEach { (sec, label) ->
                                     FilterChip(
                                         selected = autoLockSeconds == sec,
-                                        onClick = {
-                                            autoLockSeconds = sec
-                                            scope.launch { securitySettings.setAutoLockSeconds(sec) }
-                                        },
+                                        onClick = { autoLockSeconds = sec },
                                         label = { Text(label) }
                                     )
                                 }
                             }
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("PIN 备用密码")
-                            TextButton(onClick = { showPinDialog = true }) {
-                                Text(if (pinSet) "清除" else "设置")
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("阻止截屏与录屏")
-                        Switch(
-                            checked = secureScreen,
-                            onCheckedChange = { checked ->
-                                secureScreen = checked
-                                scope.launch { securitySettings.setSecureScreen(checked) }
-                                activity?.window?.setFlags(
-                                    if (checked) android.view.WindowManager.LayoutParams.FLAG_SECURE else 0,
-                                    android.view.WindowManager.LayoutParams.FLAG_SECURE
-                                )
+                        SettingsRow(
+                            label = "PIN 备用密码",
+                            trailing = {
+                                TextButton(onClick = { showPinDialog = true }) {
+                                    Text(if (pinSet) "清除" else "设置")
+                                }
                             }
                         )
                     }
+
+                    SettingsRow(
+                        label = "阻止截屏与录屏",
+                        trailing = {
+                            Switch(
+                                checked = secureScreen,
+                                onCheckedChange = { checked ->
+                                    secureScreen = checked
+                                }
+                            )
+                        }
+                    )
                 }
             }
 
@@ -430,10 +482,7 @@ fun SettingsScreen(
 
                     OutlinedTextField(
                         value = githubToken,
-                        onValueChange = {
-                            githubToken = it
-                            scope.launch { syncSettings.setGithubToken(it) }
-                        },
+                        onValueChange = { githubToken = it },
                         label = { Text("GitHub Token（需 gist 权限）") },
                         singleLine = true,
                         visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
@@ -449,10 +498,7 @@ fun SettingsScreen(
                     )
                     OutlinedTextField(
                         value = encryptPassword,
-                        onValueChange = {
-                            encryptPassword = it
-                            scope.launch { syncSettings.setEncryptPassword(it) }
-                        },
+                        onValueChange = { encryptPassword = it },
                         label = { Text("加密密码（留空则不加密）") },
                         singleLine = true,
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -500,6 +546,29 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f)
                         ) { Text("从 Gist 恢复") }
                     }
+
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                try {
+                                    val csv = buildRecordsCsv(database)
+                                    withContext(Dispatchers.Main) {
+                                        context.startActivity(
+                                            Intent.createChooser(
+                                                shareCsvIntent(context, csv),
+                                                "导出医疗记录 CSV"
+                                            )
+                                        )
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "CSV 导出失败：${e.message}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("导出 CSV 报告") }
                 }
             }
 
@@ -543,14 +612,30 @@ fun SettingsSection(
         )
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = AppShapes.medium,
+            shape = AppShapes.large,
             color = cardContainerColor(),
             tonalElevation = 0.dp
         ) {
-            Box(modifier = Modifier.padding(8.dp)) {
+            Box(modifier = Modifier.padding(16.dp)) {
                 content()
             }
         }
+    }
+}
+
+@Composable
+fun SettingsRow(
+    label: String,
+    modifier: Modifier = Modifier,
+    trailing: @Composable () -> Unit = {}
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        trailing()
     }
 }
 

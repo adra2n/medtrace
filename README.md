@@ -83,9 +83,41 @@ app/src/main/java/com/yy/chiyaole/
 └── ChiyaoleApplication.kt
 ```
 
-## 版本
+## 版本里程碑
 
-- 当前版本 **v1.1.0**（versionCode 4），发布于 GitHub Releases：<https://github.com/adra2n/chiyaole/releases/tag/v1.1.0>
+- **v2.0.0**（versionCode 10，2026-07-17）
+  - 重大版本：在 v1.5.x 基础上汇总本轮全部体验与健壮性优化。
+  - 首启引导页（3 屏可跳过）+ 现代精致风 UI。
+  - 设置页体验：仅保留右上角实心「保存」按钮，保存即返回上一页；深色模式切换即时预览。
+  - 选中成员单一来源：首页 / 记录 / 趋势 / 家庭 / 添加记录统一选中成员并持久化，修复「加了记录但概览没变」。
+  - 删除家庭成员后选中自动回退（默认成员 / 首个剩余成员），首页自动刷新。
+  - AI 分析期间按钮禁用 + 进度提示，避免重复触发。
+  - 迁移健壮性：历史迁移（v1–v5）缺失不再崩溃，自动重置并首页常驻提醒从备份恢复。
+  - 健康概览 / 趋势空态引导文案（明确「仅手动填处方不会生成指标」）。
+  - 记录排序兜底 `COALESCE(onsetTime, ...)`，防止异常排序。
+  - 工程：`.DS_Store` 移出版本控制，`versionCode` 严格按 minor 递增。
+  - GitHub Releases：<https://github.com/adra2n/chiyaole/releases/tag/v2.0.0>
+- **v1.5.1**（versionCode 9，2026-07-17）
+  - 工程优化：`.DS_Store` 移出版本控制，避免仓库脏改动。
+  - 健壮性：Room 历史迁移（v1–v5）缺失时不再崩溃，自动重置旧库并提示用户从加密备份恢复。
+  - 规范：`versionCode` 约定按 minor 严格递增并加注释。
+  - GitHub Releases：<https://github.com/adra2n/chiyaole/releases/tag/v1.5.1>
+- **v1.5.0**（versionCode 8，2026-07-17）
+  - 新增首启引导页（3 屏、可跳过，本地标记 `OnboardingStore`）。
+  - 全新「现代精致风」UI（渐变顶栏、白卡浮起、大圆角、柔和阴影、`PrimaryGradient` 共享设计语言）。
+  - 修复 Room 迁移会清空老用户数据缺陷：移除 `fallbackToDestructiveMigration()`，仅保留已知 `MIGRATION_6_7` / `MIGRATION_7_8`。
+  - 修复 `LlmApi` 每次分析新建 Retrofit 实例：按 `baseUrl` 缓存单例（`ConcurrentHashMap`）。
+  - 修复 release 包（R8）下两处序列化崩溃：保留 Gson `TypeToken` 泛型签名、保留 kotlinx.serialization `@Serializable` 类及生成 `Serializer`（健康概览指标解析）。
+  - 修复导航与设置页交互：子页面隐藏底部导航栏避免与设置页底栏重叠；设置页仅保留右上角实心「保存」按钮；修复底部标签切换误恢复其他标签页面状态。
+  - 新增 AI 健康趋势图（持久化 AI 指标 + 折线趋势图）。
+  - GitHub Releases：<https://github.com/adra2n/chiyaole/releases/tag/v1.5.0>
+- **v1.4.0**（versionCode 5）：现代精致风 UI 重设计。
+- **v1.3.0**：功能迭代。
+- **v1.2.0**（versionCode 5）：版本号规范化。
+- **v1.1.0**（versionCode 4）：基础家庭成员与病历管理、AI 分析、应用锁与加密备份。
+- **v1.0.1**：初始发布。
+
+> 说明：v1.2.0 起 `versionCode` 未按 minor 严格递增（多个 tag 沿用 code 5）；v1.5.0 调整为 code 8。
 
 ## 许可
 

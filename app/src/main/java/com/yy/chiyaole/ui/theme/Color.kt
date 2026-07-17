@@ -5,7 +5,8 @@ import androidx.compose.ui.graphics.Color
 // 主色调：沉稳的青绿色，传达健康、安心
 val Primary = Color(0xFF0E8C87)      // 主青绿（更高对比度，文字白底更清晰）
 val PrimaryLight = Color(0xFF5BC0BE) // 浅青绿
-val PrimaryDark = Color(0xFF0A5F5C)   // 深青绿
+val PrimaryDark = Color(0xFF0A5F5C)   // 深青绿（渐变顶栏末端）
+val PrimaryGradientEnd = Color(0xFF0B6F6C) // 渐变顶栏收尾色（略深于主色，保留青绿调）
 
 // 强调色：柔和暖沙色，与主色形成温和对比，不刺眼
 val Accent = Color(0xFFC2843F)       // 暖沙金

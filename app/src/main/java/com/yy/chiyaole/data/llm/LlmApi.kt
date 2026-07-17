@@ -11,6 +11,7 @@ import retrofit2.Retrofit
 import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.POST
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import com.yy.chiyaole.BuildConfig
 
@@ -25,21 +26,26 @@ interface LlmApi {
     suspend fun chat(@Header("Authorization") auth: String, @Body body: ChatRequest): ChatResponse
 
     companion object {
+        private val cache = ConcurrentHashMap<String, LlmApi>()
+
         fun create(baseUrl: String): LlmApi {
+            val key = baseUrl.normalizeBaseUrl()
+            return cache.computeIfAbsent(key) { build(key) }
+        }
+
+        private fun build(baseUrl: String): LlmApi {
             val json = Json { ignoreUnknownKeys = true }
             val clientBuilder = OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(120, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(300, TimeUnit.SECONDS)
+                .writeTimeout(120, TimeUnit.SECONDS)
             if (BuildConfig.DEBUG) {
                 clientBuilder.addInterceptor(
                     HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
                 )
             }
             val client = clientBuilder.build()
-            return Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .client(client)
+            return Retrofit.Builder().baseUrl(baseUrl).client(client)
                 .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
                 .build().create(LlmApi::class.java)
         }

@@ -13,10 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.provider.Settings
+import android.net.Uri
 import com.yy.chiyaole.ui.theme.Primary
 
 private const val PIN_LENGTH = 6
@@ -26,10 +30,13 @@ fun LockScreen(
     pinEnabled: Boolean,
     biometricEnabled: Boolean,
     onBiometricClick: () -> Unit,
-    onPinEntered: (String) -> Boolean
+    onPinEntered: (String) -> Boolean,
+    onForgotPin: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
     var pin by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
+    var showForgot by remember { mutableStateOf(false) }
 
     fun onDigit(d: String) {
         if (pin.length < PIN_LENGTH) {
@@ -113,7 +120,37 @@ fun LockScreen(
                     Text("点击验证指纹 / 面容")
                 }
             }
+
+            if (onForgotPin != null) {
+                Spacer(Modifier.height(16.dp))
+                TextButton(onClick = { showForgot = true }) {
+                    Text("忘记 PIN？", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
+    }
+
+    if (showForgot) {
+        AlertDialog(
+            onDismissRequest = { showForgot = false },
+            title = { Text("忘记 PIN") },
+            text = {
+                Text(
+                    "清除应用数据会移除本地 PIN 与所有未备份的资料。\n\n" +
+                        "若你曾同步到 GitHub Gist，可在清除后重新登录并从 Gist 恢复。\n\n" +
+                        "也可在系统设置中清除「医迹」的应用数据后重设 PIN。"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showForgot = false
+                    onForgotPin?.invoke()
+                }) { Text("打开应用设置") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgot = false }) { Text("取消") }
+            }
+        )
     }
 }
 

@@ -12,6 +12,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
@@ -21,12 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import android.widget.Toast
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.llm.AnalysisResult
 import com.yy.chiyaole.data.llm.AnalysisUseCase
+import com.yy.chiyaole.data.llm.Metric
 import com.yy.chiyaole.data.llm.preferredVisitDateTime
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
@@ -34,6 +37,13 @@ import com.yy.chiyaole.data.model.MedicationItem
 import com.yy.chiyaole.data.settings.LlmSettingsStore
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.SoftElevation
+import com.yy.chiyaole.ui.theme.cardContainerColor
+import com.yy.chiyaole.ui.theme.dashedBorder
+import com.yy.chiyaole.ui.theme.Primary
+import com.yy.chiyaole.ui.components.SectionCard
+import kotlinx.serialization.json.Json
 import com.yy.chiyaole.util.bitmapToBase64
 import com.yy.chiyaole.util.uriToBitmap
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +56,9 @@ private fun List<MedicationItem>.updateAt(
     index: Int,
     transform: MedicationItem.() -> MedicationItem
 ): List<MedicationItem> = mapIndexed { i, m -> if (i == index) m.transform() else m }
+
+private fun encodeMetrics(metrics: List<Metric>): String =
+    Json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Metric.serializer()), metrics)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,12 +76,14 @@ fun AddMedicalRecordScreen(
     var onsetTime by remember { mutableStateOf(LocalDateTime.now()) }
     var error by remember { mutableStateOf<String?>(null) }
     var existingId by remember { mutableStateOf<Long?>(null) }
+    var existingMetricsJson by remember { mutableStateOf("") }
 
     var noteText by remember { mutableStateOf("") }
     var images by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
     var analysisResult by remember { mutableStateOf<AnalysisResult?>(null) }
     var analyzing by remember { mutableStateOf(false) }
     var analysisError by remember { mutableStateOf<String?>(null) }
+    var analysisJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -94,6 +109,7 @@ fun AddMedicalRecordScreen(
                 medItems = r.medItems
                 notes = r.notes
                 onsetTime = r.onsetTime
+                existingMetricsJson = r.metricsJson
             }
         }
     }
@@ -104,12 +120,14 @@ fun AddMedicalRecordScreen(
             analysisError = "请先拍照 / 从相册选择图片，或粘贴文本"
             return
         }
+        analysisJob?.cancel()
         analyzing = true
-        scope.launch(Dispatchers.IO) {
+        analysisJob = scope.launch(Dispatchers.IO) {
             try {
                 val imgs = images.map { bitmapToBase64(it) }
                 analysisResult = analysisUseCase.analyze(noteText, imgs)
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) return@launch
                 analysisError = e.message ?: "识别失败"
             } finally {
                 analyzing = false
@@ -136,6 +154,19 @@ fun AddMedicalRecordScreen(
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { handleImage(it) }
     }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) cameraLauncher.launch(photoUri)
+        else Toast.makeText(context, "需要相机权限才能拍照", Toast.LENGTH_SHORT).show()
+    }
+
+    fun launchCamera() {
+        val granted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) cameraLauncher.launch(photoUri)
+        else cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+    }
 
     LaunchedEffect(analysisResult) {
         analysisResult?.let { r ->
@@ -158,8 +189,8 @@ fun AddMedicalRecordScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (existingId != null) "编辑医疗记录" else "添加医疗记录") },
+            GradientTopBar(
+                title = if (existingId != null) "编辑医疗记录" else "添加医疗记录",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, "返回")
@@ -181,163 +212,215 @@ fun AddMedicalRecordScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (error != null) {
+            error?.let {
                 Text(
-                    text = error!!,
+                    text = it,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { cameraLauncher.launch(photoUri) }) { Text("拍照识别") }
-                Button(onClick = { galleryLauncher.launch("image/*") }) { Text("从相册选择") }
-            }
-            if (images.isNotEmpty()) {
-                Text("待识别图片：${images.size} 张", style = MaterialTheme.typography.bodyMedium)
-            }
-            if (analyzing) Text("AI 识别中…", color = MaterialTheme.colorScheme.primary)
-            analysisError?.let {
-                Text("识别失败：$it", color = MaterialTheme.colorScheme.error)
-            }
-
-            OutlinedTextField(
-                value = noteText,
-                onValueChange = { noteText = it },
-                label = { Text("粘贴文本（可一并分析，如处方文字）") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false,
-                maxLines = 3
-            )
-
-            Text("所属家庭成员", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-            Row(
+            // AI 智能识别区（teal 虚线框）
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .dashedBorder(Primary, 1.5.dp, AppShapes.large),
+                shape = AppShapes.large,
+                color = Primary.copy(alpha = 0.05f)
             ) {
-                members.forEach { member ->
-                    FilterChip(
-                        selected = member.id == selectedMemberId,
-                        onClick = { selectedMemberId = member.id },
-                        label = { Text(member.name) }
-                    )
-                }
-            }
-
-            OutlinedTextField(
-                value = diagnosis,
-                onValueChange = { diagnosis = it },
-                label = { Text("诊断结果") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = hospital,
-                onValueChange = { hospital = it },
-                label = { Text("就诊医院（可选）") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedButton(
-                onClick = {
-                    val currentDateTime = onsetTime
-                    DatePickerDialog(
-                        context,
-                        { _, year, month, dayOfMonth ->
-                            TimePickerDialog(
-                                context,
-                                { _, hourOfDay, minute ->
-                                    onsetTime = LocalDateTime.of(
-                                        year, month + 1, dayOfMonth,
-                                        hourOfDay, minute
-                                    )
-                                },
-                                currentDateTime.hour,
-                                currentDateTime.minute,
-                                true
-                            ).show()
-                        },
-                        currentDateTime.year,
-                        currentDateTime.monthValue - 1,
-                        currentDateTime.dayOfMonth
-                    ).show()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.DateRange, "选择日期时间")
-                Spacer(Modifier.width(8.dp))
-                Text("就诊时间：${onsetTime.format(dateTimeFormatter)}")
-            }
-
-            Text("开具药品", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-            medItems.forEachIndexed { index, item ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = AppShapes.medium,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        Icon(Icons.Filled.AutoAwesome, "AI 识别", tint = Primary)
+                        Text(
+                            "AI 智能识别",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Primary
+                        )
+                    }
+                    Text(
+                        "拍照、从相册选图或粘贴处方文字，AI 自动提取诊断、用药与检查指标并回填到下方。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { launchCamera() }, enabled = !analyzing) { Text("拍照识别") }
+                        Button(onClick = { galleryLauncher.launch("image/*") }, enabled = !analyzing) { Text("从相册选择") }
+                    }
+                    if (images.isNotEmpty()) {
+                        Text("待识别图片：${images.size} 张", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    if (analyzing) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("药品 ${index + 1}", style = MaterialTheme.typography.titleSmall)
-                            IconButton(onClick = { medItems = medItems.filterIndexed { i, _ -> i != index } }) {
-                                Icon(Icons.Default.Delete, "删除该药品")
-                            }
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Primary)
+                            Text("AI 识别中…", color = Primary)
                         }
-                        OutlinedTextField(
-                            value = item.name,
-                            onValueChange = { medItems = medItems.updateAt(index) { copy(name = it) } },
-                            label = { Text("名称") },
+                    }
+                    analysisError?.let {
+                        Text("识别失败：$it", color = MaterialTheme.colorScheme.error)
+                    }
+
+                    OutlinedTextField(
+                        value = noteText,
+                        onValueChange = { noteText = it },
+                        label = { Text("粘贴文本（可一并分析，如处方文字）") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false,
+                        maxLines = 3
+                    )
+                    if (noteText.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = { runAnalysis() },
+                            enabled = !analyzing,
                             modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = item.dose,
-                            onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
-                            label = { Text("剂量（如 0.5g）") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = item.freq,
-                            onValueChange = { medItems = medItems.updateAt(index) { copy(freq = it) } },
-                            label = { Text("频次（如 每日3次）") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = item.duration,
-                            onValueChange = { medItems = medItems.updateAt(index) { copy(duration = it) } },
-                            label = { Text("疗程（如 7天）") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        ) { Text("分析文本") }
                     }
                 }
             }
-            OutlinedButton(
-                onClick = { medItems = medItems + MedicationItem() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("添加药品")
+
+            // 基本信息
+            SectionCard(title = "基本信息") {
+                Text("所属家庭成员", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    members.forEach { member ->
+                        FilterChip(
+                            selected = member.id == selectedMemberId,
+                            onClick = { selectedMemberId = member.id },
+                            label = { Text(member.name) }
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = diagnosis,
+                    onValueChange = { diagnosis = it },
+                    label = { Text("诊断结果") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = hospital,
+                    onValueChange = { hospital = it },
+                    label = { Text("就诊医院（可选）") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedButton(
+                    onClick = {
+                        val currentDateTime = onsetTime
+                        DatePickerDialog(
+                            context,
+                            { _, year, month, dayOfMonth ->
+                                TimePickerDialog(
+                                    context,
+                                    { _, hourOfDay, minute ->
+                                        onsetTime = LocalDateTime.of(
+                                            year, month + 1, dayOfMonth,
+                                            hourOfDay, minute
+                                        )
+                                    },
+                                    currentDateTime.hour,
+                                    currentDateTime.minute,
+                                    true
+                                ).show()
+                            },
+                            currentDateTime.year,
+                            currentDateTime.monthValue - 1,
+                            currentDateTime.dayOfMonth
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.DateRange, "选择日期时间")
+                    Spacer(Modifier.width(8.dp))
+                    Text("就诊时间：${onsetTime.format(dateTimeFormatter)}")
+                }
             }
 
-            OutlinedTextField(
-                value = notes,
-                onValueChange = { notes = it },
-                label = { Text("备注（可选）") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false,
-                maxLines = 3
-            )
+            // 开具药品
+            SectionCard(title = "开具药品") {
+                medItems.forEachIndexed { index, item ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = AppShapes.medium,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("药品 ${index + 1}", style = MaterialTheme.typography.titleSmall)
+                                IconButton(onClick = { medItems = medItems.filterIndexed { i, _ -> i != index } }) {
+                                    Icon(Icons.Default.Delete, "删除该药品")
+                                }
+                            }
+                            OutlinedTextField(
+                                value = item.name,
+                                onValueChange = { medItems = medItems.updateAt(index) { copy(name = it) } },
+                                label = { Text("名称") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = item.dose,
+                                onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
+                                label = { Text("剂量（如 0.5g）") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = item.freq,
+                                onValueChange = { medItems = medItems.updateAt(index) { copy(freq = it) } },
+                                label = { Text("频次（如 每日3次）") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = item.duration,
+                                onValueChange = { medItems = medItems.updateAt(index) { copy(duration = it) } },
+                                label = { Text("疗程（如 7天）") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+                OutlinedButton(
+                    onClick = { medItems = medItems + MedicationItem() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("添加药品")
+                }
+            }
+
+            // 备注
+            SectionCard(title = "备注") {
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("备注（可选）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    maxLines = 3
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -359,6 +442,10 @@ fun AddMedicalRecordScreen(
                         val frequency = medItems.map { it.freq }.filter { it.isNotBlank() }
                             .distinct().joinToString("；")
 
+                        val metricsJson = analysisResult?.metrics?.takeIf { it.isNotEmpty() }
+                            ?.let { encodeMetrics(it) }
+                            ?: existingMetricsJson
+
                         val record = MedicalRecord(
                             id = existingId ?: 0,
                             patientId = selectedMember.id,
@@ -369,7 +456,8 @@ fun AddMedicalRecordScreen(
                             medItems = medItems,
                             frequency = frequency,
                             dosage = dosage,
-                            notes = notes
+                            notes = notes,
+                            metricsJson = metricsJson
                         )
 
                         scope.launch {
@@ -382,7 +470,7 @@ fun AddMedicalRecordScreen(
                                     val count = database.medicalRecordDao().count()
                                     android.util.Log.d("AddRecord", "inserted id=$id, total=$count")
                                 }
-                                SelectedMemberHolder.recordsSelectedMemberId.value = selectedMember.id
+                                SelectedMemberHolder.select(selectedMember.id, database)
                                 Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
                                 navController.navigate("medical_records") {
                                     popUpTo("medical_records") { inclusive = true }

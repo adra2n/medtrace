@@ -14,8 +14,10 @@ android {
         applicationId = "com.yy.chiyaole"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "v1.1.0"
+        // versionCode 约定：每个 minor 版本 +1（v2.0.0 = 10）。
+        // 历史注意：v1.2.0–v1.4.0 误用 code 5，自 v1.5.0 起严格按 minor 递增，避免升级回环。
+        versionCode = 10
+        versionName = "v2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -182,6 +184,17 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+configurations.all {
+    resolutionStrategy {
+        eachDependency {
+            if (requested.group == "androidx.fragment") {
+                useVersion("1.8.8")
+                because("旧版 fragment:1.2.5 的 FragmentActivity 对 requestCode 做 16 位静态校验，与 activity 1.10.x 生成的大 requestCode 冲突导致 startActivityForResult 崩溃")
+            }
+        }
+    }
 }
 
 androidComponents {

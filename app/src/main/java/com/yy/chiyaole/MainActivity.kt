@@ -2,6 +2,10 @@ package com.yy.chiyaole
 
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.fragment.app.FragmentActivity
@@ -42,6 +46,8 @@ import com.yy.chiyaole.ui.screens.HomeScreen
 import com.yy.chiyaole.ui.screens.MedicalRecordScreen
 import com.yy.chiyaole.ui.screens.SettingsScreen
 import com.yy.chiyaole.ui.screens.SplashScreen
+import com.yy.chiyaole.ui.screens.OnboardingScreen
+import com.yy.chiyaole.ui.screens.TrendsScreen
 import com.yy.chiyaole.ui.theme.ChiyaoleTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -54,6 +60,15 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         val database = AppDatabase.getDatabase(applicationContext)
+
+        // 历史版本（v1–v5）因迁移缺失导致旧库被重置：提示用户从备份恢复。
+        if (AppDatabase.migrationResetHappened) {
+            Toast.makeText(
+                this,
+                "数据库已因版本升级重建，旧数据已清空。请到「设置 → 数据备份与恢复」从备份恢复。",
+                Toast.LENGTH_LONG
+            ).show()
+        }
 
         // 初始化默认数据（默认设置 + 默认家庭成员「我自己」）
         lifecycleScope.launch(Dispatchers.IO) {
@@ -89,8 +104,8 @@ sealed class Screen(
     object Home : Screen("home", "首页", { tint, size ->
         Icon(Icons.Filled.Home, "首页", tint = tint, modifier = Modifier.size(size))
     })
-    object Family : Screen("family", "家庭", { tint, size ->
-        Icon(Icons.Filled.People, "家庭", tint = tint, modifier = Modifier.size(size))
+    object Family : Screen("family", "家庭管理", { tint, size ->
+        Icon(Icons.Filled.People, "家庭管理", tint = tint, modifier = Modifier.size(size))
     })
     object MedicalRecords : Screen("medical_records", "记录", { tint, size ->
         Icon(Icons.Filled.MedicalInformation, "记录", tint = tint, modifier = Modifier.size(size))
@@ -120,7 +135,7 @@ fun MainScreen(database: AppDatabase) {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute != "splash" && currentRoute != null
+    val showBottomBar = currentRoute in screens.map { it.route } && currentRoute != null
 
     val topLevelRoutes = screens.map { it.route }
     val activity = LocalContext.current as? ComponentActivity
@@ -202,6 +217,15 @@ fun MainScreen(database: AppDatabase) {
                 val ok = fragmentActivity?.let { PinManager.verify(it, pin) } ?: false
                 if (ok) locked = false
                 ok
+            },
+            onForgotPin = {
+                activity?.let { act ->
+                    val intent = Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", act.packageName, null)
+                    )
+                    act.startActivity(intent)
+                }
             }
         )
         return
@@ -242,22 +266,15 @@ fun MainScreen(database: AppDatabase) {
                                         .clickable {
                                             navController.navigate(screen.route) {
                                                 popUpTo(Screen.Home.route) {
-                                                    saveState = true
+                                                    inclusive = false
                                                 }
                                                 launchSingleTop = true
-                                                restoreState = true
                                             }
                                         }
                                         .padding(horizontal = 14.dp, vertical = 8.dp)
                                         .weight(1f)
                                 ) {
                                     screen.icon(contentColor, if (selected) 26.dp else 22.dp)
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        screen.label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = contentColor
-                                    )
                                 }
                             }
                         }
@@ -275,6 +292,9 @@ fun MainScreen(database: AppDatabase) {
             composable("splash") {
                 SplashScreen(navController)
             }
+            composable("onboarding") {
+                OnboardingScreen(navController)
+            }
             composable(Screen.Home.route) {
                 HomeScreen(database, navController)
             }
@@ -284,8 +304,11 @@ fun MainScreen(database: AppDatabase) {
             composable(Screen.MedicalRecords.route) {
                 MedicalRecordScreen(database, navController)
             }
+            composable("trends") {
+                TrendsScreen(database, navController)
+            }
             composable(Screen.Settings.route) {
-                SettingsScreen(database)
+                SettingsScreen(database, navController)
             }
             composable("add_record") {
                 AddMedicalRecordScreen(database, navController)

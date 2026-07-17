@@ -3,30 +3,48 @@ package com.yy.chiyaole.ui.screens
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
+import com.yy.chiyaole.data.llm.ComprehensiveAnalysisUseCase
+import com.yy.chiyaole.data.llm.Metric
 import com.yy.chiyaole.data.model.FamilyMember
 import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.data.model.UserSettings
+import com.yy.chiyaole.data.settings.LlmSettingsStore
 import com.yy.chiyaole.ui.components.EmptyRecords
-import com.yy.chiyaole.ui.components.HealthTipsCard
 import com.yy.chiyaole.ui.components.MedicalRecordCard
+import com.yy.chiyaole.ui.components.TrendSection
+import com.yy.chiyaole.ui.components.buildSeries
 import com.yy.chiyaole.ui.components.MemberSelector
 import com.yy.chiyaole.ui.components.SectionCard
+import com.yy.chiyaole.ui.components.parseNumeric
 import com.yy.chiyaole.ui.components.InfoRow
-import com.yy.chiyaole.SettingsAction
+import com.yy.chiyaole.ui.theme.AppShapes
+import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.PrimaryGradient
+import com.yy.chiyaole.ui.theme.SoftElevation
+import com.yy.chiyaole.ui.theme.cardContainerColor
+import com.yy.chiyaole.Screen
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import kotlinx.serialization.json.Json
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,9 +55,33 @@ fun HomeScreen(
 ) {
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
     var recentRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
+    var trendRecords by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
+    var aiTrend by remember { mutableStateOf<String?>(null) }
+    var aiAnalyzing by remember { mutableStateOf(false) }
+    var aiError by remember { mutableStateOf<String?>(null) }
+    // 数据库因历史迁移缺失被重置后，常驻提醒用户从备份恢复（本次会话内可忽略）。
+    var showMigrationNotice by remember { mutableStateOf(AppDatabase.migrationResetHappened) }
     val scope = rememberCoroutineScope()
-    val selectedMemberId = SelectedMemberHolder.homeSelectedMemberId.value
+    val context = LocalContext.current
+    val selectedMemberId by SelectedMemberHolder.selectedMemberId
+
+    fun runAiAnalysis() {
+        val member = members.firstOrNull { it.id == selectedMemberId } ?: return
+        aiError = null
+        aiAnalyzing = true
+        scope.launch {
+            try {
+                val result = ComprehensiveAnalysisUseCase(LlmSettingsStore(context))
+                    .analyze(member, trendRecords)
+                aiTrend = result.trend.ifBlank { result.raw }
+            } catch (e: Exception) {
+                aiError = e.message ?: "分析失败"
+            } finally {
+                aiAnalyzing = false
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         database.familyMemberDao().getAllMembers()
@@ -56,11 +98,42 @@ fun HomeScreen(
                 members = list
                 val persisted = database.userSettingsDao().getUserSettings().firstOrNull()?.selectedMemberId
                 val validPersisted = if (persisted != null && persisted != 0L && list.any { it.id == persisted }) persisted else null
-                if (SelectedMemberHolder.homeSelectedMemberId.value == null) {
-                    SelectedMemberHolder.homeSelectedMemberId.value =
+                if (SelectedMemberHolder.selectedMemberId.value == null) {
+                    SelectedMemberHolder.selectedMemberId.value =
                         validPersisted ?: (database.medicalRecordDao().getLatestRecord()?.patientId ?: list.first().id)
                 }
             }
+    }
+
+    val greeting = remember {
+        val hour = java.time.LocalTime.now().hour
+        when {
+            hour < 6 -> "凌晨好"
+            hour < 12 -> "早上好"
+            hour < 14 -> "中午好"
+            hour < 18 -> "下午好"
+            else -> "晚上好"
+        }
+    }
+    val todayLabel = remember {
+        val today = LocalDate.now()
+        val week = listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六")[today.dayOfWeek.value % 7]
+        today.format(DateTimeFormatter.ofPattern("M月d日")) + " · " + week
+    }
+
+    fun latestMetrics(records: List<MedicalRecord>): List<Triple<Metric, Metric?, Boolean>> {
+        val byName = LinkedHashMap<String, MutableList<Metric>>()
+        for (r in records) {
+            if (r.metricsJson.isBlank()) continue
+            runCatching { Json.decodeFromString<List<Metric>>(r.metricsJson) }
+                .getOrElse { emptyList() }
+                .forEach { m -> byName.getOrPut(m.name) { mutableListOf() }.add(m) }
+        }
+        return byName.mapNotNull { (_, list) ->
+            val latest = list.lastOrNull() ?: return@mapNotNull null
+            val prev = list.getOrNull(list.lastIndex - 1)
+            Triple(latest, prev, latest.abnormal)
+        }.take(3)
     }
 
     LaunchedEffect(selectedMemberId) {
@@ -68,31 +141,28 @@ fun HomeScreen(
             database.medicalRecordDao().getRecentRecordsByMember(id, 1)
                 .catch { e -> error = e.message }
                 .collect { records -> recentRecords = records }
-        } ?: run { recentRecords = emptyList() }
+            database.medicalRecordDao().getRecentRecordsByMember(id, 50)
+                .catch { e -> error = e.message }
+                .collect { records -> trendRecords = records }
+        } ?: run {
+            recentRecords = emptyList()
+            trendRecords = emptyList()
+        }
     }
 
     val currentMember = members.firstOrNull { it.id == selectedMemberId }
+    val overviewMetrics = remember(trendRecords) { latestMetrics(trendRecords) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "医迹",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = "家庭健康管理",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            GradientTopBar(
+                title = if (currentMember != null) "$greeting，${currentMember.name}" else "医迹",
+                subtitle = todayLabel,
+                actions = {
+                    IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
+                        Icon(Icons.Default.Settings, "设置")
                     }
-                },
-                actions = { SettingsAction(navController) }
+                }
             )
         }
     ) { padding ->
@@ -104,32 +174,122 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
+            if (showMigrationNotice) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = AppShapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                "数据库已因版本升级重建，旧数据已清空。请到「设置 → 数据备份与恢复」从备份（GitHub Gist / 文件）恢复。",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = { navController.navigate(Screen.Settings.route) },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("去恢复") }
+                                OutlinedButton(
+                                    onClick = { showMigrationNotice = false },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("忽略") }
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 MemberSelector(
                     members = members,
                     selectedMemberId = selectedMemberId,
                     onSelect = { member ->
-                        SelectedMemberHolder.homeSelectedMemberId.value = member.id
-                        scope.launch {
-                            database.userSettingsDao().getUserSettings().firstOrNull()?.let { s ->
-                                database.userSettingsDao().insertOrUpdate(s.copy(selectedMemberId = member.id))
-                            }
-                        }
+                        scope.launch { SelectedMemberHolder.select(member.id, database) }
                     }
                 )
             }
 
-            currentMember?.let { member ->
-                item {
-                    SectionCard(title = "个人信息") {
-                        InfoRow("姓名", member.name)
-                        if (member.relation.isNotBlank()) InfoRow("关系", member.relation)
-                        if (member.gender.isNotBlank()) InfoRow("性别", member.gender)
-                        if (member.birthday.isNotBlank()) InfoRow("生日", member.birthday)
-                        if (member.bloodType.isNotBlank()) InfoRow("血型", member.bloodType)
+            item {
+                SectionCard(title = "健康概览") {
+                    if (overviewMetrics.isEmpty()) {
+                        Text(
+                            "暂无 AI 解析的健康指标。\n添加记录时使用「拍照识别 / 文本分析」，AI 提取的指标（如血压、血糖）会显示在这里；仅手动填写处方不会生成指标。",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            overviewMetrics.forEach { (metric, prev, abnormal) ->
+                                val num = parseNumeric(metric.value)
+                                val prevNum = prev?.let { parseNumeric(it.value) }
+                                val changed = if (num != null && prevNum != null && prevNum != 0.0)
+                                    ((num - prevNum) / prevNum) * 100 else null
+                                Card(
+                                    modifier = Modifier.weight(1f),
+                                    shape = AppShapes.medium,
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (abnormal)
+                                            MaterialTheme.colorScheme.errorContainer
+                                        else
+                                            MaterialTheme.colorScheme.primaryContainer
+                                    )
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            metric.name,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = if (abnormal)
+                                                MaterialTheme.colorScheme.onErrorContainer
+                                            else
+                                                MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        Text(
+                                            metric.value + if (metric.unit.isNotBlank()) " ${metric.unit}" else "",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            color = if (abnormal)
+                                                MaterialTheme.colorScheme.onErrorContainer
+                                            else
+                                                MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                        changed?.let {
+                                            val pct = kotlin.math.abs(it).toInt()
+                                            Text(
+                                                (if (it >= 0) "▲ " else "▼ ") + "$pct%",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (abnormal)
+                                                    MaterialTheme.colorScheme.onErrorContainer
+                                                else
+                                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+            }
 
+            currentMember?.let { member ->
                 item {
                     val notes = buildList {
                         if (member.allergy.isNotBlank()) add("过敏史" to member.allergy)
@@ -162,7 +322,7 @@ fun HomeScreen(
             }
 
             if (recentRecords.isEmpty()) {
-                item { EmptyRecords() }
+                item { EmptyRecords(onAdd = { navController.navigate("add_record") }) }
             } else {
                 items(recentRecords) { record ->
                     MedicalRecordCard(record)
@@ -170,7 +330,58 @@ fun HomeScreen(
             }
 
             item {
-                HealthTipsCard()
+                val series = remember(trendRecords) { buildSeries(trendRecords) }
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.large,
+                    colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                    elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("健康趋势", style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        TrendSection(series = series)
+
+                        Button(
+                            onClick = { runAiAnalysis() },
+                            enabled = !aiAnalyzing && members.any { it.id == selectedMemberId },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Filled.AutoAwesome, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (aiAnalyzing) "AI 分析中…" else "AI 综合分析")
+                        }
+                        aiError?.let {
+                            Text("分析失败：$it", color = MaterialTheme.colorScheme.error)
+                        }
+                        aiTrend?.let { trend ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = AppShapes.medium,
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                            ) {
+                                Column(Modifier.padding(16.dp)) {
+                                    Text(
+                                        "AI 趋势解读",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        trend,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
