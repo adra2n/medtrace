@@ -76,6 +76,7 @@ fun AddMedicalRecordScreen(
     var analysisResult by remember { mutableStateOf<AnalysisResult?>(null) }
     var analyzing by remember { mutableStateOf(false) }
     var analysisError by remember { mutableStateOf<String?>(null) }
+    var analysisJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -112,12 +113,14 @@ fun AddMedicalRecordScreen(
             analysisError = "请先拍照 / 从相册选择图片，或粘贴文本"
             return
         }
+        analysisJob?.cancel()
         analyzing = true
-        scope.launch(Dispatchers.IO) {
+        analysisJob = scope.launch(Dispatchers.IO) {
             try {
                 val imgs = images.map { bitmapToBase64(it) }
                 analysisResult = analysisUseCase.analyze(noteText, imgs)
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) return@launch
                 analysisError = e.message ?: "识别失败"
             } finally {
                 analyzing = false
