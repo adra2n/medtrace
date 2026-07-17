@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import android.widget.Toast
@@ -143,6 +144,19 @@ fun AddMedicalRecordScreen(
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { handleImage(it) }
     }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) cameraLauncher.launch(photoUri)
+        else Toast.makeText(context, "需要相机权限才能拍照", Toast.LENGTH_SHORT).show()
+    }
+
+    fun launchCamera() {
+        val granted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) cameraLauncher.launch(photoUri)
+        else cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+    }
 
     LaunchedEffect(analysisResult) {
         analysisResult?.let { r ->
@@ -197,7 +211,7 @@ fun AddMedicalRecordScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { cameraLauncher.launch(photoUri) }) { Text("拍照识别") }
+                Button(onClick = { launchCamera() }) { Text("拍照识别") }
                 Button(onClick = { galleryLauncher.launch("image/*") }) { Text("从相册选择") }
             }
             if (images.isNotEmpty()) {
