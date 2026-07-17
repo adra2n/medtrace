@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -98,9 +97,6 @@ fun MedicalRecordScreen(
             TopAppBar(
                 title = { Text("医疗记录") },
                 actions = {
-                    IconButton(onClick = { navController.navigate("trends") }) {
-                        Icon(Icons.Filled.ShowChart, "健康趋势")
-                    }
                     SettingsAction(navController)
                 }
             )
