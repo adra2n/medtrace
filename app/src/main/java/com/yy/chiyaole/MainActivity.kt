@@ -45,6 +45,7 @@ import com.yy.chiyaole.ui.screens.HomeScreen
 import com.yy.chiyaole.ui.screens.MedicalRecordScreen
 import com.yy.chiyaole.ui.screens.SettingsScreen
 import com.yy.chiyaole.ui.screens.SplashScreen
+import com.yy.chiyaole.ui.screens.OnboardingScreen
 import com.yy.chiyaole.ui.screens.TrendsScreen
 import com.yy.chiyaole.ui.theme.ChiyaoleTheme
 import kotlinx.coroutines.Dispatchers
@@ -281,6 +282,9 @@ fun MainScreen(database: AppDatabase) {
         ) {
             composable("splash") {
                 SplashScreen(navController)
+            }
+            composable("onboarding") {
+                OnboardingScreen(navController)
             }
             composable(Screen.Home.route) {
                 HomeScreen(database, navController)
