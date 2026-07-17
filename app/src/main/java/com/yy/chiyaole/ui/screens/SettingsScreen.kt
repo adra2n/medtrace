@@ -294,31 +294,13 @@ fun SettingsScreen(
                     IconButton(onClick = { backToPrevious() }) {
                         Icon(Icons.Default.ArrowBack, "返回")
                     }
+                },
+                actions = {
+                    TextButton(onClick = { saveAll() }) {
+                        Text("保存")
+                    }
                 }
             )
-        },
-        bottomBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 3.dp,
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { backToPrevious() },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("取消") }
-                    Button(
-                        onClick = { saveAll() },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("保存") }
-                }
-            }
         }
     ) { padding ->
         Column(
