@@ -93,8 +93,8 @@ sealed class Screen(
     object Home : Screen("home", "首页", { tint, size ->
         Icon(Icons.Filled.Home, "首页", tint = tint, modifier = Modifier.size(size))
     })
-    object Family : Screen("family", "家庭", { tint, size ->
-        Icon(Icons.Filled.People, "家庭", tint = tint, modifier = Modifier.size(size))
+    object Family : Screen("family", "家庭管理", { tint, size ->
+        Icon(Icons.Filled.People, "家庭管理", tint = tint, modifier = Modifier.size(size))
     })
     object MedicalRecords : Screen("medical_records", "记录", { tint, size ->
         Icon(Icons.Filled.MedicalInformation, "记录", tint = tint, modifier = Modifier.size(size))
@@ -265,12 +265,6 @@ fun MainScreen(database: AppDatabase) {
                                         .weight(1f)
                                 ) {
                                     screen.icon(contentColor, if (selected) 26.dp else 22.dp)
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        screen.label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = contentColor
-                                    )
                                 }
                             }
                         }
