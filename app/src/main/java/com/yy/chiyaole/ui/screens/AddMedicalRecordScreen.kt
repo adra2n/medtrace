@@ -470,7 +470,7 @@ fun AddMedicalRecordScreen(
                                     val count = database.medicalRecordDao().count()
                                     android.util.Log.d("AddRecord", "inserted id=$id, total=$count")
                                 }
-                                SelectedMemberHolder.recordsSelectedMemberId.value = selectedMember.id
+                                SelectedMemberHolder.select(selectedMember.id, database)
                                 Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
                                 navController.navigate("medical_records") {
                                     popUpTo("medical_records") { inclusive = true }

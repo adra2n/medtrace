@@ -109,7 +109,7 @@ fun FamilyScreen(
                         },
                         onDelete = { pendingDelete = member },
                         onOpenRecords = {
-                            SelectedMemberHolder.recordsSelectedMemberId.value = member.id
+                            scope.launch { SelectedMemberHolder.select(member.id, database) }
                             navController.navigate("medical_records")
                         }
                     )
@@ -141,13 +141,13 @@ fun FamilyScreen(
                 TextButton(onClick = {
                     scope.launch {
                         database.familyMemberDao().deleteById(member.id)
-                        if (SelectedMemberHolder.homeSelectedMemberId.value == member.id) {
-                            SelectedMemberHolder.homeSelectedMemberId.value =
-                                database.familyMemberDao().getDefaultMember()?.id
-                        }
-                        if (SelectedMemberHolder.recordsSelectedMemberId.value == member.id) {
-                            SelectedMemberHolder.recordsSelectedMemberId.value =
-                                database.familyMemberDao().getDefaultMember()?.id
+                        if (SelectedMemberHolder.selectedMemberId.value == member.id) {
+                            val fallback = database.familyMemberDao().getDefaultMember()?.id
+                            if (fallback != null) {
+                                SelectedMemberHolder.select(fallback, database)
+                            } else {
+                                SelectedMemberHolder.selectedMemberId.value = null
+                            }
                         }
                     }
                     pendingDelete = null

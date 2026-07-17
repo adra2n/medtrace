@@ -62,7 +62,7 @@ fun HomeScreen(
     var aiError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val selectedMemberId = SelectedMemberHolder.homeSelectedMemberId.value
+    val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
 
     fun runAiAnalysis() {
         val member = members.firstOrNull { it.id == selectedMemberId } ?: return
@@ -96,8 +96,8 @@ fun HomeScreen(
                 members = list
                 val persisted = database.userSettingsDao().getUserSettings().firstOrNull()?.selectedMemberId
                 val validPersisted = if (persisted != null && persisted != 0L && list.any { it.id == persisted }) persisted else null
-                if (SelectedMemberHolder.homeSelectedMemberId.value == null) {
-                    SelectedMemberHolder.homeSelectedMemberId.value =
+                if (SelectedMemberHolder.selectedMemberId.value == null) {
+                    SelectedMemberHolder.selectedMemberId.value =
                         validPersisted ?: (database.medicalRecordDao().getLatestRecord()?.patientId ?: list.first().id)
                 }
             }
@@ -177,12 +177,7 @@ fun HomeScreen(
                     members = members,
                     selectedMemberId = selectedMemberId,
                     onSelect = { member ->
-                        SelectedMemberHolder.homeSelectedMemberId.value = member.id
-                        scope.launch {
-                            database.userSettingsDao().getUserSettings().firstOrNull()?.let { s ->
-                                database.userSettingsDao().insertOrUpdate(s.copy(selectedMemberId = member.id))
-                            }
-                        }
+                        scope.launch { SelectedMemberHolder.select(member.id, database) }
                     }
                 )
             }

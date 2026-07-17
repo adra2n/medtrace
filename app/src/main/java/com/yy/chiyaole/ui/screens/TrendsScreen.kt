@@ -45,7 +45,7 @@ fun TrendsScreen(
     var aiTrend by remember { mutableStateOf<String?>(null) }
     var aiAnalyzing by remember { mutableStateOf(false) }
     var aiError by remember { mutableStateOf<String?>(null) }
-    val selectedMemberId = SelectedMemberHolder.recordsSelectedMemberId.value
+    val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
     val dayFmt = DateTimeFormatter.ofPattern("MM-dd")
 
     fun runAiAnalysis() {
@@ -70,8 +70,8 @@ fun TrendsScreen(
             .catch { e -> error = e.message }
             .collect { list ->
                 members = list
-                if (SelectedMemberHolder.recordsSelectedMemberId.value == null && list.isNotEmpty()) {
-                    SelectedMemberHolder.recordsSelectedMemberId.value = list.first().id
+                if (SelectedMemberHolder.selectedMemberId.value == null && list.isNotEmpty()) {
+                    SelectedMemberHolder.selectedMemberId.value = list.first().id
                 }
             }
     }
@@ -110,7 +110,7 @@ fun TrendsScreen(
                 MemberSelector(
                     members = members,
                     selectedMemberId = selectedMemberId,
-                    onSelect = { SelectedMemberHolder.recordsSelectedMemberId.value = it.id },
+                    onSelect = { member -> scope.launch { SelectedMemberHolder.select(member.id, database) } },
                     emptyHint = "暂无家庭成员，请先在家庭中添加"
                 )
             }

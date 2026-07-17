@@ -52,7 +52,7 @@ fun MedicalRecordScreen(
     var toDate by remember { mutableStateOf<LocalDate?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var datePickerTarget by remember { mutableStateOf<DateTarget>(DateTarget.From) }
-    val selectedMemberId = SelectedMemberHolder.recordsSelectedMemberId.value
+    val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val dayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -69,9 +69,9 @@ fun MedicalRecordScreen(
                     return@collect
                 }
                 members = list
-                if (SelectedMemberHolder.recordsSelectedMemberId.value == null) {
+                if (SelectedMemberHolder.selectedMemberId.value == null) {
                     val latest = database.medicalRecordDao().getLatestRecord()
-                    SelectedMemberHolder.recordsSelectedMemberId.value =
+                    SelectedMemberHolder.selectedMemberId.value =
                         latest?.patientId ?: list.first().id
                 }
             }
@@ -153,7 +153,7 @@ fun MedicalRecordScreen(
                     MemberSelector(
                         members = members,
                         selectedMemberId = selectedMemberId,
-                        onSelect = { SelectedMemberHolder.recordsSelectedMemberId.value = it.id },
+                        onSelect = { member -> scope.launch { SelectedMemberHolder.select(member.id, database) } },
                         emptyHint = "暂无家庭成员，请先在家庭中添加"
                     )
                 }
