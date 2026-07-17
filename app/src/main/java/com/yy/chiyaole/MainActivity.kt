@@ -256,10 +256,9 @@ fun MainScreen(database: AppDatabase) {
                                         .clickable {
                                             navController.navigate(screen.route) {
                                                 popUpTo(Screen.Home.route) {
-                                                    saveState = true
+                                                    inclusive = false
                                                 }
                                                 launchSingleTop = true
-                                                restoreState = true
                                             }
                                         }
                                         .padding(horizontal = 14.dp, vertical = 8.dp)
