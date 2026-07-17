@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -40,6 +41,7 @@ import com.yy.chiyaole.data.security.PinManager
 import androidx.fragment.app.FragmentActivity
 import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.Primary
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
@@ -296,8 +298,16 @@ fun SettingsScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { saveAll() }) {
-                        Text("保存")
+                    Button(
+                        onClick = { saveAll() },
+                        shape = AppShapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Primary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp)
+                    ) {
+                        Text("保存", style = MaterialTheme.typography.labelLarge)
                     }
                 }
             )
