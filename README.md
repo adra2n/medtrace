@@ -85,6 +85,11 @@ app/src/main/java/com/yy/chiyaole/
 
 ## 版本里程碑
 
+- **v1.5.1**（versionCode 9，2026-07-17）
+  - 工程优化：`.DS_Store` 移出版本控制，避免仓库脏改动。
+  - 健壮性：Room 历史迁移（v1–v5）缺失时不再崩溃，自动重置旧库并提示用户从加密备份恢复。
+  - 规范：`versionCode` 约定按 minor 严格递增并加注释。
+  - GitHub Releases：<https://github.com/adra2n/chiyaole/releases/tag/v1.5.1>
 - **v1.5.0**（versionCode 8，2026-07-17）
   - 新增首启引导页（3 屏、可跳过，本地标记 `OnboardingStore`）。
   - 全新「现代精致风」UI（渐变顶栏、白卡浮起、大圆角、柔和阴影、`PrimaryGradient` 共享设计语言）。
