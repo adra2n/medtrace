@@ -125,7 +125,7 @@ fun MainScreen(database: AppDatabase) {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute != "splash" && currentRoute != null
+    val showBottomBar = currentRoute != "splash" && currentRoute != "onboarding" && currentRoute != null
 
     val topLevelRoutes = screens.map { it.route }
     val activity = LocalContext.current as? ComponentActivity
