@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -31,6 +32,7 @@ import com.yy.chiyaole.data.backup.shareCsvIntent
 import com.yy.chiyaole.data.model.UserSettings
 import com.yy.chiyaole.data.settings.LlmSettingsStore
 import com.yy.chiyaole.data.settings.SecuritySettingsStore
+import com.yy.chiyaole.Screen
 import com.yy.chiyaole.data.settings.SyncSettingsStore
 import com.yy.chiyaole.data.security.BiometricHelper
 import com.yy.chiyaole.data.security.PinManager
@@ -44,7 +46,8 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    database: AppDatabase
+    database: AppDatabase,
+    navController: NavController
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -127,9 +130,12 @@ fun SettingsScreen(
         }
     }
 
-    fun cancelAll() {
-        loadAll()
-        Toast.makeText(context, "已放弃未保存的修改", Toast.LENGTH_SHORT).show()
+    fun backToPrevious() {
+        if (!navController.popBackStack()) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Home.route) { inclusive = true }
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -297,7 +303,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
-                        onClick = { cancelAll() },
+                        onClick = { backToPrevious() },
                         modifier = Modifier.weight(1f)
                     ) { Text("取消") }
                     Button(

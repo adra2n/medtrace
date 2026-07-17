@@ -295,7 +295,7 @@ fun MainScreen(database: AppDatabase) {
                 TrendsScreen(database, navController)
             }
             composable(Screen.Settings.route) {
-                SettingsScreen(database)
+                SettingsScreen(database, navController)
             }
             composable("add_record") {
                 AddMedicalRecordScreen(database, navController)
