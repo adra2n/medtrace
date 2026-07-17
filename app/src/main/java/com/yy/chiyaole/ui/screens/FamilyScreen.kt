@@ -143,6 +143,7 @@ fun FamilyScreen(
                         database.familyMemberDao().deleteById(member.id)
                         if (SelectedMemberHolder.selectedMemberId.value == member.id) {
                             val fallback = database.familyMemberDao().getDefaultMember()?.id
+                                ?: database.familyMemberDao().getAllMembersList().firstOrNull()?.id
                             if (fallback != null) {
                                 SelectedMemberHolder.select(fallback, database)
                             } else {

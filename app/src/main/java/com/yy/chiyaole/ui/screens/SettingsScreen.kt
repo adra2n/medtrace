@@ -372,6 +372,11 @@ fun SettingsScreen(
                                 checked = darkMode,
                                 onCheckedChange = { isChecked ->
                                     darkMode = isChecked
+                                    // 即时预览：切换即落库，MainActivity 的主题 Flow 会重新收集并应用。
+                                    scope.launch {
+                                        database.userSettingsDao()
+                                            .insertOrUpdate((settings ?: UserSettings()).copy(darkMode = isChecked))
+                                    }
                                 }
                             )
                         }

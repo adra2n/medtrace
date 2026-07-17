@@ -60,9 +60,11 @@ fun HomeScreen(
     var aiTrend by remember { mutableStateOf<String?>(null) }
     var aiAnalyzing by remember { mutableStateOf(false) }
     var aiError by remember { mutableStateOf<String?>(null) }
+    // 数据库因历史迁移缺失被重置后，常驻提醒用户从备份恢复（本次会话内可忽略）。
+    var showMigrationNotice by remember { mutableStateOf(AppDatabase.migrationResetHappened) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
+    val selectedMemberId by SelectedMemberHolder.selectedMemberId
 
     fun runAiAnalysis() {
         val member = members.firstOrNull { it.id == selectedMemberId } ?: return
@@ -172,6 +174,42 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
+            if (showMigrationNotice) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = AppShapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                "数据库已因版本升级重建，旧数据已清空。请到「设置 → 数据备份与恢复」从备份（GitHub Gist / 文件）恢复。",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = { navController.navigate(Screen.Settings.route) },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("去恢复") }
+                                OutlinedButton(
+                                    onClick = { showMigrationNotice = false },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("忽略") }
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 MemberSelector(
                     members = members,
