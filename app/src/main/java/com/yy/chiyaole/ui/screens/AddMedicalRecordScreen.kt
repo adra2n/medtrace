@@ -231,6 +231,13 @@ fun AddMedicalRecordScreen(
                 maxLines = 3
             )
 
+            if (noteText.isNotBlank()) {
+                OutlinedButton(
+                    onClick = { runAnalysis() },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("分析文本") }
+            }
+
             Text("所属家庭成员", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
             Row(
                 modifier = Modifier
