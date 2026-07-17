@@ -69,23 +69,41 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        // 标记：因缺少历史迁移（v1–v5 schema 已丢失）导致旧库被重置重建，
+        // 用户需从加密备份（GitHub Gist / 文件）恢复数据。供 UI 一次性提示。
+        @Volatile
+        var migrationResetHappened: Boolean = false
+            private set
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "app_database"
-                )
-                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8)
+                val instance = try {
+                    buildDatabase(context)
+                } catch (e: IllegalStateException) {
+                    // 迁移缺失（如老预发布用户 v1–v5 升级）：无法迁移即重置，避免崩溃。
+                    // 删除旧库后重建为当前 schema，数据丢失需用户从备份恢复。
+                    context.applicationContext.deleteDatabase("app_database")
+                    migrationResetHappened = true
+                    buildDatabase(context)
+                }
+                INSTANCE = instance
+                instance
+            }
+        }
+
+        private fun buildDatabase(context: Context): AppDatabase {
+            return Room.databaseBuilder(
+                context.applicationContext,
+                AppDatabase::class.java,
+                "app_database"
+            )
+                .addMigrations(MIGRATION_6_7, MIGRATION_7_8)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
                     }
                 })
                 .build()
-                INSTANCE = instance
-                instance
-            }
         }
     }
 }
