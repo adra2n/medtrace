@@ -36,7 +36,7 @@ fun SplashScreen(navController: NavController) {
     LaunchedEffect(key1 = true) {
         startAnimation = true
         delay(2500)
-        val done = OnboardingStore(context).isDone()
+        val done = runCatching { OnboardingStore(context).isDone() }.getOrDefault(false)
         navController.navigate(if (done) "home" else "onboarding") {
             popUpTo("splash") { inclusive = true }
         }

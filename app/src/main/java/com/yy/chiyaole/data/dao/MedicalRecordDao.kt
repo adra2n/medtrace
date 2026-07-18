@@ -15,6 +15,12 @@ interface MedicalRecordDao {
     @Query("SELECT * FROM medical_records WHERE patientId = :patientId ORDER BY onsetTime DESC")
     fun getRecordsByMember(patientId: Long): Flow<List<MedicalRecord>>
 
+    @Query("SELECT * FROM medical_records WHERE patientId = 0 ORDER BY onsetTime DESC")
+    fun getUnknownRecords(): Flow<List<MedicalRecord>>
+
+    @Query("UPDATE medical_records SET patientId = 0 WHERE patientId = :memberId")
+    suspend fun reassignToUnknown(memberId: Long)
+
     @Query("SELECT * FROM medical_records WHERE id = :id")
     suspend fun getRecordById(id: Long): MedicalRecord?
 

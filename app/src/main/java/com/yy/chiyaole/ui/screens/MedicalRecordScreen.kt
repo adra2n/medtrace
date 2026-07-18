@@ -68,7 +68,7 @@ fun MedicalRecordScreen(
                     }
                     return@collect
                 }
-                members = list
+                members = list + com.yy.chiyaole.ui.state.UNKNOWN_MEMBER
                 if (SelectedMemberHolder.selectedMemberId.value == null) {
                     val latest = database.medicalRecordDao().getLatestRecord()
                     SelectedMemberHolder.selectedMemberId.value =
@@ -82,8 +82,13 @@ fun MedicalRecordScreen(
             val kw = keyword.trim().takeIf { it.isNotEmpty() }
             val from = fromDate?.atStartOfDay() ?: LocalDateTime.of(1970, 1, 1, 0, 0)
             val to = toDate?.atTime(23, 59, 59) ?: LocalDateTime.of(9999, 12, 31, 23, 59, 59)
-            database.medicalRecordDao()
-                .searchByMember(id, kw, "%${kw ?: ""}%", from, to)
+            val flow = if (id == 0L) {
+                database.medicalRecordDao().getUnknownRecords()
+            } else {
+                database.medicalRecordDao()
+                    .searchByMember(id, kw, "%${kw ?: ""}%", from, to)
+            }
+            flow
                 .catch { e ->
                     error = e.message
                     e.printStackTrace()

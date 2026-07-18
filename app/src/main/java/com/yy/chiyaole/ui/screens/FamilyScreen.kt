@@ -159,10 +159,11 @@ fun FamilyScreen(
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
             title = { Text("删除家庭成员") },
-            text = { Text("确定删除「${member.name}」？其医疗记录将予以保留。") },
+            text = { Text("确定删除「${member.name}」？其医疗记录将归入「未归属」，仍可在记录页查看。") },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
+                        database.medicalRecordDao().reassignToUnknown(member.id)
                         database.familyMemberDao().deleteById(member.id)
                         if (SelectedMemberHolder.selectedMemberId.value == member.id) {
                             val fallback = database.familyMemberDao().getDefaultMember()?.id

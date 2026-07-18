@@ -84,7 +84,7 @@ fun TrendsScreen(
         database.familyMemberDao().getAllMembers()
             .catch { e -> error = e.message }
             .collect { list ->
-                members = list
+                members = list + com.yy.chiyaole.ui.state.UNKNOWN_MEMBER
                 if (SelectedMemberHolder.selectedMemberId.value == null && list.isNotEmpty()) {
                     SelectedMemberHolder.selectedMemberId.value = list.first().id
                 }
@@ -93,7 +93,12 @@ fun TrendsScreen(
 
     LaunchedEffect(selectedMemberId) {
         selectedMemberId?.let { id ->
-            database.medicalRecordDao().getRecordsByMember(id)
+            val flow = if (id == 0L) {
+                database.medicalRecordDao().getUnknownRecords()
+            } else {
+                database.medicalRecordDao().getRecordsByMember(id)
+            }
+            flow
                 .catch { e -> error = e.message }
                 .collectLatest { records = it }
         } ?: run { records = emptyList() }

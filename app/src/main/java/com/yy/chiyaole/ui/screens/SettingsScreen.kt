@@ -674,7 +674,7 @@ fun PinSetupDialog(
                 OutlinedTextField(
                     value = if (step == 1) pin else confirm,
                     onValueChange = { v ->
-                        val digits = v.filter { it.isDigit() }.take(8)
+                        val digits = v.filter { it.isDigit() }.take(6)
                         error = null
                         if (step == 1) pin = digits else confirm = digits
                     },
@@ -691,10 +691,10 @@ fun PinSetupDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = (if (step == 1) pin else confirm).length >= 4,
+                enabled = (if (step == 1) pin else confirm).length == 6,
                 onClick = {
                     if (step == 1) {
-                        if (pin.length < 4) {
+                        if (pin.length != 6) {
                             error = "PIN 需为 6 位数字"
                             return@TextButton
                         }
