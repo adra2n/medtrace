@@ -30,6 +30,7 @@ import com.yy.chiyaole.data.security.BiometricHelper
 import com.yy.chiyaole.data.security.PinManager
 import com.yy.chiyaole.data.settings.SecuritySettingsStore
 import com.yy.chiyaole.ui.screens.LockScreen
+import com.yy.chiyaole.ui.screens.MemberDetailScreen
 import com.yy.chiyaole.ui.theme.Primary
 import androidx.activity.compose.BackHandler
 import androidx.navigation.NavController
@@ -104,11 +105,14 @@ sealed class Screen(
     object Home : Screen("home", "首页", { tint, size ->
         Icon(Icons.Filled.Home, "首页", tint = tint, modifier = Modifier.size(size))
     })
-    object Family : Screen("family", "家庭管理", { tint, size ->
-        Icon(Icons.Filled.People, "家庭管理", tint = tint, modifier = Modifier.size(size))
+    object Family : Screen("family", "家人档案", { tint, size ->
+        Icon(Icons.Filled.People, "家人档案", tint = tint, modifier = Modifier.size(size))
     })
-    object MedicalRecords : Screen("medical_records", "记录", { tint, size ->
-        Icon(Icons.Filled.MedicalInformation, "记录", tint = tint, modifier = Modifier.size(size))
+    object AddRecord : Screen("add_record", "新增记录", { tint, size ->
+        Icon(Icons.Filled.AddCircle, "新增记录", tint = tint, modifier = Modifier.size(size))
+    })
+    object Health : Screen("trends", "健康分析", { tint, size ->
+        Icon(Icons.Filled.MonitorHeart, "健康分析", tint = tint, modifier = Modifier.size(size))
     })
     object Settings : Screen("settings", "设置", { tint, size ->
         Icon(Icons.Filled.Settings, "设置", tint = tint, modifier = Modifier.size(size))
@@ -130,7 +134,8 @@ fun MainScreen(database: AppDatabase) {
     val screens = listOf(
         Screen.Home,
         Screen.Family,
-        Screen.MedicalRecords
+        Screen.AddRecord,
+        Screen.Health
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -301,7 +306,7 @@ fun MainScreen(database: AppDatabase) {
             composable(Screen.Family.route) {
                 FamilyScreen(database, navController)
             }
-            composable(Screen.MedicalRecords.route) {
+            composable("medical_records") {
                 MedicalRecordScreen(database, navController)
             }
             composable("trends") {
@@ -316,6 +321,11 @@ fun MainScreen(database: AppDatabase) {
             composable("add_record/{recordId}") { backStackEntry ->
                 val id = backStackEntry.arguments?.getString("recordId")?.toLongOrNull() ?: -1L
                 AddMedicalRecordScreen(database, navController, recordId = id)
+            }
+            composable("member_detail/{memberId}?tab={tab}") { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("memberId")?.toLongOrNull() ?: -1L
+                val tab = backStackEntry.arguments?.getString("tab")
+                MemberDetailScreen(database, navController, memberId = id, initialTab = tab)
             }
         }
     }
