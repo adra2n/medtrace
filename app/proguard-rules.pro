@@ -139,3 +139,11 @@
 -dontwarn com.google.errorprone.annotations.CheckReturnValue
 -dontwarn com.google.errorprone.annotations.Immutable
 -dontwarn com.google.errorprone.annotations.RestrictedApi
+
+# 友盟 Android 统计 SDK 混淆保留
+-keep class com.umeng.** { *; }
+-keep class org.repackage.** { *; }
+-keep class com.uyumao.** { *; }
+-keepclassmembers class * {
+    public <init>(org.json.JSONObject);
+}

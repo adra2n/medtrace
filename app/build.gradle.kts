@@ -160,6 +160,10 @@ dependencies {
 
     // EncryptedSharedPreferences for PIN hash storage
     implementation(libs.androidx.security.crypto)
+
+    // 友盟 Android 统计 SDK
+    implementation(libs.umeng.common)
+    implementation(libs.umeng.asms)
     
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
