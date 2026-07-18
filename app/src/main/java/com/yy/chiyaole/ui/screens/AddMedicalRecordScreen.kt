@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +70,7 @@ fun AddMedicalRecordScreen(
 ) {
     var selectedMemberId by remember { mutableStateOf<Long?>(null) }
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
+    var memberExpanded by remember { mutableStateOf(false) }
     var diagnosis by remember { mutableStateOf("") }
     var hospital by remember { mutableStateOf("") }
     var medItems by remember { mutableStateOf<List<MedicationItem>>(emptyList()) }
@@ -94,7 +96,7 @@ fun AddMedicalRecordScreen(
         database.familyMemberDao().getAllMembers().collect { list ->
             members = list
             if (selectedMemberId == null && list.isNotEmpty()) {
-                selectedMemberId = list.first().id
+                selectedMemberId = database.familyMemberDao().getDefaultMember()?.id ?: list.first().id
             }
         }
     }
@@ -220,6 +222,59 @@ fun AddMedicalRecordScreen(
                 )
             }
 
+            // 强制成员选择
+            val selectedMember = members.firstOrNull { it.id == selectedMemberId }
+            ExposedDropdownMenuBox(
+                expanded = memberExpanded,
+                onExpandedChange = { memberExpanded = !memberExpanded }
+            ) {
+                OutlinedTextField(
+                    value = selectedMember?.let { "${it.name}（${it.relation.ifBlank { "成员" }}）" } ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text("当前家庭成员") },
+                    placeholder = { Text("请选择家庭成员") },
+                    trailingIcon = {
+                        Icon(Icons.Default.ArrowDropDown, "选择成员",
+                            tint = if (selectedMemberId == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                    },
+                    isError = selectedMemberId == null,
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = if (selectedMemberId == null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
+                        disabledLabelColor = if (selectedMemberId == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = if (selectedMemberId == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        disabledBorderColor = if (selectedMemberId == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
+                    )
+                )
+                DropdownMenu(
+                    expanded = memberExpanded,
+                    onDismissRequest = { memberExpanded = false },
+                    modifier = Modifier.exposedDropdownSize()
+                ) {
+                    if (members.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("暂无成员，请先去添加") },
+                            onClick = { memberExpanded = false }
+                        )
+                    } else {
+                        members.forEach { m ->
+                            DropdownMenuItem(
+                                text = { Text("${m.name}（${m.relation.ifBlank { "成员" }}）") },
+                                onClick = {
+                                    selectedMemberId = m.id
+                                    memberExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
             // AI 智能识别区（teal 虚线框）
             Surface(
                 modifier = Modifier
@@ -290,21 +345,6 @@ fun AddMedicalRecordScreen(
 
             // 基本信息
             SectionCard(title = "基本信息") {
-                Text("所属家庭成员", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    members.forEach { member ->
-                        FilterChip(
-                            selected = member.id == selectedMemberId,
-                            onClick = { selectedMemberId = member.id },
-                            label = { Text(member.name) }
-                        )
-                    }
-                }
                 OutlinedTextField(
                     value = diagnosis,
                     onValueChange = { diagnosis = it },
@@ -426,6 +466,7 @@ fun AddMedicalRecordScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                val canSave = selectedMemberId != null
                 Button(
                     onClick = {
                         val selectedMember = members.firstOrNull { it.id == selectedMemberId }
@@ -482,7 +523,8 @@ fun AddMedicalRecordScreen(
                             }
                         }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    enabled = canSave
                 ) {
                     Text("保存")
                 }

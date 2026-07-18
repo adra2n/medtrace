@@ -5,9 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -65,14 +62,17 @@ fun MemberSelector(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = if (member.isDefault) Icons.Filled.Person else Icons.Filled.People,
-                        contentDescription = null,
-                        tint = if (selected)
+                    MemberAvatar(
+                        member = member,
+                        size = 44.dp,
+                        fallbackBackground = if (selected)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        else
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        fallbackContent = if (selected)
                             MaterialTheme.colorScheme.onPrimaryContainer
                         else
-                            MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(30.dp)
+                            MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = member.name,

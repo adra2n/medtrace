@@ -49,6 +49,17 @@ fun parseNumeric(raw: String): Double? {
     return first.toDoubleOrNull()
 }
 
+// 解析参考范围，如 "90-140" / "90~140" / "90—140" -> (low, high)
+fun parseRange(range: String): Pair<Double, Double>? {
+    if (range.isBlank()) return null
+    val parts = range.split(Regex("[-~—~]")).mapNotNull { parseNumeric(it) }
+    if (parts.size != 2) return null
+    val low = parts[0]
+    val high = parts[1]
+    if (low >= high) return null
+    return low to high
+}
+
 fun buildSeries(records: List<MedicalRecord>): List<MetricSeries> {
     val byName = LinkedHashMap<String, MetricSeries>()
     for (r in records) {
@@ -176,6 +187,18 @@ fun TrendLineChart(series: MetricSeries, dayFmt: DateTimeFormatter) {
 
         fun x(i: Int): Float = if (pts.size == 1) pad + innerW / 2f else pad + innerW * i / (pts.size - 1)
         fun y(v: Double): Float = (pad + innerH * (1f - ((v - minV) / span).toFloat()))
+
+        // 正常参考范围绿带
+        val range = parseRange(series.range)
+        if (range != null) {
+            val yTop = y(range.second).coerceIn(pad, h - pad)
+            val yBottom = y(range.first).coerceIn(pad, h - pad)
+            drawRect(
+                color = androidx.compose.ui.graphics.Color(0xFF2E9E5B).copy(alpha = 0.16f),
+                topLeft = Offset(pad, yTop),
+                size = androidx.compose.ui.geometry.Size(innerW, (yBottom - yTop).coerceAtLeast(0f))
+            )
+        }
 
         drawLine(
             color = outline.copy(alpha = 0.25f),

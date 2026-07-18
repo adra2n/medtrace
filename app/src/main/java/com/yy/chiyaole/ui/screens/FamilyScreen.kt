@@ -19,15 +19,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.chiyaole.data.AppDatabase
 import com.yy.chiyaole.data.model.FamilyMember
+import com.yy.chiyaole.ui.components.MemberAvatar
 import com.yy.chiyaole.ui.state.SelectedMemberHolder
 import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.GradientTopBar
+import com.yy.chiyaole.ui.theme.MemberColors
 import com.yy.chiyaole.ui.theme.SoftElevation
 import com.yy.chiyaole.ui.theme.cardContainerColor
+import com.yy.chiyaole.ui.theme.computeAge
+import com.yy.chiyaole.ui.theme.memberCardColors
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -71,8 +76,14 @@ fun FamilyScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "家庭管理",
+                title = "全部家庭成员",
                 actions = {
+                    IconButton(onClick = {
+                        editingMember = null
+                        showDialog = true
+                    }) {
+                        Icon(Icons.Default.Add, "新增家庭成员")
+                    }
                     IconButton(onClick = { navController.navigate("settings") }) {
                         Icon(Icons.Default.Settings, "设置")
                     }
@@ -80,11 +91,23 @@ fun FamilyScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                editingMember = null
-                showDialog = true
-            }) {
-                Icon(Icons.Default.Add, "新增家庭成员")
+            val context = LocalContext.current
+            FloatingActionButton(
+                onClick = {
+                    android.widget.Toast.makeText(
+                        context,
+                        "全家健康简报导出功能开发中",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Text(
+                    "批量导出\n全家健康简报",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
             }
         }
     ) { padding ->
@@ -110,7 +133,7 @@ fun FamilyScreen(
                         onDelete = { pendingDelete = member },
                         onOpenRecords = {
                             scope.launch { SelectedMemberHolder.select(member.id, database) }
-                            navController.navigate("medical_records")
+                            navController.navigate("member_detail/${member.id}")
                         }
                     )
                 }
@@ -214,10 +237,12 @@ private fun MemberProfileCard(
             .forEach { add("用药 · $it") }
     }
 
+    val (cardBg, cardContent) = memberCardColors(member.relation, member.gender)
+    val age = computeAge(member.birthday)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Column(
@@ -232,20 +257,12 @@ private fun MemberProfileCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = AppShapes.large,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                if (member.isDefault) Icons.Filled.Person else Icons.Filled.People,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-                    }
+                    MemberAvatar(
+                        member = member,
+                        size = 48.dp,
+                        fallbackBackground = cardContent.copy(alpha = 0.18f),
+                        fallbackContent = cardContent
+                    )
                     Spacer(Modifier.width(12.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(
@@ -254,17 +271,18 @@ private fun MemberProfileCard(
                         ) {
                             Text(
                                 member.name,
-                                style = MaterialTheme.typography.titleMedium
+                                style = MaterialTheme.typography.titleMedium,
+                                color = cardContent
                             )
                             if (member.isDefault) {
                                 Surface(
                                     shape = AppShapes.small,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                    color = cardContent.copy(alpha = 0.18f)
                                 ) {
                                     Text(
                                         "默认",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = cardContent,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -272,6 +290,7 @@ private fun MemberProfileCard(
                         }
                         val sub = buildList {
                             if (member.relation.isNotBlank()) add(member.relation)
+                            age?.let { add("${it}岁") }
                             if (member.gender.isNotBlank()) add(member.gender)
                             if (member.bloodType.isNotBlank()) add("${member.bloodType}型")
                         }.joinToString(" · ")
@@ -279,14 +298,10 @@ private fun MemberProfileCard(
                             Text(
                                 sub,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = cardContent.copy(alpha = 0.8f)
                             )
                         }
                     }
-                }
-                Row {
-                    IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, "编辑") }
-                    IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "删除") }
                 }
             }
 
@@ -297,14 +312,15 @@ private fun MemberProfileCard(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     healthTags.forEach { tag ->
+                        val abnormal = tag.contains("偏高") || tag.contains("异常")
                         Surface(
                             shape = AppShapes.small,
-                            color = MaterialTheme.colorScheme.surfaceVariant
+                            color = if (abnormal) MemberColors.ElderMaleBg else cardContent.copy(alpha = 0.16f)
                         ) {
                             Text(
                                 tag,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (abnormal) MaterialTheme.colorScheme.error else cardContent,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -312,33 +328,28 @@ private fun MemberProfileCard(
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = cardContent.copy(alpha = 0.2f))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onOpenRecords),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Outlined.Assignment,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    "医疗记录 $recordCount 条",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Button(
+                    onClick = onOpenRecords,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text("查看档案")
+                }
+                OutlinedButton(
+                    onClick = onEdit,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text("编辑")
+                }
                 Spacer(Modifier.weight(1f))
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "查看记录",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                )
+                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.error) }
             }
         }
     }
