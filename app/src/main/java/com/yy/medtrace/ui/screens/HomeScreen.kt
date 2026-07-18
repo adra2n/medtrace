@@ -115,49 +115,66 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .background(PrimaryGradient)
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .padding(horizontal = 20.dp, vertical = 18.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.18f)),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            Icons.Filled.Favorite,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "医迹",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = todayLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
-                    }
-                    IconButton(
-                        onClick = { navController.navigate(Screen.Settings.route) },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(Icons.Default.Settings, "设置", tint = Color.White, modifier = Modifier.size(22.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.16f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Favorite,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "医迹",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = todayLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                        IconButton(
+                            onClick = { navController.navigate(Screen.Settings.route) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(Icons.Default.Settings, "设置", tint = Color.White, modifier = Modifier.size(22.dp))
+                        }
                     }
                 }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(28.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.10f)),
+                                startY = 0f,
+                                endY = 28f
+                            )
+                        )
+                )
             }
         }
     ) { padding ->
@@ -165,17 +182,13 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 16.dp)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            contentPadding = PaddingValues(bottom = 20.dp)
         ) {
             item {
-                Text(
-                    "家人",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(10.dp))
+                SectionTitle("我的家人")
+                Spacer(Modifier.height(12.dp))
                 val familyListState = rememberLazyListState()
                 Box {
                     LazyRow(
@@ -294,6 +307,8 @@ fun HomeScreen(
             }
 
             item {
+                SectionTitle("今日健康待办")
+                Spacer(Modifier.height(12.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.large,
@@ -321,24 +336,41 @@ fun HomeScreen(
                             }
                             Spacer(Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("今日健康待办", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                                 Text("按时提醒，别让健康溜走", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            IconButton(onClick = { showTodoDialog = true }) {
-                                Icon(Icons.Default.Add, "添加待办", tint = Primary)
                             }
                         }
                         if (todos.isEmpty()) {
                             Text(
-                                "今天还没有待办，点右上角 + 添加一条吧",
+                                "今天还没有安排，点击下方快捷项添加一条吧",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                QuickTodoChip(
+                                    modifier = Modifier.weight(1f),
+                                    text = "添加服药提醒",
+                                    onClick = {
+                                        showTodoDialog = true
+                                    }
+                                )
+                                QuickTodoChip(
+                                    modifier = Modifier.weight(1f),
+                                    text = "添加体检复查",
+                                    onClick = {
+                                        showTodoDialog = true
+                                    }
+                                )
+                            }
                         } else {
                             todos.forEachIndexed { idx, todo ->
                                 if (idx > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 TodayTodoItem(
                                     text = todo.content,
+                                    memberName = todo.memberName,
                                     done = todo.done,
                                     onToggle = {
                                         scope.launch {
@@ -356,12 +388,8 @@ fun HomeScreen(
             }
 
             item {
-                Text(
-                    "常用功能",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(10.dp))
+                SectionTitle("快捷功能")
+                Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -388,17 +416,17 @@ fun HomeScreen(
                 ) {
                     FunctionTile(
                         modifier = Modifier.weight(1f),
-                        icon = Icons.Default.People,
-                        title = "家人档案",
-                        desc = "家庭成员管理",
-                        onClick = { navController.navigate("family") }
-                    )
-                    FunctionTile(
-                        modifier = Modifier.weight(1f),
                         icon = Icons.Default.InsertChart,
                         title = "健康趋势",
                         desc = "长期指标追踪",
                         onClick = { navController.navigate("trends") }
+                    )
+                    FunctionTile(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Default.Settings,
+                        title = "功能设置",
+                        desc = "隐私、备份与偏好",
+                        onClick = { navController.navigate(Screen.Settings.route) }
                     )
                 }
             }
@@ -439,6 +467,41 @@ fun HomeScreen(
     }
 }
 
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        fontWeight = FontWeight.SemiBold
+    )
+}
+
+@Composable
+private fun QuickTodoChip(
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .height(40.dp)
+            .clickable { onClick() },
+        shape = AppShapes.medium,
+        color = Primary.copy(alpha = 0.10f),
+        border = BorderStroke(1.dp, Primary.copy(alpha = 0.25f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, tint = Primary, modifier = Modifier.size(16.dp))
+            Text(text, style = MaterialTheme.typography.labelMedium, color = Primary)
+        }
+    }
+}
+
 private fun buildTag(member: FamilyMember): String {
     return when {
         member.chronic.isNotBlank() -> member.chronic
@@ -451,6 +514,7 @@ private fun buildTag(member: FamilyMember): String {
 @Composable
 private fun TodayTodoItem(
     text: String,
+    memberName: String,
     done: Boolean,
     onToggle: () -> Unit,
     onDelete: () -> Unit
@@ -464,7 +528,22 @@ private fun TodayTodoItem(
             onCheckedChange = { onToggle() },
             colors = CheckboxDefaults.colors(checkedColor = Primary)
         )
-        Spacer(Modifier.width(4.dp))
+        Spacer(Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(Primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = memberName.firstOrNull()?.toString() ?: "我",
+                style = MaterialTheme.typography.labelSmall,
+                color = Primary,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Spacer(Modifier.width(8.dp))
         Text(
             text,
             style = MaterialTheme.typography.bodyMedium,
@@ -604,28 +683,28 @@ private fun FunctionTile(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.clickable { onClick() }.height(96.dp),
-        shape = AppShapes.medium,
+        modifier = modifier.clickable { onClick() }.height(88.dp),
+        shape = AppShapes.large,
         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(14.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(13.dp))
                         .background(Primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, title, tint = Primary)
+                    Icon(icon, title, tint = Primary, modifier = Modifier.size(22.dp))
                 }
                 Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             }
