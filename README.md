@@ -1,10 +1,8 @@
-# 医迹 (ChiYaoLe)
+# 医迹 (MedTrace)
 
 > 个人及家庭成员的医学检查记录与用药管理工具，Android 原生应用，Jetpack Compose + Room 构建。
 
 医迹帮助你把分散在各处的就诊记录、检查报告、用药方案集中管理，并通过 AI 分析把非结构化的病历文本 / 照片转化为结构化数据，方便长期追踪与复诊参考。
-
-> 注：本仓库包名仍为历史值 `com.yy.chiyaole`（未改名），应用对外显示名为「医迹」。
 
 ## 功能特性
 
@@ -63,7 +61,7 @@ adb -s <device-id> install -r -g app/build/outputs/apk/release/app-release.apk
 ## 目录结构（核心）
 
 ```
-app/src/main/java/com/yy/chiyaole/
+app/src/main/java/com/yy/medtrace/
 ├── data/
 │   ├── model/        实体：FamilyMember / MedicalRecord / UserSettings ...
 │   ├── dao/          Room DAO
@@ -85,6 +83,13 @@ app/src/main/java/com/yy/chiyaole/
 
 ## 版本里程碑
 
+- **v3.0.0**（versionCode 12，2026-07-18）
+  - 全新改版：UI 重设计（青蓝主色 + 渐变）、首页顶栏重设计、家人卡片横向布局、常用功能磁贴统一。
+  - 新增健康待办（首页今日计划、新增 / 勾选完成 / 删除）。
+  - 新增成员头像（相册选择，全局同步：首页卡片 / 详情 / 家人列表 / 选择器 / 编辑弹窗）。
+  - 详情页分类标签改流式布局（用药 / 检查 / 指标 / 就诊全可见）；编辑档案改为页内弹窗。
+  - 产品标识统一：仓库与包名由 `chiyaole` 更名为 `medtrace` / `com.yy.medtrace`，应用显示名保持「医迹」。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.0.0>
 - **v2.0.0**（versionCode 10，2026-07-17）
   - 重大版本：在 v1.5.x 基础上汇总本轮全部体验与健壮性优化。
   - 首启引导页（3 屏可跳过）+ 现代精致风 UI。
@@ -96,12 +101,12 @@ app/src/main/java/com/yy/chiyaole/
   - 健康概览 / 趋势空态引导文案（明确「仅手动填处方不会生成指标」）。
   - 记录排序兜底 `COALESCE(onsetTime, ...)`，防止异常排序。
   - 工程：`.DS_Store` 移出版本控制，`versionCode` 严格按 minor 递增。
-  - GitHub Releases：<https://github.com/adra2n/chiyaole/releases/tag/v2.0.0>
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v2.0.0>
 - **v1.5.1**（versionCode 9，2026-07-17）
   - 工程优化：`.DS_Store` 移出版本控制，避免仓库脏改动。
   - 健壮性：Room 历史迁移（v1–v5）缺失时不再崩溃，自动重置旧库并提示用户从加密备份恢复。
   - 规范：`versionCode` 约定按 minor 严格递增并加注释。
-  - GitHub Releases：<https://github.com/adra2n/chiyaole/releases/tag/v1.5.1>
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v1.5.1>
 - **v1.5.0**（versionCode 8，2026-07-17）
   - 新增首启引导页（3 屏、可跳过，本地标记 `OnboardingStore`）。
   - 全新「现代精致风」UI（渐变顶栏、白卡浮起、大圆角、柔和阴影、`PrimaryGradient` 共享设计语言）。
@@ -110,7 +115,7 @@ app/src/main/java/com/yy/chiyaole/
   - 修复 release 包（R8）下两处序列化崩溃：保留 Gson `TypeToken` 泛型签名、保留 kotlinx.serialization `@Serializable` 类及生成 `Serializer`（健康概览指标解析）。
   - 修复导航与设置页交互：子页面隐藏底部导航栏避免与设置页底栏重叠；设置页仅保留右上角实心「保存」按钮；修复底部标签切换误恢复其他标签页面状态。
   - 新增 AI 健康趋势图（持久化 AI 指标 + 折线趋势图）。
-  - GitHub Releases：<https://github.com/adra2n/chiyaole/releases/tag/v1.5.0>
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v1.5.0>
 - **v1.4.0**（versionCode 5）：现代精致风 UI 重设计。
 - **v1.3.0**：功能迭代。
 - **v1.2.0**（versionCode 5）：版本号规范化。
