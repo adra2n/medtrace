@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.yy.chiyaole"
+    namespace = "com.yy.medtrace"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.yy.chiyaole"
+        applicationId = "com.yy.medtrace"
         minSdk = 24
         targetSdk = 35
         // versionCode 约定：每个 minor 版本 +1（v2.0.0 = 10）。
@@ -85,11 +85,9 @@ android {
         }
         
         debug {
-            // 调试版本不启用混淆
+            // 调试版本不启用混淆；与 release 共用 applicationId，避免同机双实例/数据割裂
             isMinifyEnabled = false
             isDebuggable = true
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
         }
     }
 

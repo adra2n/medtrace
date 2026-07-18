@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "chiyaole"
+rootProject.name = "medtrace"
 include(":app")
  
