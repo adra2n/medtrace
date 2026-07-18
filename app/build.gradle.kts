@@ -16,8 +16,8 @@ android {
         targetSdk = 35
         // versionCode 约定：每个 minor 版本 +1（v2.0.0 = 10）。
         // 历史注意：v1.2.0–v1.4.0 误用 code 5，自 v1.5.0 起严格按 minor 递增，避免升级回环。
-        versionCode = 12
-        versionName = "v3.0.0"
+        versionCode = 13
+        versionName = "v3.1.0"
 
         // 友盟 AppKey：从 local.properties 的 UMENG_APPKEY 或环境变量读取，不写死、不进 git
         val umengKey = (rootProject.findProperty("UMENG_APPKEY") as? String)
