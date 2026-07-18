@@ -162,19 +162,6 @@ fun HomeScreen(
                         }
                     }
                 }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(28.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.10f)),
-                                startY = 0f,
-                                endY = 28f
-                            )
-                        )
-                )
             }
         }
     ) { padding ->
