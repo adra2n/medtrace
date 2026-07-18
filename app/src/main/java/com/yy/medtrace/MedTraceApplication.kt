@@ -20,6 +20,7 @@ class MedTraceApplication : Application() {
      */
     fun initAnalytics() {
         UMConfigure.preInit(this, UMENG_APPKEY, UMENG_CHANNEL)
+        UMConfigure.submitPolicyGrantResult(this, true)
         Thread {
             UMConfigure.init(
                 this,

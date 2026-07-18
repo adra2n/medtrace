@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.yy.medtrace.MedTraceApplication
 import com.yy.medtrace.R
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.data.settings.PrivacyConsentStore
@@ -39,6 +40,10 @@ fun SplashScreen(navController: NavController) {
         delay(2500)
         val onboardingDone = runCatching { OnboardingStore(context).isDone() }.getOrDefault(false)
         val privacyGranted = runCatching { PrivacyConsentStore(context).isGranted() }.getOrDefault(false)
+        if (privacyGranted) {
+            // 已授权：启动即初始化友盟统计（避免跳过隐私页时漏初始化）
+            MedTraceApplication.initAnalytics(context)
+        }
         val next = when {
             !privacyGranted -> "privacy_consent"
             onboardingDone -> "home"
