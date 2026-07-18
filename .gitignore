@@ -43,3 +43,4 @@ google-services.json
 
 # Gradle wrapper
 !gradle/wrapper/gradle-wrapper.jar
+ui.md
