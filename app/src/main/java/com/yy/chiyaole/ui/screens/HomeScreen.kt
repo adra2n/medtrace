@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
@@ -29,6 +32,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
@@ -46,6 +50,7 @@ import com.yy.chiyaole.ui.theme.AppShapes
 import com.yy.chiyaole.ui.theme.GradientTopBar
 import com.yy.chiyaole.ui.theme.MemberColors
 import com.yy.chiyaole.ui.theme.Primary
+import com.yy.chiyaole.ui.theme.PrimaryGradient
 import com.yy.chiyaole.ui.theme.SoftElevation
 import com.yy.chiyaole.ui.theme.cardContainerColor
 import com.yy.chiyaole.ui.theme.computeAge
@@ -105,15 +110,55 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            GradientTopBar(
-                title = "医迹",
-                subtitle = todayLabel,
-                actions = {
-                    IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
-                        Icon(Icons.Default.Settings, "设置")
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(PrimaryGradient)
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Filled.Favorite,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "医迹",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = todayLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                    }
+                    IconButton(
+                        onClick = { navController.navigate(Screen.Settings.route) },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(Icons.Default.Settings, "设置", tint = Color.White, modifier = Modifier.size(22.dp))
                     }
                 }
-            )
+            }
         }
     ) { padding ->
         LazyColumn(
@@ -131,42 +176,57 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(Modifier.height(10.dp))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(end = 4.dp)
-                ) {
-                    items(members) { member ->
+                val familyListState = rememberLazyListState()
+                Box {
+                    LazyRow(
+                        state = familyListState,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(end = 4.dp)
+                    ) {
+                        items(members) { member ->
                         val (bg, content) = memberCardColors(member.relation, member.gender)
                         val age = computeAge(member.birthday)
                         Card(
                             modifier = Modifier
-                                .width(140.dp)
+                                .width(160.dp)
                                 .clickable { navController.navigate("member_detail/${member.id}") },
                             shape = AppShapes.large,
-                            colors = CardDefaults.cardColors(containerColor = bg)
+                            colors = CardDefaults.cardColors(containerColor = bg),
+                            elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
                         ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    .padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                MemberAvatar(
-                                    member = member,
-                                    modifier = Modifier.size(48.dp),
-                                    fallbackBackground = content.copy(alpha = 0.18f),
-                                    fallbackContent = content
-                                )
-                                Text(
-                                    member.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = content
-                                )
-                                Text(
-                                    age?.let { "${member.relation} · ${it}岁" } ?: member.relation,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = content.copy(alpha = 0.8f)
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    MemberAvatar(
+                                        member = member,
+                                        modifier = Modifier.size(48.dp),
+                                        fallbackBackground = content.copy(alpha = 0.18f),
+                                        fallbackContent = content
+                                    )
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            member.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = content
+                                        )
+                                        Text(
+                                            age?.let { "${member.relation} · ${it}岁" } ?: member.relation,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = content.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                }
                                 val tag = buildTag(member)
                                 if (tag.isNotBlank()) {
                                     Surface(
@@ -189,18 +249,19 @@ fun HomeScreen(
                     item {
                         Card(
                             modifier = Modifier
-                                .width(120.dp)
+                                .width(140.dp)
                                 .clickable { showAddDialog = true },
                             shape = AppShapes.large,
                             colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                            border = BorderStroke(1.5.dp, Primary.copy(alpha = 0.4f))
+                            border = BorderStroke(1.5.dp, Primary.copy(alpha = 0.4f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
                         ) {
-                            Column(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -214,6 +275,20 @@ fun HomeScreen(
                                 Text("添加家人", color = Primary)
                             }
                         }
+                    }
+                    }
+                    if (familyListState.canScrollForward) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .width(12.dp)
+                                .fillMaxHeight()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background)
+                                    )
+                                )
+                        )
                     }
                 }
             }
@@ -529,25 +604,32 @@ private fun FunctionTile(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.clickable { onClick() },
+        modifier = modifier.clickable { onClick() }.height(96.dp),
         shape = AppShapes.medium,
         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(icon, title, tint = Primary)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Primary.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, title, tint = Primary)
+                }
+                Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             }
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.weight(1f))
             Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
