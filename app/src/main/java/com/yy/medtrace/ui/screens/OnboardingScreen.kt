@@ -19,7 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.yy.medtrace.data.settings.OnboardingStore
+import com.yy.medtrace.data.settings.PrivacyStore
 import com.yy.medtrace.ui.theme.PrimaryGradient
+import com.yy.medtrace.util.initUmengIfAllowed
 import kotlinx.coroutines.launch
 
 private data class OnboardPage(
@@ -34,7 +36,9 @@ fun OnboardingScreen(navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = remember { OnboardingStore(context) }
+    val privacyStore = remember { PrivacyStore(context) }
     var page by remember { mutableStateOf(0) }
+    var agreed by remember { mutableStateOf(false) }
 
     val pages = listOf(
         OnboardPage(Icons.Filled.AutoAwesome, "AI 智能识别",
@@ -46,7 +50,10 @@ fun OnboardingScreen(navController: NavController) {
     )
 
     fun finish() {
+        if (!agreed) return
         scope.launch {
+            privacyStore.setAgreed()
+            initUmengIfAllowed(context)
             store.setDone()
             navController.navigate("home") {
                 popUpTo("onboarding") { inclusive = true }
@@ -90,8 +97,30 @@ fun OnboardingScreen(navController: NavController) {
                 }
             }
 
+            Row(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = agreed,
+                    onCheckedChange = { agreed = it },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = Color.White,
+                        checkmarkColor = Color(0xFF36A3C7),
+                        uncheckedColor = Color.White
+                    )
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "我已阅读并同意《隐私政策》",
+                    color = Color.White,
+                    fontSize = 13.sp
+                )
+            }
+
             Button(
                 onClick = { if (page < pages.lastIndex) page++ else finish() },
+                enabled = agreed,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 24.dp)
             ) {
                 Text(if (page < pages.lastIndex) "下一步" else "开始使用")

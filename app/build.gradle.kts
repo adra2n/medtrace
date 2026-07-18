@@ -19,6 +19,12 @@ android {
         versionCode = 12
         versionName = "v3.0.0"
 
+        // 友盟 AppKey：从 local.properties 的 UMENG_APPKEY 或环境变量读取，不写死、不进 git
+        val umengKey = (rootProject.findProperty("UMENG_APPKEY") as? String)
+            ?: System.getenv("UMENG_APPKEY")
+            ?: ""
+        buildConfigField("String", "UMENG_APPKEY", "\"$umengKey\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Room schema location
@@ -169,6 +175,10 @@ dependencies {
     
     // Gson for JSON serialization
     implementation("com.google.code.gson:gson:2.10.1")
+
+    // 友盟 U-App 移动统计（必选 common + asms；缺失会在初始化时报错/Toast）
+    implementation("com.umeng.umsdk:common:9.9.2")
+    implementation("com.umeng.umsdk:asms:1.8.4")
 
     // LLM (AI extraction): Retrofit + kotlinx.serialization + OkHttp
     implementation(libs.retrofit)

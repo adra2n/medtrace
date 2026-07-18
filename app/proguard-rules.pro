@@ -5,6 +5,19 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
+# 友盟 U-App 统计 SDK：防止被混淆导致 SDK 不可用
+-keep class com.umeng.** { *; }
+-keep class org.repackage.** { *; }
+-keep class com.uyumao.** { *; }
+-keepclassmembers class * {
+    public <init>(org.json.JSONObject);
+}
+-keep class com.yy.medtrace.R$* { *; }
+-keep public class com.yy.medtrace.R { *; }
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
+
 # 基础配置
 -optimizationpasses 5
 -dontusemixedcaseclassnames
