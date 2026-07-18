@@ -7,7 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
@@ -52,6 +52,7 @@ fun TrendsScreen(
     var aiTrend by remember { mutableStateOf<String?>(null) }
     var aiAnalyzing by remember { mutableStateOf(false) }
     var aiError by remember { mutableStateOf<String?>(null) }
+    var aiJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
     val dayFmt = DateTimeFormatter.ofPattern("MM-dd")
 
@@ -67,12 +68,13 @@ fun TrendsScreen(
         val member = members.firstOrNull { it.id == selectedMemberId } ?: return
         aiError = null
         aiAnalyzing = true
-        scope.launch {
+        aiJob = scope.launch {
             try {
                 val result = ComprehensiveAnalysisUseCase(LlmSettingsStore(context))
                     .analyze(member, records)
                 aiTrend = result.trend.ifBlank { result.raw }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) return@launch
                 aiError = e.message ?: "分析失败"
             } finally {
                 aiAnalyzing = false
@@ -115,7 +117,7 @@ fun TrendsScreen(
                 title = "健康分析",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
                     }
                 }
             )
@@ -169,14 +171,14 @@ fun TrendsScreen(
                     }
 
                     Button(
-                        onClick = { runAiAnalysis() },
-                        enabled = !aiAnalyzing && members.any { it.id == selectedMemberId },
+                        onClick = { if (aiAnalyzing) aiJob?.cancel() else runAiAnalysis() },
+                        enabled = aiAnalyzing || members.any { it.id == selectedMemberId },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary)
                     ) {
                         Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(8.dp))
-                        Text(if (aiAnalyzing) "AI 分析中…" else "生成健康概览", color = MaterialTheme.colorScheme.onPrimary)
+                        Text(if (aiAnalyzing) "停止分析" else "生成健康概览", color = MaterialTheme.colorScheme.onPrimary)
                     }
 
                     aiError?.let {

@@ -60,6 +60,20 @@ fun parseRange(range: String): Pair<Double, Double>? {
     return low to high
 }
 
+// 血压类指标（如 "120/80"）拆成收缩压 / 舒张压两条独立序列，各自带参考范围。
+private fun expandMetric(m: Metric): List<Metric> {
+    val parts = m.value.split("/").mapNotNull { parseNumeric(it) }
+    val isBp = parts.size == 2 ||
+        m.name.contains("压") && m.value.contains("/")
+    if (!isBp || parts.size != 2) return listOf(m)
+    val ranges = m.range.split("/").map { it.trim() }
+    val (sysRange, diaRange) = if (ranges.size == 2) ranges[0] to ranges[1] else "" to ""
+    return listOf(
+        Metric("${m.name}·收缩压", m.value, m.unit, sysRange, m.abnormal),
+        Metric("${m.name}·舒张压", m.value, m.unit, diaRange, m.abnormal)
+    )
+}
+
 fun buildSeries(records: List<MedicalRecord>): List<MetricSeries> {
     val byName = LinkedHashMap<String, MetricSeries>()
     for (r in records) {
@@ -68,14 +82,16 @@ fun buildSeries(records: List<MedicalRecord>): List<MetricSeries> {
             kotlinx.serialization.json.Json.decodeFromString<List<Metric>>(r.metricsJson)
         }.getOrElse { emptyList() }
         for (m in metrics) {
-            val v = parseNumeric(m.value) ?: continue
-            val series = byName.getOrPut(m.name) {
-                MetricSeries(m.name, m.unit, m.range, emptyList())
+            expandMetric(m).forEach { em ->
+                val v = parseNumeric(em.value) ?: return@forEach
+                val series = byName.getOrPut(em.name) {
+                    MetricSeries(em.name, em.unit, em.range, emptyList())
+                }
+                byName[em.name] = series.copy(
+                    points = (series.points + MetricPoint(r.onsetTime, v, em.abnormal, em.value))
+                        .sortedBy { it.time }
+                )
             }
-            byName[m.name] = series.copy(
-                points = (series.points + MetricPoint(r.onsetTime, v, m.abnormal, m.value))
-                    .sortedBy { it.time }
-            )
         }
     }
     return byName.values.filter { it.points.size >= 1 }

@@ -73,6 +73,7 @@ fun MemberDetailScreen(
     var aiAdvice by remember { mutableStateOf<String?>(null) }
     var aiAnalyzing by remember { mutableStateOf(false) }
     var aiError by remember { mutableStateOf<String?>(null) }
+    var aiJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var showEdit by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -126,16 +127,21 @@ fun MemberDetailScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
+                    if (aiAnalyzing) {
+                        aiJob?.cancel()
+                        return@FloatingActionButton
+                    }
                     val m = member ?: return@FloatingActionButton
                     aiError = null
                     aiAnalyzing = true
-                    scope.launch {
+                    aiJob = scope.launch {
                         try {
                             val result = ComprehensiveAnalysisUseCase(LlmSettingsStore(context))
                                 .analyze(m, records)
                             aiSummary = result.trend.ifBlank { result.raw }
                             aiAdvice = result.advice.ifBlank { null }
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) return@launch
                             aiError = e.message ?: "分析失败"
                         } finally {
                             aiAnalyzing = false

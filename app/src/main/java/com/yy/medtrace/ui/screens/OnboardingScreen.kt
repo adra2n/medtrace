@@ -6,7 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,7 +41,7 @@ fun OnboardingScreen(navController: NavController) {
             "拍照或粘贴处方文本，自动提取诊断、用药与检查指标，省去手动录入。"),
         OnboardPage(Icons.Filled.People, "家庭健康管理",
             "为每位家人建立健康档案，归类历次就诊记录与注意事项。"),
-        OnboardPage(Icons.Filled.ShowChart, "趋势与解读",
+        OnboardPage(Icons.AutoMirrored.Filled.ShowChart, "趋势与解读",
             "检查指标自动成图，AI 给出趋势解读与健康建议，异常一目了然。")
     )
 

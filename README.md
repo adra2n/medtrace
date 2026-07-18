@@ -4,7 +4,7 @@
 
 医迹帮助你把分散在各处的就诊记录、检查报告、用药方案集中管理，并通过 AI 分析把非结构化的病历文本 / 照片转化为结构化数据，方便长期追踪与复诊参考。
 
-> 注：本仓库包名仍为历史值 `com.yy.chiyaole`（未改名），应用对外显示名为「医迹」。
+> 注：本仓库包名为 `com.yy.medtrace`，应用对外显示名为「医迹」。
 
 ## 功能特性
 
@@ -63,7 +63,7 @@ adb -s <device-id> install -r -g app/build/outputs/apk/release/app-release.apk
 ## 目录结构（核心）
 
 ```
-app/src/main/java/com/yy/chiyaole/
+app/src/main/java/com/yy/medtrace/
 ├── data/
 │   ├── model/        实体：FamilyMember / MedicalRecord / UserSettings ...
 │   ├── dao/          Room DAO

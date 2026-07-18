@@ -557,7 +557,7 @@ app/
 
 │ │ ├── java/
 
-│ │ │ └── com/yy/chiyaole/
+│ │ │ └── com/yy/medtrace/
 
 │ │ │ ├── data/ // 数据层
 
