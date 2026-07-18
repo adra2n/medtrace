@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.yy.medtrace.R
 import com.yy.medtrace.data.settings.OnboardingStore
+import com.yy.medtrace.data.settings.PrivacyConsentStore
 import com.yy.medtrace.ui.theme.PrimaryGradient
 import kotlinx.coroutines.delay
 
@@ -36,8 +37,14 @@ fun SplashScreen(navController: NavController) {
     LaunchedEffect(key1 = true) {
         startAnimation = true
         delay(2500)
-        val done = runCatching { OnboardingStore(context).isDone() }.getOrDefault(false)
-        navController.navigate(if (done) "home" else "onboarding") {
+        val onboardingDone = runCatching { OnboardingStore(context).isDone() }.getOrDefault(false)
+        val privacyGranted = runCatching { PrivacyConsentStore(context).isGranted() }.getOrDefault(false)
+        val next = when {
+            !privacyGranted -> "privacy_consent"
+            onboardingDone -> "home"
+            else -> "onboarding"
+        }
+        navController.navigate(next) {
             popUpTo("splash") { inclusive = true }
         }
     }

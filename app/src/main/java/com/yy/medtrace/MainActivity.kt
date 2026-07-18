@@ -48,6 +48,7 @@ import com.yy.medtrace.ui.screens.MedicalRecordScreen
 import com.yy.medtrace.ui.screens.SettingsScreen
 import com.yy.medtrace.ui.screens.SplashScreen
 import com.yy.medtrace.ui.screens.OnboardingScreen
+import com.yy.medtrace.ui.screens.PrivacyConsentScreen
 import com.yy.medtrace.ui.screens.TrendsScreen
 import com.yy.medtrace.ui.theme.ChiyaoleTheme
 import kotlinx.coroutines.Dispatchers
@@ -296,6 +297,12 @@ fun MainScreen(database: AppDatabase) {
         ) {
             composable("splash") {
                 SplashScreen(navController)
+            }
+            composable("privacy_consent") {
+                PrivacyConsentScreen(
+                    navController = navController,
+                    onDecline = { activity?.finish() }
+                )
             }
             composable("onboarding") {
                 OnboardingScreen(navController)
