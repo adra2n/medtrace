@@ -2,32 +2,48 @@ package com.yy.chiyaole.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// 主色调：沉稳的青绿色，传达健康、安心
-val Primary = Color(0xFF0E8C87)      // 主青绿（更高对比度，文字白底更清晰）
-val PrimaryLight = Color(0xFF5BC0BE) // 浅青绿
-val PrimaryDark = Color(0xFF0A5F5C)   // 深青绿（渐变顶栏末端）
-val PrimaryGradientEnd = Color(0xFF0B6F6C) // 渐变顶栏收尾色（略深于主色，保留青绿调）
+// 主色调：柔和青蓝，传达健康、安心（ui.md 规范）
+val Primary = Color(0xFF36A3C7)      // 主青蓝
+val PrimaryLight = Color(0xFF7FC4DC) // 浅青蓝
+val PrimaryDark = Color(0xFF1E7D9B)  // 深青蓝（渐变顶栏末端）
+val PrimaryGradientEnd = Color(0xFF1E7D9B) // 渐变顶栏收尾色
 
-// 强调色：柔和暖沙色，与主色形成温和对比，不刺眼
-val Accent = Color(0xFFC2843F)       // 暖沙金
-val AccentLight = Color(0xFFE2B585)  // 浅沙金
-val AccentDark = Color(0xFF9C6630)   // 深沙金
+// 强调色：浅橙，用于异常指标警示（ui.md 规范）
+val Accent = Color(0xFFFF7D60)       // 浅橙警示
+val AccentLight = Color(0xFFFFB29E)  // 浅橙
+val AccentDark = Color(0xFFE85C3C)   // 深橙
 
-// 背景色：带青绿调的浅灰，与主题呼应，柔和通透
-val Background = Color(0xFFF4F8F7)    // 浅青灰（更柔和通透）
+// 背景色：纯白浅米，柔和通透（ui.md 规范）
+val Background = Color(0xFFFAF8F4)    // 纯白浅米
 val Surface = Color(0xFFFFFFFF)       // 纯白
 val BackgroundDark = Color(0xFF101B1C) // 深冷灰背景
 
-// 文本颜色：带青绿调的深色，与主题呼应
-val TextPrimary = Color(0xFF143033)    // 主要文本（深青墨）
-val TextSecondary = Color(0xFF536468)  // 次要文本（中灰）
-val TextDisabled = Color(0xFF9AA8A9)   // 禁用文本（浅灰）
+// 文本颜色
+val TextPrimary = Color(0xFF1F2D32)    // 主要文本
+val TextSecondary = Color(0xFF5A6B70)  // 次要文本
+val TextDisabled = Color(0xFFA7B2B5)   // 禁用文本
 
-// 功能色：用于特定状态的提示
+// 功能色
 val Success = Color(0xFF2E9E5B)  // 成功状态（绿）
 val Error = Color(0xFFD64550)    // 错误状态（红）
-val Warning = Color(0xFFC2843F)  // 警告状态（沙金）
+val Warning = Color(0xFFFF7D60)  // 警告状态（浅橙）
 
-// 卡片底色：浅青绿，与页面背景形成柔和层次
-val CardSurface = Color(0xFFE9F3F2)     // 浅色模式卡片底
+// 卡片底色
+val CardSurface = Color(0xFFF0F7FA)     // 浅色模式卡片底
 val CardSurfaceDark = Color(0xFF1B2A2C) // 深色模式卡片底
+
+// 家庭成员卡片配色映射（ui.md 规范）
+object MemberColors {
+    // 本人
+    val SelfBg = Color(0xFFE3F2F8)
+    val SelfContent = Color(0xFF1E7D9B)
+    // 儿童
+    val ChildBg = Color(0xFFD6F0D8)
+    val ChildContent = Color(0xFF2E7D32)
+    // 女性
+    val FemaleBg = Color(0xFFF8DCEA)
+    val FemaleContent = Color(0xFFB03A6E)
+    // 长辈男性
+    val ElderMaleBg = Color(0xFFE2E2E2)
+    val ElderMaleContent = Color(0xFF444444)
+}

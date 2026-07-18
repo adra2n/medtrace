@@ -10,9 +10,11 @@ import com.yy.chiyaole.data.converter.LocalTimeConverter
 import com.yy.chiyaole.data.converter.LocalTimeListConverter
 import com.yy.chiyaole.data.converter.MedicationItemListConverter
 import com.yy.chiyaole.data.dao.FamilyMemberDao
+import com.yy.chiyaole.data.dao.HealthTodoDao
 import com.yy.chiyaole.data.dao.MedicalRecordDao
 import com.yy.chiyaole.data.dao.UserSettingsDao
 import com.yy.chiyaole.data.model.FamilyMember
+import com.yy.chiyaole.data.model.HealthTodo
 import com.yy.chiyaole.data.model.MedicalRecord
 import com.yy.chiyaole.data.model.UserSettings
 import java.time.LocalDate
@@ -26,9 +28,10 @@ import kotlinx.coroutines.launch
     entities = [
         MedicalRecord::class,
         UserSettings::class,
-        FamilyMember::class
+        FamilyMember::class,
+        HealthTodo::class
     ],
-    version = 8,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(
@@ -42,6 +45,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun medicalRecordDao(): MedicalRecordDao
     abstract fun userSettingsDao(): UserSettingsDao
     abstract fun familyMemberDao(): FamilyMemberDao
+    abstract fun healthTodoDao(): HealthTodoDao
 
     companion object {
         private val MIGRATION_6_7 = object : Migration(6, 7) {
@@ -63,6 +67,29 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // medical_records: 新增 AI 解析指标字段（加列不丢数据）
                 database.execSQL("ALTER TABLE medical_records ADD COLUMN metrics_json TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 健康待办表
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS health_todos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        memberId INTEGER NOT NULL DEFAULT 0,
+                        memberName TEXT NOT NULL DEFAULT '',
+                        content TEXT NOT NULL,
+                        dueDate TEXT NOT NULL DEFAULT '',
+                        done INTEGER NOT NULL DEFAULT 0
+                    )"""
+                )
+            }
+        }
+
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // family_members: 新增头像本地路径字段（加列不丢数据）
+                database.execSQL("ALTER TABLE family_members ADD COLUMN avatarPath TEXT NOT NULL DEFAULT ''")
             }
         }
 
@@ -97,7 +124,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 "app_database"
             )
-                .addMigrations(MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

@@ -15,6 +15,9 @@ interface FamilyMemberDao {
     @Query("SELECT * FROM family_members WHERE isDefault = 1 LIMIT 1")
     suspend fun getDefaultMember(): FamilyMember?
 
+    @Query("SELECT * FROM family_members WHERE id = :id LIMIT 1")
+    suspend fun getMemberById(id: Long): FamilyMember?
+
     @Insert
     suspend fun insert(member: FamilyMember): Long
 

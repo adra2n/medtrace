@@ -16,5 +16,6 @@ data class FamilyMember(
     val chronic: String = "",
     val medicationNote: String = "",
     val otherNote: String = "",
-    val isDefault: Boolean = false
+    val isDefault: Boolean = false,
+    val avatarPath: String = ""
 )
