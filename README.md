@@ -95,6 +95,9 @@ app/src/main/java/com/yy/medtrace/
 
 ## 版本里程碑
 
+- **v3.2.2**（versionCode 18，2026-07-19）
+  - 修复启动崩溃：Android 12+ 上若「精确闹钟」权限被系统/厂商拒绝，`setExactAndAllowWhileIdle` 抛 `SecurityException` 导致 App 闪退。新增 `canScheduleExactAlarms()` 守卫，未授权时安全跳过排程并引导用户到精确闹钟设置页授权。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.2>
 - **v3.2.1**（versionCode 17，2026-07-19）
   - 首页顶部栏优化：渐变提亮（中青蓝 → 浅青蓝 PrimaryLight），不再发暗；栏高收紧（vertical padding 18dp → 14dp）。
   - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.1>
