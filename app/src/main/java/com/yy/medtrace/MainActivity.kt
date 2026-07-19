@@ -126,17 +126,42 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    private val exactAlarmLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // 从精确闹钟设置页返回后重试一次：若用户已授权则排程，未授权则静默放弃
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            (getSystemService(ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
+        ) {
+            ReminderHelper.scheduleDaily(this)
+        }
+    }
+
     private fun scheduleIfExactAlarmAllowed() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
             if (!alarmManager.canScheduleExactAlarms()) {
-                startActivity(
-                    Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                )
+                showExactAlarmHintDialog()
                 return
             }
         }
         ReminderHelper.scheduleDaily(this)
+    }
+
+    private fun showExactAlarmHintDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("开启每日健康提醒")
+            .setMessage(
+                "为了每天 9 点准时弹出「今日健康待办」提醒，请允许医迹使用" +
+                    "「精确闹钟」权限。\n\n不开启则每日提醒不会触发，其他功能不受影响。"
+            )
+            .setNegativeButton("暂不") { _, _ -> }
+            .setPositiveButton("去设置") { _, _ ->
+                exactAlarmLauncher.launch(
+                    Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                )
+            }
+            .show()
     }
 }
 
