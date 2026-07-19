@@ -325,6 +325,9 @@ fun HomeScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("按时提醒，别让健康溜走", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                            IconButton(onClick = { showTodoDialog = true }) {
+                                Icon(Icons.Default.Add, "添加待办", tint = Primary)
+                            }
                         }
                         if (todos.isEmpty()) {
                             Text(
