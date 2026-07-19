@@ -51,6 +51,11 @@ import com.yy.medtrace.ui.screens.OnboardingScreen
 import com.yy.medtrace.ui.screens.PrivacyConsentScreen
 import com.yy.medtrace.ui.screens.TrendsScreen
 import com.yy.medtrace.ui.theme.ChiyaoleTheme
+import com.yy.medtrace.reminder.ReminderHelper
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -62,6 +67,9 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         val database = AppDatabase.getDatabase(applicationContext)
+
+        // 健康待办每日提醒：申请通知权限（Android 13+）后排程定时提醒
+        requestReminderPermissionAndSchedule()
 
         // 历史版本（v1–v5）因迁移缺失导致旧库被重置：提示用户从备份恢复。
         if (AppDatabase.migrationResetHappened) {
@@ -94,6 +102,26 @@ class MainActivity : FragmentActivity() {
                     MainScreen(database)
                 }
             }
+        }
+    }
+
+    private fun requestReminderPermissionAndSchedule() {
+        val requestLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) ReminderHelper.scheduleDaily(this)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    ReminderHelper.scheduleDaily(this)
+                }
+                else -> requestLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            ReminderHelper.scheduleDaily(this)
         }
     }
 }

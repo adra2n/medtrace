@@ -10,6 +10,9 @@ interface HealthTodoDao {
     @Query("SELECT * FROM health_todos WHERE dueDate = :date ORDER BY done ASC, id DESC")
     fun getByDate(date: LocalDate): Flow<List<HealthTodo>>
 
+    @Query("SELECT COUNT(*) FROM health_todos WHERE dueDate = :date AND done = 0")
+    suspend fun getPendingCountByDate(date: LocalDate): Int
+
     @Insert
     suspend fun insert(todo: HealthTodo): Long
 
