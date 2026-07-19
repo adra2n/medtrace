@@ -95,6 +95,9 @@ app/src/main/java/com/yy/medtrace/
 
 ## 版本里程碑
 
+- **v3.2.3**（versionCode 19，2026-07-19）
+  - 精确闹钟权限引导优化：跳转系统设置页前先弹说明对话框，告知用户需开启「精确闹钟」权限及其作用（每天 9 点准时弹出健康待办提醒）；从设置页返回后自动重试一次排程，已授权即立即生效，未授权静默放弃。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.3>
 - **v3.2.2**（versionCode 18，2026-07-19）
   - 修复启动崩溃：Android 12+ 上若「精确闹钟」权限被系统/厂商拒绝，`setExactAndAllowWhileIdle` 抛 `SecurityException` 导致 App 闪退。新增 `canScheduleExactAlarms()` 守卫，未授权时安全跳过排程并引导用户到精确闹钟设置页授权。
   - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.2>
