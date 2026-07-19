@@ -60,6 +60,16 @@ adb -s <device-id> install -r -g app/build/outputs/apk/release/app-release.apk
 
 > 注意：`keystore/` 与 `keystore.properties` 已在 `.gitignore` 中，请勿提交签名密钥与密码。
 
+## 下载
+
+签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.2.1**（`MedTrace/MedTrace-v3.2.1.apk`，见发布仓库 [adra2n/product](https://github.com/adra2n/product)）。
+
+安装到已连接设备：
+
+```bash
+adb -s <device-id> install -r -g MedTrace-v3.2.1.apk
+```
+
 ## 目录结构（核心）
 
 ```
@@ -85,6 +95,15 @@ app/src/main/java/com/yy/medtrace/
 
 ## 版本里程碑
 
+- **v3.2.1**（versionCode 17，2026-07-19）
+  - 首页顶部栏优化：渐变提亮（中青蓝 → 浅青蓝 PrimaryLight），不再发暗；栏高收紧（vertical padding 18dp → 14dp）。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.1>
+- **v3.2.0**（versionCode 16，2026-07-18）
+  - 首页排版优化：去独立「家人」标题改为「我的家人」小标题；待办区去右上角「+」、空态加快捷 chip、每条待办左侧成员首字母头像；四宫格去重（医疗记录 / 病历档案 / 健康趋势 / 功能设置）。
+  - 新增健康待办每日定时提醒：AlarmManager 每日 9 点后台触发通知（MIUI 前台通知被系统拦截，改用后台触发），含通知权限运行时请求与同日防重。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.0>
+- **v3.1.1**（versionCode 15）：顶部栏去渐变弧线，细节打磨。
+- **v3.0.0**（versionCode 14）：健康待办与提醒体系初版。
 - **v2.0.0**（versionCode 10，2026-07-17）
   - 重大版本：在 v1.5.x 基础上汇总本轮全部体验与健壮性优化。
   - 首启引导页（3 屏可跳过）+ 现代精致风 UI。
