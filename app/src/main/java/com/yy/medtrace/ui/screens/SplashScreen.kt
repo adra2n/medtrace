@@ -18,10 +18,14 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.yy.medtrace.MedTraceApplication
 import com.yy.medtrace.R
+import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.data.settings.PrivacyConsentStore
+import com.yy.medtrace.reminder.ReminderHelper
 import com.yy.medtrace.ui.theme.PrimaryGradient
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SplashScreen(navController: NavController) {
@@ -43,6 +47,10 @@ fun SplashScreen(navController: NavController) {
         if (privacyGranted) {
             // 已授权：启动即初始化友盟统计（避免跳过隐私页时漏初始化）
             MedTraceApplication.initAnalytics(context)
+            // 冷启动检查当日健康待办，未提醒过时弹汇总通知
+            withContext(Dispatchers.IO) {
+                runCatching { ReminderHelper.maybeNotify(context, AppDatabase.getDatabase(context)) }
+            }
         }
         val next = when {
             !privacyGranted -> "privacy_consent"
