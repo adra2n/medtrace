@@ -39,6 +39,11 @@ object ReminderHelper {
 
     fun scheduleDaily(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            !alarmManager.canScheduleExactAlarms()
+        ) {
+            return
+        }
         val intent = Intent(context, ReminderReceiver::class.java).apply {
             action = ACTION_DAILY
         }
