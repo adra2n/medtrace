@@ -51,6 +51,7 @@ import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.MemberColors
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.PrimaryGradient
+import com.yy.medtrace.ui.theme.PrimaryLight
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
@@ -113,9 +114,15 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(PrimaryGradient)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Primary, PrimaryLight),
+                            startY = 0f,
+                            endY = 120f
+                        )
+                    )
                     .statusBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 18.dp)
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
