@@ -4,8 +4,8 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <group android:translateX="54" android:translateY="54">
-        <!-- 医疗十字 (居中) -->
-        <path android:fillColor="#FFFFFF" android:pathData="M-8,-28 L8,-28 L8,28 L-8,28 Z" />
-        <path android:fillColor="#FFFFFF" android:pathData="M-28,-8 L28,-8 L28,8 L-28,8 Z" />
+        <!-- 圆角医疗十字（居中） -->
+        <path android:fillColor="#FFFFFF" android:pathData="M-8,-28 L8,-28 Q12,-28 12,-24 L12,24 Q12,28 8,28 L-8,28 Q-12,28 -12,24 L-12,-24 Q-12,-28 -8,-28 Z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M-28,-8 L28,-8 Q28,-8 28,-8 L28,8 Q28,12 24,12 L-24,12 Q-28,12 -28,8 L-28,-8 Q-28,-8 -28,-8 Z" />
     </group>
 </vector>

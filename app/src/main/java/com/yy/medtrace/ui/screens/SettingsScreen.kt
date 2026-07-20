@@ -42,6 +42,7 @@ import androidx.fragment.app.FragmentActivity
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.Primary
+import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
@@ -614,7 +615,7 @@ fun SettingsSection(
             modifier = Modifier.fillMaxWidth(),
             shape = AppShapes.large,
             color = cardContainerColor(),
-            tonalElevation = 0.dp
+            shadowElevation = SoftElevation
         ) {
             Box(modifier = Modifier.padding(16.dp)) {
                 content()

@@ -56,6 +56,7 @@ import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
 import com.yy.medtrace.ui.theme.memberCardColors
+import com.yy.medtrace.ui.theme.caption
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.components.MemberEditDialog
 import com.yy.medtrace.ui.state.SelectedMemberHolder
@@ -117,7 +118,7 @@ fun HomeScreen(
                 leadingContent = {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(36.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.16f)),
                         contentAlignment = Alignment.Center
@@ -126,7 +127,7 @@ fun HomeScreen(
                             Icons.Filled.Favorite,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 },
@@ -229,8 +230,8 @@ fun HomeScreen(
                                 .clickable { showAddDialog = true },
                             shape = AppShapes.large,
                             colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                            border = BorderStroke(1.5.dp, Primary.copy(alpha = 0.4f)),
-                            elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -241,12 +242,12 @@ fun HomeScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(48.dp)
+                                        .size(40.dp)
                                         .clip(CircleShape)
-                                        .background(Primary.copy(alpha = 0.12f)),
+                                        .background(MaterialTheme.colorScheme.outlineVariant),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.Add, "添加家人", tint = Primary)
+                                    Icon(Icons.Default.Add, "添加家人", tint = Primary, modifier = Modifier.size(20.dp))
                                 }
                                 Text("添加家人", color = Primary)
                             }
@@ -271,7 +272,7 @@ fun HomeScreen(
 
             item {
                 SectionTitle("今日健康待办")
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.large,
@@ -281,8 +282,8 @@ fun HomeScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -290,28 +291,33 @@ fun HomeScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(Primary.copy(alpha = 0.14f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Notifications, "今日健康提醒", tint = Primary, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Notifications, "今日健康提醒", tint = Primary, modifier = Modifier.size(18.dp))
                             }
-                            Spacer(Modifier.width(10.dp))
+                            Spacer(Modifier.width(8.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("按时提醒，别让健康溜走", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { showTodoDialog = true }) {
-                                Icon(Icons.Default.Add, "添加待办", tint = Primary)
+                            IconButton(onClick = { showTodoDialog = true }, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.Add, "添加待办", tint = Primary, modifier = Modifier.size(20.dp))
                             }
                         }
                         if (todos.isEmpty()) {
                             Text(
-                                "今天还没有安排，点击下方快捷项添加一条吧",
-                                style = MaterialTheme.typography.bodyMedium,
+                                "今天暂无健康计划",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "点击下方开始添加",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(4.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -451,19 +457,19 @@ private fun QuickTodoChip(
 ) {
     Surface(
         modifier = modifier
-            .height(40.dp)
+            .height(44.dp)
             .clickable { onClick() },
         shape = AppShapes.medium,
-        color = Primary.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, Primary.copy(alpha = 0.25f))
+        color = Primary,
+        shadowElevation = SoftElevation
     ) {
         Row(
             modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(Icons.Default.Add, contentDescription = null, tint = Primary, modifier = Modifier.size(16.dp))
-            Text(text, style = MaterialTheme.typography.labelMedium, color = Primary)
+            Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Text(text, style = MaterialTheme.typography.labelLarge, color = Color.White)
         }
     }
 }
@@ -657,25 +663,25 @@ private fun FunctionTile(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(14.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(Primary.copy(alpha = 0.12f)),
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Primary.copy(alpha = 0.10f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, title, tint = Primary, modifier = Modifier.size(22.dp))
+                    Icon(icon, title, tint = Primary, modifier = Modifier.size(18.dp))
                 }
                 Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             }
             Spacer(Modifier.weight(1f))
-            Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.caption)
         }
     }
 }
