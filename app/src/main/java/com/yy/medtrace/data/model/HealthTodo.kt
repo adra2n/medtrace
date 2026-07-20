@@ -12,5 +12,6 @@ data class HealthTodo(
     val memberName: String = "",
     val content: String,
     val dueDate: LocalDate,
-    val done: Boolean = false
+    val done: Boolean = false,
+    val notifiedDate: String = ""
 )

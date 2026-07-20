@@ -17,8 +17,6 @@ import java.time.LocalTime
 object ReminderHelper {
     private const val CHANNEL_ID = "health_todo_reminder"
     private const val NOTIFICATION_ID = 1001
-    private const val PREFS = "reminder_prefs"
-    private const val KEY_LAST_REMINDED_DATE = "last_reminded_date"
     private const val ACTION_DAILY = "com.yy.medtrace.reminder.DAILY"
 
     fun ensureChannel(context: Context) {
@@ -78,30 +76,26 @@ object ReminderHelper {
         }
     }
 
-    private fun alreadyRemindedToday(context: Context): Boolean {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val last = prefs.getString(KEY_LAST_REMINDED_DATE, "") ?: ""
-        return last == LocalDate.now().toString()
-    }
-
-    private fun markRemindedToday(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_LAST_REMINDED_DATE, LocalDate.now().toString())
-            .apply()
-    }
-
     suspend fun maybeNotify(context: Context, database: AppDatabase) {
-        if (alreadyRemindedToday(context)) return
-        val count = database.healthTodoDao().getPendingCountByDate(LocalDate.now())
-        if (count <= 0) {
-            return
-        }
-        showNotification(context, count)
-        markRemindedToday(context)
+        val today = LocalDate.now()
+        val todayStr = today.toString()
+        // 取当天未完成且今天尚未通知过的待办（基于数据库字段，重装/清数据随备份恢复）
+        val pending = database.healthTodoDao().getPendingByDate(today)
+            .filter { it.notifiedDate != todayStr }
+        if (pending.isEmpty()) return
+        // 按内容关键词区分类型，用于通知文案
+        val medCount = pending.count { it.content.contains(Regex("服药|用药|吃|药")) }
+        val checkupCount = pending.count { it.content.contains(Regex("复查|体检|检查|复诊")) }
+        showNotification(context, pending.size, medCount, checkupCount)
+        database.healthTodoDao().markNotified(pending.map { it.id }, todayStr)
     }
 
-    fun showNotification(context: Context, count: Int) {
+    fun showNotification(
+        context: Context,
+        count: Int,
+        medCount: Int = 0,
+        checkupCount: Int = 0
+    ) {
         ensureChannel(context)
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -112,10 +106,15 @@ object ReminderHelper {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val detail = buildList {
+            if (medCount > 0) add("服药 $medCount 条")
+            if (checkupCount > 0) add("复查 $checkupCount 条")
+            if (medCount == 0 && checkupCount == 0) add("待办 $count 条")
+        }.joinToString("、")
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("今日健康待办")
-            .setContentText("今天有 $count 条健康待办，别让健康溜走")
+            .setContentText("今天有 $detail，别让健康溜走")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

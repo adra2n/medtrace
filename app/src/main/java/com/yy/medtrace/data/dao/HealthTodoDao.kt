@@ -13,6 +13,12 @@ interface HealthTodoDao {
     @Query("SELECT COUNT(*) FROM health_todos WHERE dueDate = :date AND done = 0")
     suspend fun getPendingCountByDate(date: LocalDate): Int
 
+    @Query("SELECT * FROM health_todos WHERE dueDate = :date AND done = 0")
+    suspend fun getPendingByDate(date: LocalDate): List<HealthTodo>
+
+    @Query("UPDATE health_todos SET notifiedDate = :date WHERE id IN (:ids)")
+    suspend fun markNotified(ids: List<Long>, date: String)
+
     @Insert
     suspend fun insert(todo: HealthTodo): Long
 
