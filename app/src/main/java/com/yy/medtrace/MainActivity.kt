@@ -308,29 +308,28 @@ fun MainScreen(database: AppDatabase) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 8.dp)
+                        .padding(start = 40.dp, end = 40.dp, bottom = 12.dp, top = 4.dp)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(20.dp),
                         color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 8.dp,
-                        shadowElevation = 8.dp,
+                        tonalElevation = 4.dp,
+                        shadowElevation = 4.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 6.dp, horizontal = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceAround,
+                                .padding(vertical = 6.dp, horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             screens.forEach { screen ->
                                 val selected = currentRoute == screen.route
                                 val contentColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(16.dp))
+                                        .clip(RoundedCornerShape(14.dp))
                                         .background(
                                             if (selected) Primary.copy(alpha = 0.12f) else Color.Transparent
                                         )
@@ -342,10 +341,10 @@ fun MainScreen(database: AppDatabase) {
                                                 launchSingleTop = true
                                             }
                                         }
-                                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                                        .weight(1f)
+                                        .size(48.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    screen.icon(contentColor, if (selected) 26.dp else 22.dp)
+                                    screen.icon(contentColor, if (selected) 24.dp else 22.dp)
                                 }
                             }
                         }

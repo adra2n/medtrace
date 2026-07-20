@@ -28,10 +28,10 @@ val LocalIsDark = compositionLocalOf { false }
 
 val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(20.dp),
-    extraLarge = RoundedCornerShape(28.dp)
+    small = RoundedCornerShape(14.dp),      // Icon Background
+    medium = RoundedCornerShape(16.dp),     // Button
+    large = RoundedCornerShape(20.dp),      // Card
+    extraLarge = RoundedCornerShape(28.dp)  // Bottom Tab
 )
 
 @Composable
@@ -82,10 +82,10 @@ private val LightColorScheme = lightColorScheme(
     onBackground = TextPrimary,
     surface = Surface,
     onSurface = TextPrimary,
-    surfaceVariant = Color(0xFFEEEDED),
+    surfaceVariant = CardSecondary,
     onSurfaceVariant = TextSecondary,
-    outline = Color(0xFFE0DEDE),
-    outlineVariant = Color(0xFFEFEFEF),
+    outline = Border,
+    outlineVariant = Color(0xFFEFF4F8),
     error = Error,
     onError = Color(0xFFFFFFFF)
 )

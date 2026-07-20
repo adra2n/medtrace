@@ -299,7 +299,7 @@ private fun MetricRowCard(mv: MetricView) {
             containerColor = if (mv.abnormal)
                 MaterialTheme.colorScheme.errorContainer else cardContainerColor()
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Row(
             modifier = Modifier

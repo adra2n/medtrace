@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.PrimaryLight
 
@@ -30,7 +32,7 @@ val PrimaryGradient: Brush
         endY = 400f
     )
 
-val SoftElevation = 3.dp
+val SoftElevation = 6.dp
 
 @Composable
 fun GradientTopBar(
@@ -46,18 +48,18 @@ fun GradientTopBar(
             .fillMaxWidth()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Primary, PrimaryLight),
+                    colors = listOf(Primary, PrimaryDark),
                     startY = 0f,
-                    endY = 120f
+                    endY = 100f
                 )
             )
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             navigationIcon?.let {
                 CompositionLocalProvider(LocalContentColor provides Color.White) {
@@ -72,15 +74,16 @@ fun GradientTopBar(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
                 subtitle?.let {
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(1.dp))
                     Text(
                         text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.85f)
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.6f)
                     )
                 }
             }

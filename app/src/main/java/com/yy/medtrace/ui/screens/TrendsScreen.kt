@@ -157,7 +157,7 @@ fun TrendsScreen(
                         Box(
                             modifier = Modifier
                                 .size(38.dp)
-                                .clip(RoundedCornerShape(11.dp))
+                                .clip(AppShapes.small)
                                 .background(Primary.copy(alpha = 0.14f)),
                             contentAlignment = Alignment.Center
                         ) {
