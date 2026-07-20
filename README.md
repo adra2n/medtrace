@@ -95,6 +95,11 @@ app/src/main/java/com/yy/medtrace/
 
 ## 版本里程碑
 
+- **v3.2.4**（versionCode 20，2026-07-19）
+  - 健康待办每日提醒防重改为数据库持久化（`health_todos.notifiedDate` 字段，db v11）：重装 / 清数据后随加密备份恢复保持一致，不再依赖 SharedPreferences 导致漏弹或重复弹。
+  - 提醒通知带类型统计：文案区分「服药 N 条 / 复查 N 条」。
+  - 设置页「关于」版本号显示 versionCode，便于核对。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.4>
 - **v3.2.3**（versionCode 19，2026-07-19）
   - 精确闹钟权限引导优化：跳转系统设置页前先弹说明对话框，告知用户需开启「精确闹钟」权限及其作用（每天 9 点准时弹出健康待办提醒）；从设置页返回后自动重试一次排程，已授权即立即生效，未授权静默放弃。
   - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.3>
