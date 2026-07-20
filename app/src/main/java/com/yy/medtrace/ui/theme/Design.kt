@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.yy.medtrace.ui.theme.Primary
+import com.yy.medtrace.ui.theme.PrimaryLight
 
 val PrimaryGradient: Brush
     @Composable
@@ -36,14 +38,21 @@ fun GradientTopBar(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     navigationIcon: @Composable (() -> Unit)? = null,
+    leadingContent: @Composable (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(PrimaryGradient)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Primary, PrimaryLight),
+                    startY = 0f,
+                    endY = 120f
+                )
+            )
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 18.dp)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -51,6 +60,11 @@ fun GradientTopBar(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             navigationIcon?.let {
+                CompositionLocalProvider(LocalContentColor provides Color.White) {
+                    it()
+                }
+            }
+            leadingContent?.let {
                 CompositionLocalProvider(LocalContentColor provides Color.White) {
                     it()
                 }

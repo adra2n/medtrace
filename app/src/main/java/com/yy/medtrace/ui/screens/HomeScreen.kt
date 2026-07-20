@@ -111,65 +111,34 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Primary, PrimaryLight),
-                            startY = 0f,
-                            endY = 120f
-                        )
-                    )
-                    .statusBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            GradientTopBar(
+                title = "医迹",
+                subtitle = todayLabel,
+                leadingContent = {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.16f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.16f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Filled.Favorite,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "医迹",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = todayLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
-                        IconButton(
-                            onClick = { navController.navigate(Screen.Settings.route) },
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(Icons.Default.Settings, "设置", tint = Color.White, modifier = Modifier.size(22.dp))
-                        }
+                        Icon(
+                            Icons.Filled.Favorite,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { navController.navigate(Screen.Settings.route) },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(Icons.Default.Settings, "设置", tint = Color.White, modifier = Modifier.size(22.dp))
                     }
                 }
-            }
+            )
         }
     ) { padding ->
         LazyColumn(

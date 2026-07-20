@@ -201,9 +201,7 @@ fun MainScreen(database: AppDatabase) {
     val navController = rememberNavController()
     val screens = listOf(
         Screen.Home,
-        Screen.Family,
-        Screen.AddRecord,
-        Screen.Health
+        Screen.Family
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()

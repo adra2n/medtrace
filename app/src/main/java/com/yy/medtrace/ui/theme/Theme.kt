@@ -82,10 +82,10 @@ private val LightColorScheme = lightColorScheme(
     onBackground = TextPrimary,
     surface = Surface,
     onSurface = TextPrimary,
-    surfaceVariant = Color(0xFFE8E2D8),
+    surfaceVariant = Color(0xFFEEEDED),
     onSurfaceVariant = TextSecondary,
-    outline = Color(0xFFD6CFC4),
-    outlineVariant = Color(0xFFEAE4DA),
+    outline = Color(0xFFE0DEDE),
+    outlineVariant = Color(0xFFEFEFEF),
     error = Error,
     onError = Color(0xFFFFFFFF)
 )
