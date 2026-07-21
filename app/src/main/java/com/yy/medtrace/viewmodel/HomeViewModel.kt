@@ -5,6 +5,8 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.yy.medtrace.common.Result
+import com.yy.medtrace.common.asResultWithoutLoading
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.data.repository.MemberRepository
@@ -12,7 +14,6 @@ import com.yy.medtrace.data.repository.TodoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -35,18 +36,26 @@ class HomeViewModel(
     private fun loadMembers() {
         viewModelScope.launch {
             memberRepository.getAllMembers()
-                .catch { e ->
-                    _uiState.update { it.copy(error = e.message) }
-                }
-                .collect { list ->
-                    if (list.isEmpty()) {
-                        // 创建默认成员
-                        memberRepository.insert(
-                            FamilyMember(name = "我自己", relation = "本人", isDefault = true)
-                        )
-                        return@collect
+                .asResultWithoutLoading()
+                .collect { result ->
+                    when (result) {
+                        is Result.Success -> {
+                            if (result.data.isEmpty()) {
+                                // 创建默认成员
+                                memberRepository.insert(
+                                    FamilyMember(name = "我自己", relation = "本人", isDefault = true)
+                                )
+                            } else {
+                                _uiState.update { it.copy(members = result.data) }
+                            }
+                        }
+                        is Result.Error -> {
+                            _uiState.update { it.copy(error = result.message) }
+                        }
+                        is Result.Loading -> {
+                            // 不需要处理加载状态
+                        }
                     }
-                    _uiState.update { it.copy(members = list) }
                 }
         }
     }
@@ -54,9 +63,19 @@ class HomeViewModel(
     private fun loadTodos() {
         viewModelScope.launch {
             todoRepository.getByDate(LocalDate.now())
-                .catch { }
-                .collect { todos ->
-                    _uiState.update { it.copy(todos = todos) }
+                .asResultWithoutLoading()
+                .collect { result ->
+                    when (result) {
+                        is Result.Success -> {
+                            _uiState.update { it.copy(todos = result.data) }
+                        }
+                        is Result.Error -> {
+                            _uiState.update { it.copy(error = result.message) }
+                        }
+                        is Result.Loading -> {
+                            // 不需要处理加载状态
+                        }
+                    }
                 }
         }
     }
