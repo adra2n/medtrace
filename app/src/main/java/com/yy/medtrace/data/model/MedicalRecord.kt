@@ -21,3 +21,10 @@ data class MedicalRecord(
     @ColumnInfo(name = "metrics_json")
     val metricsJson: String = ""  // AI 解析的检查指标 JSON（Metric 列表），用于健康趋势
 )
+
+data class CountResult(
+    @ColumnInfo(name = "patientId")
+    val patientId: Long,
+    @ColumnInfo(name = "count")
+    val count: Int
+)

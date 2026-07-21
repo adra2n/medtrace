@@ -1,6 +1,7 @@
 package com.yy.medtrace.data.dao
 
 import androidx.room.*
+import com.yy.medtrace.data.model.CountResult
 import com.yy.medtrace.data.model.MedicalRecord
 import kotlinx.coroutines.flow.Flow
 
@@ -70,4 +71,7 @@ interface MedicalRecordDao {
 
     @Query("DELETE FROM medical_records")
     suspend fun clear()
+    
+    @Query("SELECT patientId, COUNT(*) as count FROM medical_records WHERE patientId IN (:memberIds) GROUP BY patientId")
+    suspend fun countByMembers(memberIds: List<Long>): List<CountResult>
 }

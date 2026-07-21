@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
+import com.yy.medtrace.data.repository.RecordRepositoryImpl
+import com.yy.medtrace.data.model.CountResult
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
@@ -40,7 +42,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun FamilyScreen(
     database: AppDatabase,
-    navController: NavController
+    navController: NavController,
+    recordRepository: RecordRepositoryImpl
 ) {
     val scope = rememberCoroutineScope()
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
@@ -59,10 +62,9 @@ fun FamilyScreen(
             recordCounts = emptyMap()
             return@LaunchedEffect
         }
-        val counts = members.associate { member ->
-            member.id to database.medicalRecordDao().countByMember(member.id)
-        }
-        recordCounts = counts
+        val memberIds = members.map { it.id }
+        val countResults = recordRepository.countByMembers(memberIds)
+        recordCounts = countResults.associate { it.patientId to it.count }
     }
 
     Scaffold(
