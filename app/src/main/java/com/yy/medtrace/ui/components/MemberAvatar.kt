@@ -11,16 +11,23 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yy.medtrace.data.model.FamilyMember
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 // 统一成员头像：有 avatarPath 显示图片，否则回退首字占位。
 @Composable
@@ -31,11 +38,27 @@ fun MemberAvatar(
     fallbackBackground: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
     fallbackContent: Color = MaterialTheme.colorScheme.primary
 ) {
-    val bitmap = remember(member.avatarPath) {
+    var bitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    
+    LaunchedEffect(member.avatarPath) {
         if (member.avatarPath.isNotBlank()) {
-            BitmapFactory.decodeFile(member.avatarPath)?.asImageBitmap()
-        } else null
+            isLoading = true
+            withContext(Dispatchers.IO) {
+                try {
+                    val decodedBitmap = BitmapFactory.decodeFile(member.avatarPath)
+                    bitmap = decodedBitmap?.asImageBitmap()
+                } catch (e: Exception) {
+                    bitmap = null
+                }
+            }
+            isLoading = false
+        } else {
+            bitmap = null
+            isLoading = false
+        }
     }
+    
     Box(
         modifier = modifier
             .size(size)
@@ -43,9 +66,17 @@ fun MemberAvatar(
             .background(fallbackBackground),
         contentAlignment = Alignment.Center
     ) {
-        if (bitmap != null) {
+        if (isLoading) {
+            // Show loading indicator
+            Icon(
+                Icons.Filled.Person,
+                contentDescription = "加载中",
+                tint = fallbackContent.copy(alpha = 0.5f),
+                modifier = Modifier.size(size * 0.6f)
+            )
+        } else if (bitmap != null) {
             Image(
-                bitmap = bitmap,
+                bitmap = bitmap!!,
                 contentDescription = member.name,
                 modifier = Modifier.size(size),
                 contentScale = ContentScale.Crop
