@@ -12,10 +12,6 @@ class RecordRepositoryImpl(private val medicalRecordDao: MedicalRecordDao) : Rec
         return medicalRecordDao.getAllRecords()
     }
     
-    override suspend fun getAllRecordsList(): List<MedicalRecord> {
-        return medicalRecordDao.getAllRecordsList()
-    }
-    
     override fun getRecordsByMember(patientId: Long): Flow<List<MedicalRecord>> {
         return medicalRecordDao.getRecordsByMember(patientId)
     }
@@ -34,10 +30,6 @@ class RecordRepositoryImpl(private val medicalRecordDao: MedicalRecordDao) : Rec
     
     override fun getRecentRecords(limit: Int): Flow<List<MedicalRecord>> {
         return medicalRecordDao.getRecentRecords(limit)
-    }
-    
-    override fun getRecentRecordsByMember(patientId: Long, limit: Int): Flow<List<MedicalRecord>> {
-        return medicalRecordDao.getRecentRecordsByMember(patientId, limit)
     }
     
     override fun searchByMember(
@@ -62,24 +54,12 @@ class RecordRepositoryImpl(private val medicalRecordDao: MedicalRecordDao) : Rec
         return medicalRecordDao.count()
     }
     
-    override suspend fun countByMember(patientId: Long): Int {
-        return medicalRecordDao.countByMember(patientId)
-    }
-    
     override suspend fun update(record: MedicalRecord) {
         medicalRecordDao.update(record)
     }
     
     override suspend fun delete(record: MedicalRecord) {
         medicalRecordDao.delete(record)
-    }
-    
-    override suspend fun insertAll(records: List<MedicalRecord>) {
-        medicalRecordDao.insertAll(records)
-    }
-    
-    override suspend fun clear() {
-        medicalRecordDao.clear()
     }
     
     override suspend fun countByMembers(memberIds: List<Long>): List<CountResult> {
