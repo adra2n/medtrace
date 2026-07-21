@@ -12,7 +12,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 
 class GistSync(private val token: String) {
-    private val client = OkHttpClient()
+    private val client = HttpClientProvider.client
     private val mediaType = "application/json; charset=utf-8".toMediaType()
     private val fileName = "chiyaole_backup.json"
 
