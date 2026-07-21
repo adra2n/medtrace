@@ -19,15 +19,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.InsertChart
 import androidx.compose.material.icons.filled.MedicalInformation
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -35,7 +30,6 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,15 +37,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.yy.medtrace.data.AppDatabase
+import com.yy.medtrace.data.repository.MemberRepositoryImpl
+import com.yy.medtrace.data.repository.TodoRepositoryImpl
+import com.yy.medtrace.viewmodel.HomeViewModelFactory
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.MemberColors
 import com.yy.medtrace.ui.theme.Primary
-import com.yy.medtrace.ui.theme.PrimaryGradient
-import com.yy.medtrace.ui.theme.PrimaryLight
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
@@ -59,10 +54,8 @@ import com.yy.medtrace.ui.theme.memberCardColors
 import com.yy.medtrace.ui.theme.caption
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.components.MemberEditDialog
-import com.yy.medtrace.ui.state.SelectedMemberHolder
+import com.yy.medtrace.viewmodel.HomeViewModel
 import com.yy.medtrace.Screen
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -72,49 +65,20 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    database: AppDatabase,
-    navController: NavController
+    navController: NavController,
+    memberRepository: MemberRepositoryImpl,
+    todoRepository: TodoRepositoryImpl,
+    viewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory(memberRepository, todoRepository))
 ) {
-    var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var todos by remember { mutableStateOf<List<com.yy.medtrace.data.model.HealthTodo>>(emptyList()) }
+    val uiState by viewModel.uiState.collectAsState()
     var showTodoDialog by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
-
-    val todayLabel = remember {
-        val today = LocalDate.now()
-        val week = listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六")[today.dayOfWeek.value % 7]
-        today.format(DateTimeFormatter.ofPattern("M月d日")) + " · " + week
-    }
-
-    LaunchedEffect(Unit) {
-        database.familyMemberDao().getAllMembers()
-            .catch { e -> error = e.message }
-            .collect { list ->
-                if (list.isEmpty()) {
-                    scope.launch {
-                        database.familyMemberDao().insert(
-                            FamilyMember(name = "我自己", relation = "本人", isDefault = true)
-                        )
-                    }
-                    return@collect
-                }
-                members = list
-            }
-    }
-
-    LaunchedEffect(Unit) {
-        database.healthTodoDao().getByDate(LocalDate.now())
-            .catch { }
-            .collect { todos = it }
-    }
 
     Scaffold(
         topBar = {
             GradientTopBar(
                 title = "医迹",
-                subtitle = todayLabel,
+                subtitle = uiState.todayLabel,
                 leadingContent = {
                     Box(
                         modifier = Modifier
@@ -160,7 +124,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(end = 4.dp)
                     ) {
-                        items(members) { member ->
+                        items(uiState.members) { member ->
                         val (bg, content) = memberCardColors(member.relation, member.gender)
                         val age = computeAge(member.birthday)
                         Card(
@@ -306,7 +270,7 @@ fun HomeScreen(
                                 Icon(Icons.Default.Add, "添加待办", tint = Primary, modifier = Modifier.size(20.dp))
                             }
                         }
-                        if (todos.isEmpty()) {
+                        if (uiState.todos.isEmpty()) {
                             Text(
                                 "今天暂无健康计划",
                                 style = MaterialTheme.typography.titleSmall,
@@ -338,19 +302,17 @@ fun HomeScreen(
                                 )
                             }
                         } else {
-                            todos.forEachIndexed { idx, todo ->
+                            uiState.todos.forEachIndexed { idx, todo ->
                                 if (idx > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 TodayTodoItem(
                                     text = todo.content,
                                     memberName = todo.memberName,
                                     done = todo.done,
                                     onToggle = {
-                                        scope.launch {
-                                            database.healthTodoDao().setDone(todo.id, !todo.done)
-                                        }
+                                        viewModel.toggleTodoDone(todo.id, !todo.done)
                                     },
                                     onDelete = {
-                                        scope.launch { database.healthTodoDao().delete(todo) }
+                                        viewModel.deleteTodo(todo)
                                     }
                                 )
                             }
@@ -410,9 +372,7 @@ fun HomeScreen(
             member = null,
             onDismiss = { showAddDialog = false },
             onSave = { m ->
-                scope.launch {
-                    database.familyMemberDao().insert(m)
-                }
+                viewModel.addMember(m)
                 showAddDialog = false
             }
         )
@@ -420,19 +380,10 @@ fun HomeScreen(
 
     if (showTodoDialog) {
         AddTodoDialog(
-            members = members,
+            members = uiState.members,
             onDismiss = { showTodoDialog = false },
             onSave = { memberId, memberName, content, dueDate ->
-                scope.launch {
-                    database.healthTodoDao().insert(
-                        com.yy.medtrace.data.model.HealthTodo(
-                            memberId = memberId,
-                            memberName = memberName,
-                            content = content,
-                            dueDate = dueDate
-                        )
-                    )
-                }
+                viewModel.addTodo(memberId, memberName, content, dueDate)
                 showTodoDialog = false
             }
         )

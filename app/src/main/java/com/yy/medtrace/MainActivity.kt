@@ -42,6 +42,9 @@ import androidx.navigation.compose.*
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.UserSettings
+import com.yy.medtrace.data.repository.MemberRepositoryImpl
+import com.yy.medtrace.data.repository.RecordRepositoryImpl
+import com.yy.medtrace.data.repository.TodoRepositoryImpl
 import com.yy.medtrace.ui.screens.AddMedicalRecordScreen
 import com.yy.medtrace.ui.screens.FamilyScreen
 import com.yy.medtrace.ui.screens.HomeScreen
@@ -68,6 +71,9 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         val database = AppDatabase.getDatabase(applicationContext)
+        val memberRepository = MemberRepositoryImpl(database.familyMemberDao())
+        val recordRepository = RecordRepositoryImpl(database.medicalRecordDao())
+        val todoRepository = TodoRepositoryImpl(database.healthTodoDao())
 
         // 健康待办每日提醒：申请通知权限（Android 13+）后排程定时提醒
         requestReminderPermissionAndSchedule()
@@ -203,6 +209,10 @@ fun MainScreen(database: AppDatabase) {
         Screen.Home,
         Screen.Family
     )
+    
+    val memberRepository = MemberRepositoryImpl(database.familyMemberDao())
+    val recordRepository = RecordRepositoryImpl(database.medicalRecordDao())
+    val todoRepository = TodoRepositoryImpl(database.healthTodoDao())
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -372,10 +382,14 @@ fun MainScreen(database: AppDatabase) {
                 OnboardingScreen(navController)
             }
             composable(Screen.Home.route) {
-                HomeScreen(database, navController)
+                HomeScreen(
+                    navController = navController,
+                    memberRepository = memberRepository,
+                    todoRepository = todoRepository
+                )
             }
             composable(Screen.Family.route) {
-                FamilyScreen(database, navController)
+                FamilyScreen(database, navController, recordRepository)
             }
             composable("medical_records") {
                 MedicalRecordScreen(database, navController)
