@@ -1,7 +1,6 @@
 package com.yy.medtrace.data.dao
 
 import androidx.room.*
-import androidx.paging.PagingSource
 import com.yy.medtrace.data.model.CountResult
 import com.yy.medtrace.data.model.MedicalRecord
 import kotlinx.coroutines.flow.Flow
