@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
         HealthTodo::class
     ],
     version = 11,
-    exportSchema = false
+    exportSchema = true
 )
 @TypeConverters(
     LocalDateConverter::class,
@@ -48,7 +48,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun healthTodoDao(): HealthTodoDao
 
     companion object {
-        private val MIGRATION_6_7 = object : Migration(6, 7) {
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // family_members: 新增结构化个人/医疗信息字段（加列不丢数据）
                 database.execSQL("ALTER TABLE family_members ADD COLUMN gender TEXT NOT NULL DEFAULT ''")
@@ -63,14 +63,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_7_8 = object : Migration(7, 8) {
+        internal val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // medical_records: 新增 AI 解析指标字段（加列不丢数据）
                 database.execSQL("ALTER TABLE medical_records ADD COLUMN metrics_json TEXT NOT NULL DEFAULT ''")
             }
         }
 
-        private val MIGRATION_8_9 = object : Migration(8, 9) {
+        internal val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 健康待办表
                 database.execSQL(
@@ -86,14 +86,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_9_10 = object : Migration(9, 10) {
+        internal val MIGRATION_9_10 = object : Migration(9, 10) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // family_members: 新增头像本地路径字段（加列不丢数据）
                 database.execSQL("ALTER TABLE family_members ADD COLUMN avatarPath TEXT NOT NULL DEFAULT ''")
             }
         }
 
-        private val MIGRATION_10_11 = object : Migration(10, 11) {
+        internal val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // health_todos: 新增已通知日期字段（用于每日提醒防重，随备份恢复）
                 database.execSQL("ALTER TABLE health_todos ADD COLUMN notifiedDate TEXT NOT NULL DEFAULT ''")
