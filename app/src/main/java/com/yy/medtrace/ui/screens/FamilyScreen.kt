@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
-import com.yy.medtrace.data.repository.RecordRepositoryImpl
+import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.data.model.CountResult
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.state.SelectedMemberHolder
@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 fun FamilyScreen(
     database: AppDatabase,
     navController: NavController,
-    recordRepository: RecordRepositoryImpl
+    recordRepository: RecordRepository
 ) {
     val scope = rememberCoroutineScope()
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }

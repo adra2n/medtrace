@@ -42,9 +42,9 @@ import androidx.navigation.compose.*
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.UserSettings
-import com.yy.medtrace.data.repository.MemberRepositoryImpl
-import com.yy.medtrace.data.repository.RecordRepositoryImpl
-import com.yy.medtrace.data.repository.TodoRepositoryImpl
+import com.yy.medtrace.data.repository.MemberRepository
+import com.yy.medtrace.data.repository.RecordRepository
+import com.yy.medtrace.data.repository.TodoRepository
 import com.yy.medtrace.ui.screens.AddMedicalRecordScreen
 import com.yy.medtrace.ui.screens.FamilyScreen
 import com.yy.medtrace.ui.screens.HomeScreen
@@ -60,20 +60,30 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    
+    @Inject
+    lateinit var memberRepository: MemberRepository
+    
+    @Inject
+    lateinit var recordRepository: RecordRepository
+    
+    @Inject
+    lateinit var todoRepository: TodoRepository
+    
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val database = AppDatabase.getDatabase(applicationContext)
-        val memberRepository = MemberRepositoryImpl(database.familyMemberDao())
-        val recordRepository = RecordRepositoryImpl(database.medicalRecordDao())
-        val todoRepository = TodoRepositoryImpl(database.healthTodoDao())
 
         // 健康待办每日提醒：申请通知权限（Android 13+）后排程定时提醒
         requestReminderPermissionAndSchedule()
@@ -106,7 +116,12 @@ class MainActivity : FragmentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(database)
+                    MainScreen(
+                        database = database,
+                        memberRepository = memberRepository,
+                        recordRepository = recordRepository,
+                        todoRepository = todoRepository
+                    )
                 }
             }
         }
@@ -203,16 +218,17 @@ fun SettingsAction(navController: NavController) {
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(database: AppDatabase) {
+fun MainScreen(
+    database: AppDatabase,
+    memberRepository: MemberRepository,
+    recordRepository: RecordRepository,
+    todoRepository: TodoRepository
+) {
     val navController = rememberNavController()
     val screens = listOf(
         Screen.Home,
         Screen.Family
     )
-    
-    val memberRepository = MemberRepositoryImpl(database.familyMemberDao())
-    val recordRepository = RecordRepositoryImpl(database.medicalRecordDao())
-    val todoRepository = TodoRepositoryImpl(database.healthTodoDao())
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

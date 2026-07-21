@@ -39,8 +39,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.yy.medtrace.data.repository.MemberRepositoryImpl
-import com.yy.medtrace.data.repository.TodoRepositoryImpl
+import com.yy.medtrace.data.repository.MemberRepository
+import com.yy.medtrace.data.repository.TodoRepository
 import com.yy.medtrace.viewmodel.HomeViewModelFactory
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.ui.theme.AppShapes
@@ -66,8 +66,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HomeScreen(
     navController: NavController,
-    memberRepository: MemberRepositoryImpl,
-    todoRepository: TodoRepositoryImpl,
+    memberRepository: MemberRepository,
+    todoRepository: TodoRepository,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory(memberRepository, todoRepository))
 ) {
     val uiState by viewModel.uiState.collectAsState()
