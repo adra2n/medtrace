@@ -34,7 +34,7 @@ import com.yy.medtrace.data.backup.shareCsvIntent
 import com.yy.medtrace.data.model.UserSettings
 import com.yy.medtrace.data.settings.LlmSettingsStore
 import com.yy.medtrace.data.settings.SecuritySettingsStore
-import com.yy.medtrace.Screen
+import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.data.settings.SyncSettingsStore
 import com.yy.medtrace.data.security.BiometricHelper
 import com.yy.medtrace.data.security.PinManager

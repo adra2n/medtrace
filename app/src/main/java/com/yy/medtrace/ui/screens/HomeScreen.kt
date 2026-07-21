@@ -55,7 +55,7 @@ import com.yy.medtrace.ui.theme.caption
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.components.MemberEditDialog
 import com.yy.medtrace.viewmodel.HomeViewModel
-import com.yy.medtrace.Screen
+import com.yy.medtrace.navigation.Screen
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

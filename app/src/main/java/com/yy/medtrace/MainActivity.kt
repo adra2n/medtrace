@@ -45,6 +45,8 @@ import com.yy.medtrace.data.model.UserSettings
 import com.yy.medtrace.data.repository.MemberRepository
 import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.data.repository.TodoRepository
+import com.yy.medtrace.navigation.NavGraph
+import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.ui.screens.AddMedicalRecordScreen
 import com.yy.medtrace.ui.screens.FamilyScreen
 import com.yy.medtrace.ui.screens.HomeScreen
@@ -186,27 +188,7 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-sealed class Screen(
-    val route: String,
-    val label: String,
-    val icon: @Composable (tint: androidx.compose.ui.graphics.Color, size: androidx.compose.ui.unit.Dp) -> Unit
-) {
-    object Home : Screen("home", "首页", { tint, size ->
-        Icon(Icons.Filled.Home, "首页", tint = tint, modifier = Modifier.size(size))
-    })
-    object Family : Screen("family", "家人档案", { tint, size ->
-        Icon(Icons.Filled.People, "家人档案", tint = tint, modifier = Modifier.size(size))
-    })
-    object AddRecord : Screen("add_record", "新增记录", { tint, size ->
-        Icon(Icons.Filled.AddCircle, "新增记录", tint = tint, modifier = Modifier.size(size))
-    })
-    object Health : Screen("trends", "健康分析", { tint, size ->
-        Icon(Icons.Filled.MonitorHeart, "健康分析", tint = tint, modifier = Modifier.size(size))
-    })
-    object Settings : Screen("settings", "设置", { tint, size ->
-        Icon(Icons.Filled.Settings, "设置", tint = tint, modifier = Modifier.size(size))
-    })
-}
+// Screen类已移动到navigation包
 
 @Composable
 fun SettingsAction(navController: NavController) {
@@ -225,10 +207,7 @@ fun MainScreen(
     todoRepository: TodoRepository
 ) {
     val navController = rememberNavController()
-    val screens = listOf(
-        Screen.Home,
-        Screen.Family
-    )
+    val screens = Screen.bottomBarScreens
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -380,54 +359,12 @@ fun MainScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
-        NavHost(
+        NavGraph(
             navController = navController,
-            startDestination = "splash",
-            modifier = Modifier.padding(padding)
-        ) {
-            composable("splash") {
-                SplashScreen(navController)
-            }
-            composable("privacy_consent") {
-                PrivacyConsentScreen(
-                    navController = navController,
-                    onDecline = { activity?.finish() }
-                )
-            }
-            composable("onboarding") {
-                OnboardingScreen(navController)
-            }
-            composable(Screen.Home.route) {
-                HomeScreen(
-                    navController = navController,
-                    memberRepository = memberRepository,
-                    todoRepository = todoRepository
-                )
-            }
-            composable(Screen.Family.route) {
-                FamilyScreen(database, navController, recordRepository)
-            }
-            composable("medical_records") {
-                MedicalRecordScreen(database, navController)
-            }
-            composable("trends") {
-                TrendsScreen(database, navController)
-            }
-            composable(Screen.Settings.route) {
-                SettingsScreen(database, navController)
-            }
-            composable("add_record") {
-                AddMedicalRecordScreen(database, navController)
-            }
-            composable("add_record/{recordId}") { backStackEntry ->
-                val id = backStackEntry.arguments?.getString("recordId")?.toLongOrNull() ?: -1L
-                AddMedicalRecordScreen(database, navController, recordId = id)
-            }
-            composable("member_detail/{memberId}?tab={tab}") { backStackEntry ->
-                val id = backStackEntry.arguments?.getString("memberId")?.toLongOrNull() ?: -1L
-                val tab = backStackEntry.arguments?.getString("tab")
-                MemberDetailScreen(database, navController, memberId = id, initialTab = tab)
-            }
-        }
+            database = database,
+            memberRepository = memberRepository,
+            recordRepository = recordRepository,
+            todoRepository = todoRepository
+        )
     }
 }
