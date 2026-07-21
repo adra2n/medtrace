@@ -46,6 +46,7 @@ fun FamilyScreen(
     recordRepository: RecordRepository
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
     var recordCounts by remember { mutableStateOf<Map<Long, Int>>(emptyMap()) }
     var showDialog by remember { mutableStateOf(false) }
@@ -78,40 +79,18 @@ fun FamilyScreen(
                     }) {
                         Icon(Icons.Default.Add, "新增家庭成员")
                     }
-                    IconButton(onClick = { navController.navigate("settings") }) {
-                        Icon(Icons.Default.Settings, "设置")
-                    }
                 }
             )
-        },
-        floatingActionButton = {
-            val context = LocalContext.current
-            FloatingActionButton(
-                onClick = {
-                    android.widget.Toast.makeText(
-                        context,
-                        "全家健康简报导出功能开发中",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
-                },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Text(
-                    "批量导出\n全家健康简报",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-            }
         }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp)
+                .padding(top = 8.dp, bottom = 80.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (members.isEmpty()) {
                 EmptyFamily()
@@ -125,11 +104,28 @@ fun FamilyScreen(
                             showDialog = true
                         },
                         onDelete = { pendingDelete = member },
-                        onOpenRecords = {
+                        onClick = {
                             scope.launch { SelectedMemberHolder.select(member.id, database) }
                             navController.navigate("member_detail/${member.id}")
                         }
                     )
+                }
+                OutlinedButton(
+                    onClick = {
+                        android.widget.Toast.makeText(
+                            context,
+                            "全家健康简报导出功能开发中",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    contentPadding = PaddingValues(vertical = 12.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("导出全家健康简报")
                 }
             }
         }
@@ -221,7 +217,7 @@ private fun MemberProfileCard(
     recordCount: Int,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onOpenRecords: () -> Unit
+    onClick: () -> Unit
 ) {
     val healthTags = buildList {
         member.allergy.split(",").map { it.trim() }.filter { it.isNotBlank() }
@@ -235,30 +231,31 @@ private fun MemberProfileCard(
     val (cardBg, cardContent) = memberCardColors(member.relation, member.gender)
     val age = computeAge(member.birthday)
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = AppShapes.large,
         colors = CardDefaults.cardColors(containerColor = cardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     MemberAvatar(
                         member = member,
-                        size = 48.dp,
+                        size = 44.dp,
                         fallbackBackground = cardContent.copy(alpha = 0.18f),
                         fallbackContent = cardContent
                     )
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(10.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -298,53 +295,59 @@ private fun MemberProfileCard(
                         }
                     }
                 }
-            }
 
-            if (healthTags.isNotEmpty()) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    healthTags.forEach { tag ->
-                        val abnormal = tag.contains("偏高") || tag.contains("异常")
-                        Surface(
-                            shape = AppShapes.small,
-                            color = if (abnormal) MemberColors.ElderMaleBg else cardContent.copy(alpha = 0.16f)
-                        ) {
-                            Text(
-                                tag,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (abnormal) MaterialTheme.colorScheme.error else cardContent,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                if (healthTags.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        healthTags.forEach { tag ->
+                            val abnormal = tag.contains("偏高") || tag.contains("异常")
+                            Surface(
+                                shape = AppShapes.small,
+                                color = if (abnormal) MemberColors.ElderMaleBg else cardContent.copy(alpha = 0.16f)
+                            ) {
+                                Text(
+                                    tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (abnormal) MaterialTheme.colorScheme.error else cardContent,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            HorizontalDivider(color = cardContent.copy(alpha = 0.2f))
-
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.align(Alignment.CenterVertically),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
-                    onClick = onOpenRecords,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    onClick = { onEdit() },
+                    modifier = Modifier.height(36.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                    shape = AppShapes.small,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = cardContent,
+                        contentColor = cardBg
+                    )
                 ) {
-                    Text("查看档案")
+                    Text("编辑", style = MaterialTheme.typography.labelMedium)
                 }
-                OutlinedButton(
-                    onClick = onEdit,
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    Text("编辑")
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "删除",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                    )
                 }
-                Spacer(Modifier.weight(1f))
-                IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, "删除", tint = MaterialTheme.colorScheme.error) }
             }
         }
     }

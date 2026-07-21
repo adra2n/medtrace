@@ -70,18 +70,14 @@ android {
 
     buildTypes {
         release {
-            // 启用混淆
-            isMinifyEnabled = true
-            // 启用资源压缩
-            isShrinkResources = true
-            // 启用代码优化
+            // 临时关闭混淆，用于排查启动崩溃
+            isMinifyEnabled = false
+            isShrinkResources = false
             isDebuggable = false
-            // 启用 R8 完全模式
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // 配置签名
             signingConfig = signingConfigs.getByName("release")
         }
         

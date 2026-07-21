@@ -5,7 +5,9 @@ import android.content.Context
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
 import com.yy.medtrace.data.AppDatabase
+import dagger.hilt.android.HiltAndroidApp
 
+@HiltAndroidApp
 class MedTraceApplication : Application() {
     val database: AppDatabase by lazy { AppDatabase.getDatabase(this) }
 

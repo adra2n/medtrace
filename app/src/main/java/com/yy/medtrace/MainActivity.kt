@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
 import com.yy.medtrace.data.security.BiometricHelper
@@ -33,6 +34,7 @@ import com.yy.medtrace.data.settings.SecuritySettingsStore
 import com.yy.medtrace.ui.screens.LockScreen
 import com.yy.medtrace.ui.screens.MemberDetailScreen
 import com.yy.medtrace.ui.theme.Primary
+import com.yy.medtrace.ui.theme.Background
 import androidx.activity.compose.BackHandler
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -310,47 +312,51 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 40.dp, end = 40.dp, bottom = 12.dp, top = 4.dp)
+                Surface(
+                    color = Background,
+                    shadowElevation = 4.dp
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 4.dp,
-                        shadowElevation = 4.dp,
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .height(64.dp)
+                            .padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp, horizontal = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            screens.forEach { screen ->
-                                val selected = currentRoute == screen.route
-                                val contentColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(
-                                            if (selected) Primary.copy(alpha = 0.12f) else Color.Transparent
-                                        )
-                                        .clickable {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(Screen.Home.route) {
-                                                    inclusive = false
-                                                }
-                                                launchSingleTop = true
+                        screens.forEach { screen ->
+                            val selected = currentRoute == screen.route
+                            val iconColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            val textColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            
+                            Column(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        if (selected) Primary.copy(alpha = 0.10f) else Color.Transparent
+                                    )
+                                    .clickable {
+                                        navController.navigate(screen.route) {
+                                            popUpTo(Screen.Home.route) {
+                                                inclusive = false
                                             }
+                                            launchSingleTop = true
                                         }
-                                        .size(48.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    screen.icon(contentColor, if (selected) 24.dp else 22.dp)
-                                }
+                                    }
+                                    .weight(1f)
+                                    .padding(vertical = 6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                screen.icon(iconColor, if (selected) 24.dp else 22.dp)
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = screen.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = textColor,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                                )
                             }
                         }
                     }

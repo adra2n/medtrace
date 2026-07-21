@@ -94,14 +94,6 @@ fun HomeScreen(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { navController.navigate(Screen.Settings.route) },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(Icons.Default.Settings, "设置", tint = Color.White, modifier = Modifier.size(22.dp))
-                    }
                 }
             )
         }
@@ -112,7 +104,7 @@ fun HomeScreen(
                 .padding(padding)
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(bottom = 20.dp)
+            contentPadding = PaddingValues(bottom = 80.dp)
         ) {
             item {
                 SectionTitle("我的家人")

@@ -18,14 +18,17 @@ sealed class Screen(
     object Home : Screen("home", "首页", { tint, size ->
         Icon(Icons.Filled.Home, "首页", tint = tint, modifier = Modifier.size(size))
     })
-    object Family : Screen("family", "家人档案", { tint, size ->
-        Icon(Icons.Filled.People, "家人档案", tint = tint, modifier = Modifier.size(size))
+    object Family : Screen("family", "家人", { tint, size ->
+        Icon(Icons.Filled.People, "家人", tint = tint, modifier = Modifier.size(size))
+    })
+    object AddRecord : Screen("add_record", "记录", { tint, size ->
+        Icon(Icons.Filled.EditNote, "记录", tint = tint, modifier = Modifier.size(size))
     })
     object Settings : Screen("settings", "设置", { tint, size ->
         Icon(Icons.Filled.Settings, "设置", tint = tint, modifier = Modifier.size(size))
     })
     
     companion object {
-        val bottomBarScreens = listOf(Home, Family)
+        val bottomBarScreens = listOf(Home, Family, AddRecord, Settings)
     }
 }

@@ -102,12 +102,7 @@ fun MedicalRecordScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "医疗记录",
-                actions = {
-                    IconButton(onClick = { navController.navigate("settings") }) {
-                        Icon(Icons.Default.Settings, "设置")
-                    }
-                }
+                title = "医疗记录"
             )
         },
         floatingActionButton = {
