@@ -164,8 +164,6 @@ dependencies {
     // 友盟 Android 统计 SDK
     implementation(libs.umeng.common)
     implementation(libs.umeng.asms)
-    // 友盟 U-AppWin 广告 SDK
-    implementation(libs.umeng.ads)
     
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
