@@ -47,7 +47,20 @@ class SplashActivity : Activity() {
             navigateToNext()
         }
 
-        loadSplashAd()
+        // 先检查隐私协议状态
+        val privacyGranted = runBlocking {
+            runCatching {
+                PrivacyConsentStore(this@SplashActivity).isGranted()
+            }.getOrDefault(false)
+        }
+
+        if (privacyGranted) {
+            // 已同意隐私协议，加载广告
+            loadSplashAd()
+        } else {
+            // 未同意隐私协议，直接跳转
+            navigateToNext()
+        }
     }
 
     private fun loadSplashAd() {
