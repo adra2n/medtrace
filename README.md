@@ -62,12 +62,12 @@ adb -s <device-id> install -r -g app/build/outputs/apk/release/app-release.apk
 
 ## 下载
 
-签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.2.1**（`MedTrace/MedTrace-v3.2.1.apk`，见发布仓库 [adra2n/product](https://github.com/adra2n/product)）。
+签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.3.0**（`MedTrace/MedTrace-v3.3.0.apk`，见发布仓库 [adra2n/product](https://github.com/adra2n/product)）。
 
 安装到已连接设备：
 
 ```bash
-adb -s <device-id> install -r -g MedTrace-v3.2.1.apk
+adb -s <device-id> install -r -g MedTrace-v3.3.0.apk
 ```
 
 ## 目录结构（核心）
@@ -95,6 +95,16 @@ app/src/main/java/com/yy/medtrace/
 
 ## 版本里程碑
 
+- **v3.3.0**（versionCode 22，2026-07-21）
+  - 导航栏重构：首页、家人、提醒、我的 4个tab。
+  - 新增健康提醒页面（按成员筛选）。
+  - 新增个人中心页面（整合设置入口）。
+  - 家庭成员页面优化（卡片点击进入、按钮右置）。
+  - 今日提醒显示具体待办事项。
+  - 统一所有页面成员头像样式。
+  - 修复 Hilt 启动崩溃问题。
+  - 底部导航栏嵌入页面（非浮动）。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.3.0>
 - **v3.2.5**（versionCode 20，2026-07-19）
   - 健康待办每日提醒防重改为数据库持久化（`health_todos.notifiedDate` 字段，db v11）：重装 / 清数据后随加密备份恢复保持一致，不再依赖 SharedPreferences 导致漏弹或重复弹。
   - 提醒通知带类型统计：文案区分「服药 N 条 / 复查 N 条」。
