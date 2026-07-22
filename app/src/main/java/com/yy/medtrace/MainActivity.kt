@@ -113,6 +113,9 @@ class MainActivity : FragmentActivity() {
             }
         }
 
+        // 处理从 SplashActivity 传来的导航参数
+        val navigateTo = intent?.getStringExtra("navigate_to")
+
         setContent {
             val settings by database.userSettingsDao().getUserSettings().collectAsState(initial = null)
             ChiyaoleTheme(darkTheme = settings?.darkMode) {
@@ -124,7 +127,8 @@ class MainActivity : FragmentActivity() {
                         database = database,
                         memberRepository = memberRepository,
                         recordRepository = recordRepository,
-                        todoRepository = todoRepository
+                        todoRepository = todoRepository,
+                        initialRoute = navigateTo
                     )
                 }
             }
@@ -206,7 +210,8 @@ fun MainScreen(
     database: AppDatabase,
     memberRepository: MemberRepository,
     recordRepository: RecordRepository,
-    todoRepository: TodoRepository
+    todoRepository: TodoRepository,
+    initialRoute: String? = null
 ) {
     val navController = rememberNavController()
     val screens = Screen.bottomBarScreens
@@ -250,6 +255,14 @@ fun MainScreen(
             android.view.WindowManager.LayoutParams.FLAG_SECURE
         )
         locked = appLockEnabled
+
+        // 处理从 SplashActivity 传来的导航参数
+        if (initialRoute != null) {
+            when (initialRoute) {
+                "onboarding" -> navController.navigate("onboarding")
+                "privacy_consent" -> navController.navigate("privacy_consent")
+            }
+        }
     }
 
     var backgroundedAt by remember { mutableStateOf(0L) }
