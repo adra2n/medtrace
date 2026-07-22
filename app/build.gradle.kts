@@ -137,6 +137,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     
     // Room
     val roomVersion = "2.6.1"
@@ -160,10 +161,6 @@ dependencies {
 
     // EncryptedSharedPreferences for PIN hash storage
     implementation(libs.androidx.security.crypto)
-
-    // 友盟 Android 统计 SDK
-    implementation(libs.umeng.common)
-    implementation(libs.umeng.asms)
     
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
