@@ -5,11 +5,16 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
+import com.umeng.union.UMSplashAD
+import com.umeng.union.UMUnionSdk
+import com.umeng.union.api.UMAdConfig
+import com.umeng.union.api.UMUnionApi
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.data.settings.PrivacyConsentStore
 import kotlinx.coroutines.runBlocking
@@ -20,11 +25,15 @@ class SplashActivity : Activity() {
     private var splashContainer: FrameLayout? = null
     private var skipTextView: TextView? = null
     private var countDownTimer: CountDownTimer? = null
+    private var splashAd: UMSplashAD? = null
 
     companion object {
+        private const val TAG = "SplashActivity"
         private const val SKIP_DELAY = 5000L
         private const val COUNT_DOWN_INTERVAL = 1000L
         private const val UMENG_APPKEY = "6a5b46a5cbfa6959517c8588"
+        private const val AD_SLOT_ID = "100012523"
+        private const val AD_TIMEOUT = 5000
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +57,33 @@ class SplashActivity : Activity() {
         UMConfigure.init(this, UMENG_APPKEY, "official", UMConfigure.DEVICE_TYPE_PHONE, null)
         MobclickAgent.setPageCollectionMode(MobclickAgent.PageMode.AUTO)
 
-        // 启动倒计时
+        // 初始化广告 SDK
+        UMUnionSdk.init(this)
+
+        // 构建广告配置
+        val adConfig = UMAdConfig.Builder()
+            .setSlotId(AD_SLOT_ID)
+            .build()
+
+        // 加载开屏广告
+        UMUnionSdk.loadSplashAd(adConfig, object : UMUnionApi.AdLoadListener<UMSplashAD> {
+            override fun onSuccess(adType: UMUnionApi.AdType?, ad: UMSplashAD?) {
+                Log.d(TAG, "开屏广告加载成功")
+                splashAd = ad
+                ad?.setAdCloseListener {
+                    Log.d(TAG, "广告关闭")
+                    navigateToNext()
+                }
+                ad?.show(this@SplashActivity)
+            }
+
+            override fun onFailure(adType: UMUnionApi.AdType?, msg: String?) {
+                Log.e(TAG, "开屏广告加载失败: $msg")
+                startCountDown()
+            }
+        }, AD_TIMEOUT)
+
+        // 启动倒计时兜底
         startCountDown()
     }
 
