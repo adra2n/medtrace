@@ -21,14 +21,17 @@ sealed class Screen(
     object Family : Screen("family", "家人", { tint, size ->
         Icon(Icons.Filled.People, "家人", tint = tint, modifier = Modifier.size(size))
     })
-    object AddRecord : Screen("add_record", "记录", { tint, size ->
-        Icon(Icons.Filled.EditNote, "记录", tint = tint, modifier = Modifier.size(size))
+    object Reminders : Screen("reminders", "提醒", { tint, size ->
+        Icon(Icons.Filled.AlarmOn, "提醒", tint = tint, modifier = Modifier.size(size))
+    })
+    object Profile : Screen("profile", "我的", { tint, size ->
+        Icon(Icons.Filled.Person, "我的", tint = tint, modifier = Modifier.size(size))
     })
     object Settings : Screen("settings", "设置", { tint, size ->
         Icon(Icons.Filled.Settings, "设置", tint = tint, modifier = Modifier.size(size))
     })
     
     companion object {
-        val bottomBarScreens = listOf(Home, Family, AddRecord, Settings)
+        val bottomBarScreens = listOf(Home, Family, Reminders, Profile)
     }
 }

@@ -49,6 +49,12 @@ fun NavGraph(
         composable(Screen.Family.route) {
             FamilyScreen(database, navController, recordRepository)
         }
+        composable(Screen.Reminders.route) {
+            RemindersScreen(database, navController)
+        }
+        composable(Screen.Profile.route) {
+            ProfileScreen(database, navController)
+        }
         composable("medical_records") {
             MedicalRecordScreen(database, navController)
         }

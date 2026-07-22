@@ -7,6 +7,9 @@ import java.time.LocalDate
 
 @Dao
 interface HealthTodoDao {
+    @Query("SELECT * FROM health_todos ORDER BY done ASC, dueDate ASC, id DESC")
+    fun getAll(): Flow<List<HealthTodo>>
+
     @Query("SELECT * FROM health_todos WHERE dueDate = :date ORDER BY done ASC, id DESC")
     fun getByDate(date: LocalDate): Flow<List<HealthTodo>>
 

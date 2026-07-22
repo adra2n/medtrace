@@ -67,7 +67,7 @@ class HomeViewModel(
                 .collect { result ->
                     when (result) {
                         is Result.Success -> {
-                            _uiState.update { it.copy(todos = result.data) }
+                            _uiState.update { it.copy(todos = result.data, pendingCount = result.data.count { !it.done }) }
                         }
                         is Result.Error -> {
                             _uiState.update { it.copy(error = result.message) }
@@ -123,6 +123,7 @@ class HomeViewModel(
 data class HomeUiState(
     val members: List<FamilyMember> = emptyList(),
     val todos: List<HealthTodo> = emptyList(),
+    val pendingCount: Int = 0,
     val error: String? = null,
     val todayLabel: String = LocalDate.now().let { today ->
         val week = listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六")[today.dayOfWeek.value % 7]

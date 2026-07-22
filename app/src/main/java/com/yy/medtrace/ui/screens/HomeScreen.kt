@@ -71,7 +71,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory(memberRepository, todoRepository))
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showTodoDialog by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -227,7 +226,7 @@ fun HomeScreen(
             }
 
             item {
-                SectionTitle("今日健康待办")
+                SectionTitle("今日提醒")
                 Spacer(Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -239,7 +238,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -258,9 +257,6 @@ fun HomeScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("按时提醒，别让健康溜走", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { showTodoDialog = true }, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Add, "添加待办", tint = Primary, modifier = Modifier.size(20.dp))
-                            }
                         }
                         if (uiState.todos.isEmpty()) {
                             Text(
@@ -269,43 +265,31 @@ fun HomeScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "点击下方开始添加",
+                                "点击添加服药、复查提醒",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(Modifier.height(4.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                QuickTodoChip(
-                                    modifier = Modifier.weight(1f),
-                                    text = "添加服药提醒",
-                                    onClick = {
-                                        showTodoDialog = true
-                                    }
-                                )
-                                QuickTodoChip(
-                                    modifier = Modifier.weight(1f),
-                                    text = "添加体检复查",
-                                    onClick = {
-                                        showTodoDialog = true
-                                    }
-                                )
-                            }
                         } else {
-                            uiState.todos.forEachIndexed { idx, todo ->
+                            uiState.todos.take(5).forEachIndexed { idx, todo ->
                                 if (idx > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                val todoMember = uiState.members.find { it.id == todo.memberId }
                                 TodayTodoItem(
                                     text = todo.content,
-                                    memberName = todo.memberName,
+                                    member = todoMember,
                                     done = todo.done,
-                                    onToggle = {
-                                        viewModel.toggleTodoDone(todo.id, !todo.done)
-                                    },
-                                    onDelete = {
-                                        viewModel.deleteTodo(todo)
-                                    }
+                                    onToggle = { viewModel.toggleTodoDone(todo.id, !todo.done) },
+                                    onDelete = { viewModel.deleteTodo(todo) }
+                                )
+                            }
+                            if (uiState.todos.size > 5) {
+                                Text(
+                                    "查看全部 ${uiState.pendingCount} 项待办",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Primary,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { navController.navigate(Screen.Reminders.route) }
+                                        .padding(top = 8.dp)
                                 )
                             }
                         }
@@ -370,16 +354,6 @@ fun HomeScreen(
         )
     }
 
-    if (showTodoDialog) {
-        AddTodoDialog(
-            members = uiState.members,
-            onDismiss = { showTodoDialog = false },
-            onSave = { memberId, memberName, content, dueDate ->
-                viewModel.addTodo(memberId, memberName, content, dueDate)
-                showTodoDialog = false
-            }
-        )
-    }
 }
 
 @Composable
@@ -429,7 +403,7 @@ private fun buildTag(member: FamilyMember): String {
 @Composable
 private fun TodayTodoItem(
     text: String,
-    memberName: String,
+    member: FamilyMember?,
     done: Boolean,
     onToggle: () -> Unit,
     onDelete: () -> Unit
@@ -444,19 +418,29 @@ private fun TodayTodoItem(
             colors = CheckboxDefaults.colors(checkedColor = Primary)
         )
         Spacer(Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(Primary.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = memberName.firstOrNull()?.toString() ?: "我",
-                style = MaterialTheme.typography.labelSmall,
-                color = Primary,
-                fontWeight = FontWeight.SemiBold
+        if (member != null) {
+            val (bg, content) = memberCardColors(member.relation, member.gender)
+            MemberAvatar(
+                member = member,
+                size = 28.dp,
+                fallbackBackground = bg,
+                fallbackContent = content
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "我",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
         Spacer(Modifier.width(8.dp))
         Text(
@@ -474,7 +458,7 @@ private fun TodayTodoItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddTodoDialog(
+internal fun AddTodoDialog(
     members: List<FamilyMember>,
     onDismiss: () -> Unit,
     onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate) -> Unit
