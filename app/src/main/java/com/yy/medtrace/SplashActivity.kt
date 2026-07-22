@@ -8,6 +8,7 @@ import android.os.CountDownTimer
 import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
@@ -23,6 +24,7 @@ import kotlinx.coroutines.runBlocking
 class SplashActivity : Activity() {
 
     private var splashContainer: FrameLayout? = null
+    private var fallbackLayout: LinearLayout? = null
     private var skipTextView: TextView? = null
     private var countDownTimer: CountDownTimer? = null
     private var splashAd: UMSplashAD? = null
@@ -41,6 +43,7 @@ class SplashActivity : Activity() {
         setContentView(R.layout.activity_splash)
 
         splashContainer = findViewById(R.id.splash_container)
+        fallbackLayout = findViewById(R.id.fallback_layout)
         skipTextView = findViewById(R.id.skip_text)
 
         skipTextView?.setOnClickListener {
@@ -54,11 +57,14 @@ class SplashActivity : Activity() {
             }.getOrDefault(false)
         }
 
+        Log.d(TAG, "privacyGranted: $privacyGranted")
+
         if (privacyGranted) {
             // 已同意隐私协议，加载广告
             loadSplashAd()
         } else {
             // 未同意隐私协议，直接跳转
+            Log.d(TAG, "隐私协议未同意，跳转到隐私协议页面")
             navigateToNext()
         }
     }
@@ -87,6 +93,8 @@ class SplashActivity : Activity() {
                     Log.d(TAG, "广告关闭")
                     navigateToNext()
                 }
+                // 隐藏兜底布局，显示广告
+                fallbackLayout?.visibility = View.GONE
                 splashContainer?.let { container ->
                     ad?.show(container)
                 }
@@ -94,12 +102,18 @@ class SplashActivity : Activity() {
 
             override fun onFailure(adType: UMUnionApi.AdType?, msg: String?) {
                 Log.e(TAG, "开屏广告加载失败: $msg")
-                startCountDown()
+                // 显示兜底布局
+                showFallback()
             }
         }, AD_TIMEOUT)
 
         // 启动倒计时兜底
         startCountDown()
+    }
+
+    private fun showFallback() {
+        fallbackLayout?.visibility = View.VISIBLE
+        splashContainer?.visibility = View.GONE
     }
 
     private fun startCountDown() {

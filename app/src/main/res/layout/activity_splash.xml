@@ -9,6 +9,31 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- 兜底启动页 -->
+    <LinearLayout
+        android:id="@+id/fallback_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+        
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="App Icon" />
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="医迹"
+            android:textSize="24sp"
+            android:textColor="#333333"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/skip_text"
         android:layout_width="wrap_content"
