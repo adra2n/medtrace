@@ -87,7 +87,9 @@ class SplashActivity : Activity() {
                     Log.d(TAG, "广告关闭")
                     navigateToNext()
                 }
-                ad?.show(this@SplashActivity)
+                splashContainer?.let { container ->
+                    ad?.show(container)
+                }
             }
 
             override fun onFailure(adType: UMUnionApi.AdType?, msg: String?) {
