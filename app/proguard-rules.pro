@@ -147,3 +147,15 @@
 -keepclassmembers class * {
     public <init>(org.json.JSONObject);
 }
+
+# Hilt
+-keep class dagger.hilt.** { *; }
+-keep class javax.inject.** { *; }
+-keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
+-keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$ViewWithFragmentComponentContextWrapper { *; }
+-keep @dagger.hilt.android.lifecycle.HiltViewModel class * { *; }
+-keep @dagger.hilt.InstallIn class * { *; }
+-keep class * extends androidx.lifecycle.ViewModel { <init>(...); }
+
+# medtrace 包
+-keep class com.yy.medtrace.** { *; }

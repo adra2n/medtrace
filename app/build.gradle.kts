@@ -17,8 +17,8 @@ android {
         targetSdk = 35
         // versionCode 约定：每个 minor 版本 +1（v2.0.0 = 10）。
         // 历史注意：v1.2.0–v1.4.0 误用 code 5，自 v1.5.0 起严格按 minor 递增，避免升级回环。
-        versionCode = 21
-        versionName = "v3.2.5"
+        versionCode = 22
+        versionName = "v3.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -70,9 +70,8 @@ android {
 
     buildTypes {
         release {
-            // 临时关闭混淆，用于排查启动崩溃
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
