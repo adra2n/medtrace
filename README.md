@@ -62,12 +62,12 @@ adb -s <device-id> install -r -g app/build/outputs/apk/release/app-release.apk
 
 ## 下载
 
-签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.3.0**（`MedTrace/MedTrace-v3.3.0.apk`，见发布仓库 [adra2n/product](https://github.com/adra2n/product)）。
+签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.4.0**（`MedTrace/MedTrace-v3.4.0.apk`，见发布仓库 [adra2n/product](https://github.com/adra2n/product)）。
 
 安装到已连接设备：
 
 ```bash
-adb -s <device-id> install -r -g MedTrace-v3.3.0.apk
+adb -s <device-id> install -r -g MedTrace-v3.4.0.apk
 ```
 
 ## 目录结构（核心）
@@ -95,6 +95,11 @@ app/src/main/java/com/yy/medtrace/
 
 ## 版本里程碑
 
+- **v3.4.0**（versionCode 23，2026-07-22）
+  - 新增：友盟 U-AppWin 开屏广告 SDK 集成。
+  - 新增：开屏广告加载失败时显示兜底启动页（App图标 + 名称）。
+  - 修复：跳过按钮被状态栏遮挡的问题。
+
 - **v3.3.0**（versionCode 22，2026-07-21）
   - 导航栏重构：首页、家人、提醒、我的 4个tab。
   - 新增健康提醒页面（按成员筛选）。
@@ -105,11 +110,13 @@ app/src/main/java/com/yy/medtrace/
   - 修复 Hilt 启动崩溃问题。
   - 底部导航栏嵌入页面（非浮动）。
   - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.3.0>
+
 - **v3.2.5**（versionCode 20，2026-07-19）
   - 健康待办每日提醒防重改为数据库持久化（`health_todos.notifiedDate` 字段，db v11）：重装 / 清数据后随加密备份恢复保持一致，不再依赖 SharedPreferences 导致漏弹或重复弹。
   - 提醒通知带类型统计：文案区分「服药 N 条 / 复查 N 条」。
   - 设置页「关于」版本号显示 versionCode，便于核对。
   - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.5>
+
 - **v3.2.3**（versionCode 19，2026-07-19）
   - 精确闹钟权限引导优化：跳转系统设置页前先弹说明对话框，告知用户需开启「精确闹钟」权限及其作用（每天 9 点准时弹出健康待办提醒）；从设置页返回后自动重试一次排程，已授权即立即生效，未授权静默放弃。
   - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.2.3>
