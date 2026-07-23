@@ -72,7 +72,7 @@ fun FamilyScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "全部家庭成员",
+                title = "家庭管理",
                 actions = {
                     IconButton(onClick = {
                         editingMember = null
