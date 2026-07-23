@@ -97,20 +97,18 @@ fun ChiyaoleTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val context = LocalContext.current
-    val database = AppDatabase.getDatabase(context)
-    val settings by database.userSettingsDao().getUserSettings().collectAsState(initial = null)
-    val useDarkTheme = darkTheme ?: settings?.darkMode ?: isSystemInDarkTheme()
+    val useDarkTheme = darkTheme ?: isSystemInDarkTheme()
 
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (useDarkTheme) dynamicDarkColorScheme(LocalContext.current) else dynamicLightColorScheme(LocalContext.current)
         }
         useDarkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
 
     val view = LocalView.current
+    val context = LocalContext.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (context as Activity).window
