@@ -2,7 +2,6 @@ package com.yy.medtrace.data.llm
 
 import com.yy.medtrace.data.settings.LlmSettingsStore
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -32,14 +31,10 @@ data class Metric(val name: String, val value: String, val unit: String, val ran
 @Serializable
 data class Item(val name: String, val dose: String, val note: String)
 
-class AnalysisUseCase(private val settings: LlmSettingsStore) {
-    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+class AnalysisUseCase(settings: LlmSettingsStore) : BaseLlmUseCase(settings) {
 
     suspend fun analyze(text: String, images: List<String>): AnalysisResult {
-        val base = settings.getBaseUrl() ?: error("LLM base URL 未设置")
-        val key = settings.getApiKey() ?: error("LLM API key 未设置")
-        val model = settings.getModel() ?: "gpt-4o"
-        val api = LlmApi.create(base.normalizeBaseUrl())
+        val model = getModel()
         val content: JsonArray = buildJsonArray {
             images.forEach { url ->
                 add(buildJsonObject {
@@ -53,13 +48,7 @@ class AnalysisUseCase(private val settings: LlmSettingsStore) {
             })
         }
         val req = ChatRequest(model, listOf(Message("user", content)))
-        val raw = try {
-            val resp = api.chat("Bearer $key", req)
-            resp.choices.first().message.content
-        } catch (e: retrofit2.HttpException) {
-            val body = e.response()?.errorBody()?.string() ?: e.message ?: "HTTP ${e.code()}"
-            throw RuntimeException("HTTP ${e.code()}: $body")
-        }
+        val raw = callApi(req)
         return runCatching { parse(raw) }.getOrDefault(AnalysisResult(raw = raw))
     }
 

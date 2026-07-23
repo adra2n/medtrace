@@ -4,10 +4,7 @@ import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.data.settings.LlmSettingsStore
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
-import retrofit2.HttpException
 
 data class ComprehensiveResult(
     val trend: String = "",
@@ -15,8 +12,7 @@ data class ComprehensiveResult(
     val raw: String
 )
 
-class ComprehensiveAnalysisUseCase(private val settings: LlmSettingsStore) {
-    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+class ComprehensiveAnalysisUseCase(settings: LlmSettingsStore) : BaseLlmUseCase(settings) {
 
     private fun buildSummary(member: FamilyMember, records: List<MedicalRecord>): String {
         val profile = buildString {
@@ -70,18 +66,10 @@ $summary
 """.trimIndent()
 
     suspend fun analyze(member: FamilyMember, records: List<MedicalRecord>): ComprehensiveResult {
-        val base = settings.getBaseUrl() ?: error("LLM base URL 未设置")
-        val key = settings.getApiKey() ?: error("LLM API key 未设置")
-        val model = settings.getModel() ?: "gpt-4o"
-        val api = LlmApi.create(base.normalizeBaseUrl())
+        val model = getModel()
         val prompt = buildPrompt(buildSummary(member, records))
         val req = ChatRequest(model, listOf(Message("user", JsonPrimitive(prompt))))
-        val raw = try {
-            api.chat("Bearer $key", req).choices.first().message.content
-        } catch (e: retrofit2.HttpException) {
-            val body = e.response()?.errorBody()?.string() ?: e.message ?: "HTTP ${e.code()}"
-            throw RuntimeException("HTTP ${e.code()}: $body")
-        }
+        val raw = callApi(req)
         return runCatching { parse(raw) }.getOrDefault(ComprehensiveResult(raw = raw))
     }
 
