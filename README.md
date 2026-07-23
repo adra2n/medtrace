@@ -62,12 +62,12 @@ adb -s <device-id> install -r -g app/build/outputs/apk/release/app-release.apk
 
 ## 下载
 
-签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.5.0**（`MedTrace/MedTrace-v3.5.0.apk`，见发布仓库 [adra2n/product](https://github.com/adra2n/product)）。
+签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.6.0**（`MedTrace/MedTrace-v3.6.0.apk`，见发布仓库 [adra2n/product](https://github.com/adra2n/product)）。
 
 安装到已连接设备：
 
 ```bash
-adb -s <device-id> install -r -g MedTrace-v3.5.0.apk
+adb -s <device-id> install -r -g MedTrace-v3.6.0.apk
 ```
 
 ## 目录结构（核心）
@@ -94,6 +94,11 @@ app/src/main/java/com/yy/medtrace/
 ```
 
 ## 版本里程碑
+
+- **v3.6.0**（versionCode 25，2026-07-23）
+  - 新增：周期提醒功能（每天/每周/每月/每年，支持自定义间隔）。
+  - 优化：ViewModel 架构迁移，8 个 ViewModel 创建，2 个 Screen 迁移。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.6.0>
 
 - **v3.5.0**（versionCode 24，2026-07-23）
   - 架构优化：BaseLlmUseCase 基类抽取、OkHttpClient 共享、SettingsStore Hilt 注入。
