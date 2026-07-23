@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -610,43 +611,60 @@ private fun RepeatPickerDialog(
     onConfirm: (type: String, interval: Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectedType by remember { mutableStateOf(currentType) }
-    var interval by remember { mutableIntStateOf(currentInterval) }
+    var repeatEnabled by remember { mutableStateOf(currentType != "none") }
+    var selectedType by remember { mutableStateOf(if (currentType == "none") "day" else currentType) }
+    var interval by remember { mutableIntStateOf(if (currentInterval < 1) 1 else currentInterval) }
 
-    val presets = listOf(
-        "none" to "不重复",
-        "day" to "天",
-        "week" to "周",
-        "month" to "月",
-        "year" to "年"
-    )
+    val units = listOf("day" to "天", "week" to "周", "month" to "月", "year" to "年")
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("设置重复") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    presets.forEach { (type, label) ->
-                        FilterChip(
-                            selected = selectedType == type,
-                            onClick = {
-                                selectedType = type
-                                if (type != "none" && interval < 1) interval = 1
-                            },
-                            label = { Text(label) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Primary,
-                                selectedLabelColor = Color.White
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    FilterChip(
+                        selected = !repeatEnabled,
+                        onClick = { repeatEnabled = false },
+                        label = { Text("不重复") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Primary,
+                            selectedLabelColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = repeatEnabled,
+                        onClick = { repeatEnabled = true },
+                        label = { Text("重复") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Primary,
+                            selectedLabelColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                if (selectedType != "none") {
+                if (repeatEnabled) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        units.forEach { (type, label) ->
+                            FilterChip(
+                                selected = selectedType == type,
+                                onClick = { selectedType = type },
+                                label = { Text(label) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Primary,
+                                    selectedLabelColor = Color.White
+                                ),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
@@ -673,7 +691,7 @@ private fun RepeatPickerDialog(
                         }
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = presets.firstOrNull { it.first == selectedType }?.second ?: "",
+                            text = units.firstOrNull { it.first == selectedType }?.second ?: "",
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -681,7 +699,10 @@ private fun RepeatPickerDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(selectedType, interval) }) { Text("确定") }
+            Button(onClick = {
+                val type = if (repeatEnabled) selectedType else "none"
+                onConfirm(type, interval)
+            }) { Text("确定") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("取消") }
