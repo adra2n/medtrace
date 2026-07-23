@@ -25,8 +25,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.util.copyAvatarToInternal
-import java.text.SimpleDateFormat
-import java.util.*
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 private val ALLERGY_PRESETS = listOf("青霉素", "头孢", "海鲜", "花粉", "鸡蛋", "牛奶")
 private val CHRONIC_PRESETS = listOf("高血压", "糖尿病", "心脏病", "哮喘", "痛风", "慢性胃炎")
@@ -258,15 +259,20 @@ private fun appendCsv(current: String, value: String): String {
     return parts.joinToString(",")
 }
 
-private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA)
+private val BIRTHDAY_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
 private fun parseBirthdayMillis(value: String): Long? {
     if (value.isBlank()) return null
     return try {
-        Calendar.getInstance().apply { time = DATE_FORMAT.parse(value)!! }.timeInMillis
+        LocalDate.parse(value, BIRTHDAY_FORMAT)
+            .atStartOfDay(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
     } catch (_: Exception) {
         null
     }
 }
 
-private fun millisToBirthday(millis: Long): String = DATE_FORMAT.format(Date(millis))
+private fun millisToBirthday(millis: Long): String =
+    LocalDate.ofEpochDay(millis / (24 * 60 * 60 * 1000))
+        .format(BIRTHDAY_FORMAT)

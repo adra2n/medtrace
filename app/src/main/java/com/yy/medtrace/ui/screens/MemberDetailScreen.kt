@@ -77,6 +77,7 @@ fun MemberDetailScreen(
     var showEdit by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val llmSettings = remember { LlmSettingsStore(context) }
 
     LaunchedEffect(memberId) {
         scope.launch {
@@ -136,7 +137,7 @@ fun MemberDetailScreen(
                     aiAnalyzing = true
                     aiJob = scope.launch {
                         try {
-                            val result = ComprehensiveAnalysisUseCase(LlmSettingsStore(context))
+                            val result = ComprehensiveAnalysisUseCase(llmSettings)
                                 .analyze(m, records)
                             aiSummary = result.trend.ifBlank { result.raw }
                             aiAdvice = result.advice.ifBlank { null }

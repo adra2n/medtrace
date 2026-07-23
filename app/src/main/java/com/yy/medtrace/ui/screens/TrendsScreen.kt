@@ -46,6 +46,7 @@ fun TrendsScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val llmSettings = remember { LlmSettingsStore(context) }
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
     var records by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -70,7 +71,7 @@ fun TrendsScreen(
         aiAnalyzing = true
         aiJob = scope.launch {
             try {
-                val result = ComprehensiveAnalysisUseCase(LlmSettingsStore(context))
+                val result = ComprehensiveAnalysisUseCase(llmSettings)
                     .analyze(member, records)
                 aiTrend = result.trend.ifBlank { result.raw }
             } catch (e: Exception) {
