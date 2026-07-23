@@ -17,8 +17,8 @@ android {
         targetSdk = 35
         // versionCode 约定：每个 minor 版本 +1（v2.0.0 = 10）。
         // 历史注意：v1.2.0–v1.4.0 误用 code 5，自 v1.5.0 起严格按 minor 递增，避免升级回环。
-        versionCode = 24
-        versionName = "v3.5.0"
+        versionCode = 25
+        versionName = "v3.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
