@@ -17,7 +17,7 @@ val AccentDark = Color(0xFFE85C3C)   // 深橙
 // 背景色（ui.md 规范）
 val Background = Color(0xFFF8FAFC)    // 页面背景
 val Surface = Color(0xFFFFFFFF)       // 卡片背景
-val BackgroundDark = Color(0xFF101B1C) // 深冷灰背景
+val BackgroundDark = Color(0xFF0D1117) // GitHub 风格深色背景（更护眼）
 
 // 模块区分底色（统一用 PrimaryLight 浅蓝）
 val BgFamily = Color(0xFFDDF3FF)      // 家人模块
@@ -40,7 +40,12 @@ val Warning = Color(0xFFFF7D60)  // 警告状态（浅橙）
 // 卡片底色
 val CardSurface = Color(0xFFFFFFFF)     // 卡片：纯白
 val CardSecondary = Color(0xFFDDF3FF)   // 次级卡片底（Primary Light）
-val CardSurfaceDark = Color(0xFF1B2A2C) // 深色模式卡片底
+val CardSurfaceDark = Color(0xFF161B22) // 深色模式卡片底（GitHub 风格）
+
+// 深色模式增强颜色
+val SurfaceDark = Color(0xFF161B22)     // 深色模式表面
+val SurfaceVariantDark = Color(0xFF21262D) // 深色模式变体表面
+val OnSurfaceDark = Color(0xFFC9D1D9)   // 深色模式文本
 
 // 家庭成员卡片配色映射
 object MemberColors {

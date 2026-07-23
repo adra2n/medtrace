@@ -2,6 +2,8 @@ package com.yy.medtrace.navigation
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -25,7 +27,9 @@ fun NavGraph(
 ) {
     NavHost(
         navController = navController,
-        startDestination = "splash"
+        startDestination = "splash",
+        enterTransition = { fadeIn(animationSpec = tween(300)) },
+        exitTransition = { fadeOut(animationSpec = tween(300)) }
     ) {
         composable("splash") {
             SplashScreen(navController)
