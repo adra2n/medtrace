@@ -43,7 +43,7 @@ class HomeViewModel(
                             if (result.data.isEmpty()) {
                                 // 创建默认成员
                                 memberRepository.insert(
-                                    FamilyMember(name = "我自己", relation = "本人", isDefault = true)
+                                    FamilyMember.DEFAULT
                                 )
                             } else {
                                 _uiState.update { it.copy(members = result.data) }

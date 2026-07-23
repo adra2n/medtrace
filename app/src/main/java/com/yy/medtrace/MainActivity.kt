@@ -108,7 +108,7 @@ class MainActivity : FragmentActivity() {
             }
             if (database.familyMemberDao().getDefaultMember() == null) {
                 database.familyMemberDao().insert(
-                    FamilyMember(name = "我自己", relation = "本人", isDefault = true)
+                    FamilyMember.DEFAULT
                 )
             }
         }

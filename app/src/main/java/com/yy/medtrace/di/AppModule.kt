@@ -11,6 +11,11 @@ import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.data.repository.RecordRepositoryImpl
 import com.yy.medtrace.data.repository.TodoRepository
 import com.yy.medtrace.data.repository.TodoRepositoryImpl
+import com.yy.medtrace.data.settings.LlmSettingsStore
+import com.yy.medtrace.data.settings.OnboardingStore
+import com.yy.medtrace.data.settings.PrivacyConsentStore
+import com.yy.medtrace.data.settings.SecuritySettingsStore
+import com.yy.medtrace.data.settings.SyncSettingsStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -59,5 +64,35 @@ object AppModule {
     @Singleton
     fun provideTodoRepository(healthTodoDao: HealthTodoDao): TodoRepository {
         return TodoRepositoryImpl(healthTodoDao)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideLlmSettingsStore(@ApplicationContext context: Context): LlmSettingsStore {
+        return LlmSettingsStore(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideSecuritySettingsStore(@ApplicationContext context: Context): SecuritySettingsStore {
+        return SecuritySettingsStore(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideSyncSettingsStore(@ApplicationContext context: Context): SyncSettingsStore {
+        return SyncSettingsStore(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideOnboardingStore(@ApplicationContext context: Context): OnboardingStore {
+        return OnboardingStore(context)
+    }
+    
+    @Provides
+    @Singleton
+    fun providePrivacyConsentStore(@ApplicationContext context: Context): PrivacyConsentStore {
+        return PrivacyConsentStore(context)
     }
 }

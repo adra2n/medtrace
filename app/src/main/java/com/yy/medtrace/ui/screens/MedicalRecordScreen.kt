@@ -63,7 +63,7 @@ fun MedicalRecordScreen(
                 if (list.isEmpty()) {
                     scope.launch {
                         database.familyMemberDao().insert(
-                            FamilyMember(name = "我自己", relation = "本人", isDefault = true)
+                            FamilyMember.DEFAULT
                         )
                     }
                     return@collect

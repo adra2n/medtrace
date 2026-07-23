@@ -18,4 +18,8 @@ data class FamilyMember(
     val otherNote: String = "",
     val isDefault: Boolean = false,
     val avatarPath: String = ""
-)
+) {
+    companion object {
+        val DEFAULT = FamilyMember(name = "我自己", relation = "本人", isDefault = true)
+    }
+}
