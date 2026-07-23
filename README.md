@@ -95,6 +95,10 @@ app/src/main/java/com/yy/medtrace/
 
 ## 版本里程碑
 
+- **v3.6.1**（versionCode 26，2026-07-23）
+  - UI：家庭成员页面标题修改为「家庭管理」。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.6.1>
+
 - **v3.6.0**（versionCode 25，2026-07-23）
   - 新增：周期提醒功能（每天/每周/每月/每年，支持自定义间隔）。
   - 优化：ViewModel 架构迁移，8 个 ViewModel 创建，2 个 Screen 迁移。
