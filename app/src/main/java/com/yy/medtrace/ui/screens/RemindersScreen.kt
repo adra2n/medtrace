@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,6 +50,7 @@ fun RemindersScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedMemberId by remember { mutableStateOf<Long?>(null) }
+    var editingTodo by remember { mutableStateOf<HealthTodo?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadReminders()
@@ -105,6 +107,9 @@ fun RemindersScreen(
                                 },
                                 onDelete = { todo ->
                                     viewModel.deleteTodo(todo)
+                                },
+                                onEditRepeat = { todo ->
+                                    editingTodo = todo
                                 }
                             )
                         }
@@ -118,16 +123,29 @@ fun RemindersScreen(
         AddTodoDialog(
             members = members,
             onDismiss = { showAddDialog = false },
-            onSave = { memberId, memberName, content, dueDate ->
+            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval ->
                 viewModel.insertTodo(
                     HealthTodo(
                         memberId = memberId,
                         memberName = memberName,
                         content = content,
-                        dueDate = dueDate
+                        dueDate = dueDate,
+                        repeatType = repeatType,
+                        repeatInterval = repeatInterval
                     )
                 )
                 showAddDialog = false
+            }
+        )
+    }
+
+    editingTodo?.let { todo ->
+        RepeatEditDialog(
+            todo = todo,
+            onDismiss = { editingTodo = null },
+            onConfirm = { type, interval ->
+                viewModel.updateRepeat(todo.id, type, interval)
+                editingTodo = null
             }
         )
     }
@@ -174,7 +192,8 @@ private fun ReminderMemberGroup(
     member: FamilyMember?,
     todos: List<HealthTodo>,
     onToggle: (HealthTodo, Boolean) -> Unit,
-    onDelete: (HealthTodo) -> Unit
+    onDelete: (HealthTodo) -> Unit,
+    onEditRepeat: (HealthTodo) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -244,7 +263,8 @@ private fun ReminderMemberGroup(
                 ReminderTodoItem(
                     todo = todo,
                     onToggle = { onToggle(todo, !todo.done) },
-                    onDelete = { onDelete(todo) }
+                    onDelete = { onDelete(todo) },
+                    onEditRepeat = { onEditRepeat(todo) }
                 )
                 if (todo != todos.last()) {
                     HorizontalDivider(modifier = Modifier.padding(start = 44.dp))
@@ -258,9 +278,11 @@ private fun ReminderMemberGroup(
 private fun ReminderTodoItem(
     todo: HealthTodo,
     onToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEditRepeat: () -> Unit
 ) {
     val isOverdue = todo.dueDate.isBefore(LocalDate.now()) && !todo.done
+    val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(todo.repeatType, todo.repeatInterval)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -283,7 +305,7 @@ private fun ReminderTodoItem(
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
                     Icons.Default.DateRange,
@@ -296,6 +318,20 @@ private fun ReminderTodoItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (repeatLabel != null) {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = Primary.copy(alpha = 0.12f),
+                        modifier = Modifier.clickable { onEditRepeat() }
+                    ) {
+                        Text(
+                            text = repeatLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Primary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
             }
         }
         IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
@@ -342,4 +378,94 @@ private fun MemberFilterRow(
             )
         }
     }
+}
+
+@Composable
+private fun RepeatEditDialog(
+    todo: HealthTodo,
+    onDismiss: () -> Unit,
+    onConfirm: (type: String, interval: Int) -> Unit
+) {
+    var selectedType by remember { mutableStateOf(todo.repeatType) }
+    var interval by remember { mutableIntStateOf(todo.repeatInterval) }
+
+    val presets = listOf(
+        "none" to "不重复",
+        "day" to "天",
+        "week" to "周",
+        "month" to "月",
+        "year" to "年"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("修改重复设置") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = todo.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    presets.forEach { (type, label) ->
+                        FilterChip(
+                            selected = selectedType == type,
+                            onClick = {
+                                selectedType = type
+                                if (type != "none" && interval < 1) interval = 1
+                            },
+                            label = { Text(label) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Primary,
+                                selectedLabelColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                if (selectedType != "none") {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("每")
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { if (interval > 1) interval-- },
+                            enabled = interval > 1
+                        ) {
+                            Icon(Icons.Default.Remove, "减少", tint = Primary)
+                        }
+                        Text(
+                            text = "$interval",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        IconButton(
+                            onClick = { if (interval < 99) interval++ }
+                        ) {
+                            Icon(Icons.Default.Add, "增加", tint = Primary)
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = presets.firstOrNull { it.first == selectedType }?.second ?: "",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(selectedType, interval) }) { Text("确定") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
 }

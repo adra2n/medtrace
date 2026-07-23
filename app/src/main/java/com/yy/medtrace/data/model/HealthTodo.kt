@@ -13,5 +13,7 @@ data class HealthTodo(
     val content: String,
     val dueDate: LocalDate,
     val done: Boolean = false,
-    val notifiedDate: String = ""
+    val notifiedDate: String = "",
+    val repeatType: String = "none",
+    val repeatInterval: Int = 1
 )

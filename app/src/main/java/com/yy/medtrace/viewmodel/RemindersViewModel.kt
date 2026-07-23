@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 @RequiresApi(Build.VERSION_CODES.O)
 class RemindersViewModel(
@@ -42,6 +43,20 @@ class RemindersViewModel(
     fun setTodoDone(todoId: Long, done: Boolean) {
         viewModelScope.launch {
             database.healthTodoDao().setDone(todoId, done)
+            if (done) {
+                val todo = database.healthTodoDao().getById(todoId)
+                if (todo != null && todo.repeatType != "none") {
+                    val nextDate = calculateNextDueDate(todo.dueDate, todo.repeatType, todo.repeatInterval)
+                    database.healthTodoDao().insert(
+                        todo.copy(
+                            id = 0,
+                            dueDate = nextDate,
+                            done = false,
+                            notifiedDate = ""
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -57,8 +72,36 @@ class RemindersViewModel(
         }
     }
 
+    fun updateRepeat(todoId: Long, repeatType: String, repeatInterval: Int) {
+        viewModelScope.launch {
+            val todo = database.healthTodoDao().getById(todoId) ?: return@launch
+            database.healthTodoDao().update(
+                todo.copy(repeatType = repeatType, repeatInterval = repeatInterval)
+            )
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    companion object {
+        fun calculateNextDueDate(current: LocalDate, type: String, interval: Int): LocalDate = when (type) {
+            "day" -> current.plusDays(interval.toLong())
+            "week" -> current.plusWeeks(interval.toLong())
+            "month" -> current.plusMonths(interval.toLong())
+            "year" -> current.plusYears(interval.toLong())
+            else -> current
+        }
+
+        fun repeatLabel(type: String, interval: Int): String? = when (type) {
+            "none" -> null
+            "day" -> if (interval == 1) "每天" else "每 $interval 天"
+            "week" -> if (interval == 1) "每周" else "每 $interval 周"
+            "month" -> if (interval == 1) "每月" else "每 $interval 月"
+            "year" -> if (interval == 1) "每年" else "每 $interval 年"
+            else -> null
+        }
     }
 }
 

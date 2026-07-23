@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.InsertChart
@@ -458,7 +459,7 @@ private fun TodayTodoItem(
 internal fun AddTodoDialog(
     members: List<FamilyMember>,
     onDismiss: () -> Unit,
-    onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate) -> Unit
+    onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int) -> Unit
 ) {
     var content by remember { mutableStateOf("") }
     var selectedMemberId by remember { mutableStateOf<Long?>(members.firstOrNull()?.id) }
@@ -466,6 +467,9 @@ internal fun AddTodoDialog(
     var memberExpanded by remember { mutableStateOf(false) }
     var dueDate by remember { mutableStateOf(LocalDate.now()) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var repeatType by remember { mutableStateOf("none") }
+    var repeatInterval by remember { mutableIntStateOf(1) }
+    var showRepeatDialog by remember { mutableStateOf(false) }
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -487,6 +491,19 @@ internal fun AddTodoDialog(
                 TextButton(onClick = { showDatePicker = false }) { Text("取消") }
             }
         ) { DatePicker(state = datePickerState) }
+    }
+
+    if (showRepeatDialog) {
+        RepeatPickerDialog(
+            currentType = repeatType,
+            currentInterval = repeatInterval,
+            onConfirm = { type, interval ->
+                repeatType = type
+                repeatInterval = interval
+                showRepeatDialog = false
+            },
+            onDismiss = { showRepeatDialog = false }
+        )
     }
 
     AlertDialog(
@@ -553,6 +570,22 @@ internal fun AddTodoDialog(
                     ),
                     enabled = false
                 )
+                val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(repeatType, repeatInterval) ?: "不重复"
+                OutlinedTextField(
+                    value = repeatLabel,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("重复") },
+                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, "选择重复", tint = Primary) },
+                    modifier = Modifier.fillMaxWidth().clickable { showRepeatDialog = true },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = Primary,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline
+                    ),
+                    enabled = false
+                )
             }
         },
         confirmButton = {
@@ -560,9 +593,95 @@ internal fun AddTodoDialog(
                 enabled = content.isNotBlank() && selectedMemberId != null,
                 onClick = {
                     val m = selectedMember ?: return@Button
-                    onSave(m.id, m.name, content.trim(), dueDate)
+                    onSave(m.id, m.name, content.trim(), dueDate, repeatType, repeatInterval)
                 }
             ) { Text("保存") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
+}
+
+@Composable
+private fun RepeatPickerDialog(
+    currentType: String,
+    currentInterval: Int,
+    onConfirm: (type: String, interval: Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedType by remember { mutableStateOf(currentType) }
+    var interval by remember { mutableIntStateOf(currentInterval) }
+
+    val presets = listOf(
+        "none" to "不重复",
+        "day" to "天",
+        "week" to "周",
+        "month" to "月",
+        "year" to "年"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("设置重复") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    presets.forEach { (type, label) ->
+                        FilterChip(
+                            selected = selectedType == type,
+                            onClick = {
+                                selectedType = type
+                                if (type != "none" && interval < 1) interval = 1
+                            },
+                            label = { Text(label) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Primary,
+                                selectedLabelColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                if (selectedType != "none") {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("每")
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { if (interval > 1) interval-- },
+                            enabled = interval > 1
+                        ) {
+                            Icon(Icons.Default.Remove, "减少", tint = Primary)
+                        }
+                        Text(
+                            text = "$interval",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        IconButton(
+                            onClick = { if (interval < 99) interval++ }
+                        ) {
+                            Icon(Icons.Default.Add, "增加", tint = Primary)
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = presets.firstOrNull { it.first == selectedType }?.second ?: "",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(selectedType, interval) }) { Text("确定") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("取消") }
