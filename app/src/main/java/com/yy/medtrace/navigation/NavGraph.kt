@@ -15,6 +15,8 @@ import com.yy.medtrace.data.repository.MemberRepository
 import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.data.repository.TodoRepository
 import com.yy.medtrace.ui.screens.*
+import com.yy.medtrace.viewmodel.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -54,10 +56,12 @@ fun NavGraph(
             FamilyScreen(database, navController, recordRepository)
         }
         composable(Screen.Reminders.route) {
-            RemindersScreen(database, navController)
+            val viewModel: RemindersViewModel = viewModel(factory = RemindersViewModelFactory(database))
+            RemindersScreen(viewModel, navController)
         }
         composable(Screen.Profile.route) {
-            ProfileScreen(database, navController)
+            val viewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory(database))
+            ProfileScreen(viewModel, navController)
         }
         composable("medical_records") {
             MedicalRecordScreen(database, navController)

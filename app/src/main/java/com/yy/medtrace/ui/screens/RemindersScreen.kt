@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.ui.components.EmptyState
@@ -37,33 +36,26 @@ import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.memberCardColors
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
+import com.yy.medtrace.viewmodel.RemindersViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun RemindersScreen(
-    database: AppDatabase,
+    viewModel: RemindersViewModel,
     navController: NavController
 ) {
-    val scope = rememberCoroutineScope()
-    var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
-    var todos by remember { mutableStateOf<List<HealthTodo>>(emptyList()) }
+    val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedMemberId by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(Unit) {
-        val membersFlow = database.familyMemberDao().getAllMembers()
-        val todosFlow = database.healthTodoDao().getAll()
-        combine(membersFlow, todosFlow) { m, t -> m to t }
-            .collect { (m, t) ->
-                members = m
-                todos = t.sortedWith(compareBy({ it.done }, { it.dueDate }))
-            }
+        viewModel.loadReminders()
     }
 
+    val members = uiState.members
+    val todos = uiState.todos
     val filteredTodos = remember(todos, selectedMemberId) {
         if (selectedMemberId == null) todos
         else todos.filter { it.memberId == selectedMemberId }
@@ -109,10 +101,10 @@ fun RemindersScreen(
                                 member = member,
                                 todos = memberTodos,
                                 onToggle = { todo, done ->
-                                    scope.launch { database.healthTodoDao().setDone(todo.id, done) }
+                                    viewModel.setTodoDone(todo.id, done)
                                 },
                                 onDelete = { todo ->
-                                    scope.launch { database.healthTodoDao().delete(todo) }
+                                    viewModel.deleteTodo(todo)
                                 }
                             )
                         }
@@ -127,16 +119,14 @@ fun RemindersScreen(
             members = members,
             onDismiss = { showAddDialog = false },
             onSave = { memberId, memberName, content, dueDate ->
-                scope.launch {
-                    database.healthTodoDao().insert(
-                        HealthTodo(
-                            memberId = memberId,
-                            memberName = memberName,
-                            content = content,
-                            dueDate = dueDate
-                        )
+                viewModel.insertTodo(
+                    HealthTodo(
+                        memberId = memberId,
+                        memberName = memberName,
+                        content = content,
+                        dueDate = dueDate
                     )
-                }
+                )
                 showAddDialog = false
             }
         )

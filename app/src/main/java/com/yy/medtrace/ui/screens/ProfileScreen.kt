@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.ui.components.MemberAvatar
@@ -30,14 +29,16 @@ import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.memberCardColors
+import com.yy.medtrace.viewmodel.ProfileViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    database: AppDatabase,
+    viewModel: ProfileViewModel,
     navController: NavController
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val appVersion = remember {
         try {
@@ -46,14 +47,12 @@ fun ProfileScreen(
             ""
         }
     }
-    
-    var defaultMember by remember { mutableStateOf<FamilyMember?>(null) }
-    
+
     LaunchedEffect(Unit) {
-        database.familyMemberDao().getAllMembers().collect { members ->
-            defaultMember = members.find { it.isDefault } ?: members.firstOrNull()
-        }
+        viewModel.loadProfile()
     }
+
+    val defaultMember = uiState.defaultMember
 
     Scaffold(
         topBar = {
