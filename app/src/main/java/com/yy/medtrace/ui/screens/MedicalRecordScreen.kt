@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -22,6 +23,7 @@ import androidx.navigation.NavController
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
+import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.MemberSelector
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
@@ -223,20 +225,15 @@ fun MedicalRecordScreen(
                 }
             } else if (records.isEmpty()) {
                 item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (keyword.isNotEmpty() || fromDate != null || toDate != null) {
-                                "没有符合筛选条件的记录"
-                            } else {
-                                "该成员还没有医疗记录"
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    EmptyState(
+                        icon = Icons.Default.MedicalServices,
+                        title = if (keyword.isNotEmpty() || fromDate != null || toDate != null) {
+                            "没有符合筛选条件的记录"
+                        } else {
+                            "该成员还没有医疗记录"
+                        },
+                        modifier = Modifier.padding(top = 32.dp)
+                    )
                 }
             } else {
                 items(records) { record ->

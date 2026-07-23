@@ -25,6 +25,7 @@ import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.data.model.CountResult
+import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
@@ -198,14 +199,10 @@ private fun EmptyFamily() {
                 )
             }
         }
-        Text(
-            "还没有家庭成员",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Text(
-            "点击右下角按钮，添加你的第一位家人",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        EmptyState(
+            icon = Icons.Default.People,
+            title = "还没有家庭成员",
+            hint = "点击右下角按钮，添加你的第一位家人"
         )
     }
 }

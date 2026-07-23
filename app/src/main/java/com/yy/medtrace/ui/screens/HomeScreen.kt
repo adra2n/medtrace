@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.InsertChart
 import androidx.compose.material.icons.filled.MedicalInformation
 import androidx.compose.material.icons.filled.Notifications
@@ -43,6 +44,7 @@ import com.yy.medtrace.data.repository.MemberRepository
 import com.yy.medtrace.data.repository.TodoRepository
 import com.yy.medtrace.viewmodel.HomeViewModelFactory
 import com.yy.medtrace.data.model.FamilyMember
+import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.MemberColors
@@ -259,15 +261,10 @@ fun HomeScreen(
                             }
                         }
                         if (uiState.todos.isEmpty()) {
-                            Text(
-                                "今天暂无健康计划",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                "点击添加服药、复查提醒",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            EmptyState(
+                                icon = Icons.Default.EventNote,
+                                title = "今天暂无健康计划",
+                                hint = "点击添加服药、复查提醒"
                             )
                         } else {
                             uiState.todos.take(5).forEachIndexed { idx, todo ->

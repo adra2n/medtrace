@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
@@ -28,6 +29,7 @@ import androidx.navigation.NavController
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
+import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
@@ -164,15 +166,16 @@ private fun EmptyReminders(onAdd: () -> Unit) {
                 )
             }
         }
-        Text("暂无提醒", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "点击右上角添加服药、复查等提醒",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        EmptyState(
+            icon = Icons.Default.Alarm,
+            title = "暂无提醒",
+            hint = "点击右上角添加服药、复查等提醒",
+            action = {
+                Button(onClick = onAdd) {
+                    Text("添加提醒")
+                }
+            }
         )
-        Button(onClick = onAdd) {
-            Text("添加提醒")
-        }
     }
 }
 
