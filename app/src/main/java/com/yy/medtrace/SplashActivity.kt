@@ -16,6 +16,7 @@ import com.umeng.union.UMSplashAD
 import com.umeng.union.UMUnionSdk
 import com.umeng.union.api.UMAdConfig
 import com.umeng.union.api.UMUnionApi
+import com.yy.medtrace.common.Constants
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.data.settings.PrivacyConsentStore
 import kotlinx.coroutines.runBlocking
@@ -33,7 +34,6 @@ class SplashActivity : Activity() {
         private const val TAG = "SplashActivity"
         private const val SKIP_DELAY = 5000L
         private const val COUNT_DOWN_INTERVAL = 1000L
-        private const val UMENG_APPKEY = "6a5b46a5cbfa6959517c8588"
         private const val AD_SLOT_ID = "100012523"
         private const val AD_TIMEOUT = 5000
     }
@@ -71,9 +71,9 @@ class SplashActivity : Activity() {
 
     private fun loadSplashAd() {
         // 初始化友盟统计 SDK
-        UMConfigure.preInit(this, UMENG_APPKEY, "official")
+        UMConfigure.preInit(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL)
         UMConfigure.submitPolicyGrantResult(this, true)
-        UMConfigure.init(this, UMENG_APPKEY, "official", UMConfigure.DEVICE_TYPE_PHONE, null)
+        UMConfigure.init(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL, UMConfigure.DEVICE_TYPE_PHONE, null)
         MobclickAgent.setPageCollectionMode(MobclickAgent.PageMode.AUTO)
 
         // 初始化广告 SDK

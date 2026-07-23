@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
+import com.yy.medtrace.common.Constants
 import com.yy.medtrace.data.AppDatabase
 import dagger.hilt.android.HiltAndroidApp
 
@@ -21,13 +22,13 @@ class MedTraceApplication : Application() {
      * 暨 preInit（轻量预初始化，不采集数据）+ init（正式初始化）。
      */
     fun initAnalytics() {
-        UMConfigure.preInit(this, UMENG_APPKEY, UMENG_CHANNEL)
+        UMConfigure.preInit(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL)
         UMConfigure.submitPolicyGrantResult(this, true)
         Thread {
             UMConfigure.init(
                 this,
-                UMENG_APPKEY,
-                UMENG_CHANNEL,
+                Constants.UMENG_APPKEY,
+                Constants.UMENG_CHANNEL,
                 UMConfigure.DEVICE_TYPE_PHONE,
                 null
             )
@@ -36,9 +37,6 @@ class MedTraceApplication : Application() {
     }
 
     companion object {
-        private const val UMENG_APPKEY = "6a5b46a5cbfa6959517c8588"
-        private const val UMENG_CHANNEL = "official"
-
         fun initAnalytics(context: Context) {
             (context.applicationContext as? MedTraceApplication)?.initAnalytics()
         }
