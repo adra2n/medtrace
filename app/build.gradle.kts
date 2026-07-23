@@ -147,11 +147,10 @@ dependencies {
     kapt("androidx.room:room-compiler:$roomVersion")
     
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("androidx.navigation:navigation-compose:2.8.0")
     
     // WorkManager for notifications
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("androidx.work:work-runtime:2.9.0")
     
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
@@ -163,8 +162,8 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     
     // Hilt
     val hiltVersion = "2.50"
@@ -174,7 +173,7 @@ dependencies {
     
     // Mockk for testing
     testImplementation("io.mockk:mockk:1.13.8")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     
     // Gson for JSON serialization
     implementation("com.google.code.gson:gson:2.10.1")
@@ -189,8 +188,6 @@ dependencies {
     implementation("androidx.paging:paging-compose:3.3.0")
     
     testImplementation(libs.junit)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testImplementation("io.mockk:mockk:1.13.8")
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)

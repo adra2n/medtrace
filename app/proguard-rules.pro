@@ -78,7 +78,7 @@
 }
 
 # 保持 Model 类不被混淆
--keep class com.yy.chiyaole.data.model.** { *; }
+-keep class com.yy.medtrace.data.model.** { *; }
 
 # Gson / TypeToken：保留泛型签名，供 Room TypeConverter 的匿名 TypeToken 子类使用
 -keepattributes Signature
@@ -115,17 +115,17 @@
 }
 
 # 保持自定义应用程序类和组件
--keep class com.yy.chiyaole.ChiyaoleApplication { *; }
--keep class com.yy.chiyaole.worker.** { *; }
--keep class com.yy.chiyaole.data.dao.** { *; }
--keep class com.yy.chiyaole.ui.** { *; }
+-keep class com.yy.medtrace.MedTraceApplication { *; }
+-keep class com.yy.medtrace.worker.** { *; }
+-keep class com.yy.medtrace.data.dao.** { *; }
+-keep class com.yy.medtrace.ui.** { *; }
 
 # kotlinx.serialization：保留 @Serializable 类及其生成的 Serializer，避免 release 下反序列化失败
 -keepattributes *Annotation*,InnerClasses
 -dontnote kotlinx.serialization.AnnotationsKt
 -keep class kotlinx.serialization.** { *; }
--keep class com.yy.chiyaole.data.llm.** { *; }
--keepclassmembers class com.yy.chiyaole.data.llm.** {
+-keep class com.yy.medtrace.data.llm.** { *; }
+-keepclassmembers class com.yy.medtrace.data.llm.** {
     *** Companion;
     kotlinx.serialization.KSerializer serializer(...);
 }
