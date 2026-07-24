@@ -8,7 +8,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,7 +16,6 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +41,7 @@ import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.dashedBorder
 import com.yy.medtrace.ui.theme.Primary
+import com.yy.medtrace.ui.components.MemberSelector
 import com.yy.medtrace.ui.components.SectionCard
 import kotlinx.serialization.json.Json
 import com.yy.medtrace.util.bitmapToBase64
@@ -70,7 +69,6 @@ fun AddMedicalRecordScreen(
 ) {
     var selectedMemberId by remember { mutableStateOf<Long?>(null) }
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
-    var memberExpanded by remember { mutableStateOf(false) }
     var diagnosis by remember { mutableStateOf("") }
     var hospital by remember { mutableStateOf("") }
     var medItems by remember { mutableStateOf<List<MedicationItem>>(emptyList()) }
@@ -193,6 +191,7 @@ fun AddMedicalRecordScreen(
         topBar = {
             GradientTopBar(
                 title = if (existingId != null) "编辑医疗记录" else "添加医疗记录",
+                subtitle = "智能识别，快速记录",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
@@ -222,96 +221,60 @@ fun AddMedicalRecordScreen(
                 )
             }
 
-            // 强制成员选择
-            val selectedMember = members.firstOrNull { it.id == selectedMemberId }
-            ExposedDropdownMenuBox(
-                expanded = memberExpanded,
-                onExpandedChange = { memberExpanded = !memberExpanded }
-            ) {
-                OutlinedTextField(
-                    value = selectedMember?.let { "${it.name}（${it.relation.ifBlank { "成员" }}）" } ?: "",
-                    onValueChange = {},
-                    readOnly = true,
-                    enabled = false,
-                    label = { Text("当前家庭成员") },
-                    placeholder = { Text("请选择家庭成员") },
-                    trailingIcon = {
-                        Icon(Icons.Default.ArrowDropDown, "选择成员",
-                            tint = if (selectedMemberId == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-                    },
-                    isError = selectedMemberId == null,
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = if (selectedMemberId == null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
-                        disabledLabelColor = if (selectedMemberId == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledTrailingIconColor = if (selectedMemberId == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                        disabledBorderColor = if (selectedMemberId == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
-                    )
+            // 家庭成员选择
+            SectionCard(title = "选择家庭成员") {
+                MemberSelector(
+                    members = members,
+                    selectedMemberId = selectedMemberId,
+                    onSelect = { selectedMemberId = it.id },
+                    emptyHint = "暂无成员，请先在家庭页面添加"
                 )
-                DropdownMenu(
-                    expanded = memberExpanded,
-                    onDismissRequest = { memberExpanded = false },
-                    modifier = Modifier.exposedDropdownSize()
-                ) {
-                    if (members.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("暂无成员，请先去添加") },
-                            onClick = { memberExpanded = false }
-                        )
-                    } else {
-                        members.forEach { m ->
-                            DropdownMenuItem(
-                                text = { Text("${m.name}（${m.relation.ifBlank { "成员" }}）") },
-                                onClick = {
-                                    selectedMemberId = m.id
-                                    memberExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
             }
 
-            // AI 智能识别区（teal 虚线框）
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .dashedBorder(Primary, 1.5.dp, AppShapes.large),
-                shape = AppShapes.large,
-                color = Primary.copy(alpha = 0.05f)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+            // AI 智能识别区
+            SectionCard(title = "AI 智能识别") {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Filled.AutoAwesome, "AI 识别", tint = Primary)
-                        Text(
-                            "AI 智能识别",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Primary
+                        Icon(
+                            Icons.Filled.AutoAwesome,
+                            "AI 识别",
+                            tint = Primary,
+                            modifier = Modifier.size(24.dp)
                         )
+                        Column {
+                            Text(
+                                "AI 智能识别",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Primary
+                            )
+                            Text(
+                                "拍照或粘贴文本，AI 自动提取信息",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                    Text(
-                        "拍照、从相册选图或粘贴处方文字，AI 自动提取诊断、用药与检查指标并回填到下方。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { launchCamera() }, enabled = !analyzing) { Text("拍照识别") }
-                        Button(onClick = { galleryLauncher.launch("image/*") }, enabled = !analyzing) { Text("从相册选择") }
+                        Button(
+                            onClick = { launchCamera() },
+                            enabled = !analyzing,
+                            modifier = Modifier.weight(1f)
+                        ) { Text("拍照识别") }
+                        Button(
+                            onClick = { galleryLauncher.launch("image/*") },
+                            enabled = !analyzing,
+                            modifier = Modifier.weight(1f)
+                        ) { Text("相册选择") }
                     }
+
                     if (images.isNotEmpty()) {
-                        Text("待识别图片：${images.size} 张", style = MaterialTheme.typography.bodyMedium)
+                        Text("已添加 ${images.size} 张图片", style = MaterialTheme.typography.bodyMedium)
                     }
+
                     if (analyzing) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -321,6 +284,7 @@ fun AddMedicalRecordScreen(
                             Text("AI 识别中…", color = Primary)
                         }
                     }
+
                     analysisError?.let {
                         Text("识别失败：$it", color = MaterialTheme.colorScheme.error)
                     }
@@ -328,11 +292,12 @@ fun AddMedicalRecordScreen(
                     OutlinedTextField(
                         value = noteText,
                         onValueChange = { noteText = it },
-                        label = { Text("粘贴文本（可一并分析，如处方文字）") },
+                        label = { Text("粘贴文本（可选，如处方文字）") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = false,
                         maxLines = 3
                     )
+
                     if (noteText.isNotBlank()) {
                         OutlinedButton(
                             onClick = { runAnalysis() },
@@ -391,62 +356,75 @@ fun AddMedicalRecordScreen(
 
             // 开具药品
             SectionCard(title = "开具药品") {
-                medItems.forEachIndexed { index, item ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = AppShapes.medium,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    medItems.forEachIndexed { index, item ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = AppShapes.medium,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("药品 ${index + 1}", style = MaterialTheme.typography.titleSmall)
-                                IconButton(onClick = { medItems = medItems.filterIndexed { i, _ -> i != index } }) {
-                                    Icon(Icons.Default.Delete, "删除该药品")
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("药品 ${index + 1}", style = MaterialTheme.typography.titleSmall)
+                                    OutlinedButton(
+                                        onClick = { medItems = medItems.filterIndexed { i, _ -> i != index } },
+                                        modifier = Modifier.height(32.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                    ) {
+                                        Icon(Icons.Default.Delete, "删除", modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("删除")
+                                    }
                                 }
+                                OutlinedTextField(
+                                    value = item.name,
+                                    onValueChange = { medItems = medItems.updateAt(index) { copy(name = it) } },
+                                    label = { Text("药品名称") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = item.dose,
+                                        onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
+                                        label = { Text("剂量") },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    OutlinedTextField(
+                                        value = item.freq,
+                                        onValueChange = { medItems = medItems.updateAt(index) { copy(freq = it) } },
+                                        label = { Text("频次") },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                OutlinedTextField(
+                                    value = item.duration,
+                                    onValueChange = { medItems = medItems.updateAt(index) { copy(duration = it) } },
+                                    label = { Text("疗程（可选）") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
-                            OutlinedTextField(
-                                value = item.name,
-                                onValueChange = { medItems = medItems.updateAt(index) { copy(name = it) } },
-                                label = { Text("名称") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            OutlinedTextField(
-                                value = item.dose,
-                                onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
-                                label = { Text("剂量（如 0.5g）") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            OutlinedTextField(
-                                value = item.freq,
-                                onValueChange = { medItems = medItems.updateAt(index) { copy(freq = it) } },
-                                label = { Text("频次（如 每日3次）") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            OutlinedTextField(
-                                value = item.duration,
-                                onValueChange = { medItems = medItems.updateAt(index) { copy(duration = it) } },
-                                label = { Text("疗程（如 7天）") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
                         }
                     }
-                }
-                OutlinedButton(
-                    onClick = { medItems = medItems + MedicationItem() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("添加药品")
+                    Button(
+                        onClick = { medItems = medItems + MedicationItem() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("添加药品")
+                    }
                 }
             }
 
@@ -464,9 +442,15 @@ fun AddMedicalRecordScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 val canSave = selectedMemberId != null
+                OutlinedButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("取消")
+                }
                 Button(
                     onClick = {
                         val selectedMember = members.firstOrNull { it.id == selectedMemberId }
@@ -527,13 +511,6 @@ fun AddMedicalRecordScreen(
                     enabled = canSave
                 ) {
                     Text("保存")
-                }
-
-                OutlinedButton(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("取消")
                 }
             }
         }
