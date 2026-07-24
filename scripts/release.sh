@@ -1,24 +1,23 @@
 #!/usr/bin/env bash
 #
 # MedTrace 发版脚本
-# 用法: ./scripts/release.sh <版本名> <versionCode> [product仓路径]
-# 例:   ./scripts/release.sh v3.2.4 20 ../product
+# 用法: ./scripts/release.sh <版本名> <versionCode>
+# 例:   ./scripts/release.sh v3.7.0 28
 #
 # 做的事:
 #   1. 强制从 dev 分支构建（禁止在 master 上直接发版，防止污染稳定基板）
 #   2. clean + assembleRelease，杜绝 Gradle UP-TO-DATE 缓存导致的旧包
 #   3. aapt 校验产物 versionName/versionCode 与预期一致，不一致直接失败
-#   4. 复制到 product 仓（若提供路径）并提示后续手动发 GitHub Release
+#   4. 提示后续手动创建 GitHub Release 并上传 APK
 #
 set -euo pipefail
 
 VERSION_NAME="${1:-}"
 VERSION_CODE="${2:-}"
-PRODUCT_DIR="${3:-}"
 
 if [[ -z "$VERSION_NAME" || -z "$VERSION_CODE" ]]; then
-  echo "用法: $0 <版本名> <versionCode> [product仓路径]" >&2
-  echo "例:   $0 v3.2.4 20 ../product" >&2
+  echo "用法: $0 <版本名> <versionCode>" >&2
+  echo "例:   $0 v3.7.0 28" >&2
   exit 1
 fi
 
@@ -78,24 +77,12 @@ if [[ "$ACTUAL_CODE" != "$VERSION_CODE" ]]; then
 fi
 echo ">> 版本校验通过: $ACTUAL_NAME (code $ACTUAL_CODE)"
 
-# ---- 5. 复制到 product 仓 ----
-if [[ -n "$PRODUCT_DIR" ]]; then
-  DEST_DIR="$PRODUCT_DIR/MedTrace"
-  if [[ ! -d "$DEST_DIR" ]]; then
-    echo "错误: product 仓 MedTrace 目录不存在: $DEST_DIR" >&2
-    exit 1
-  fi
-  DEST="$DEST_DIR/MedTrace-$ACTUAL_NAME.apk"
-  cp "$APK" "$DEST"
-  echo ">> 已复制到: $DEST"
-  echo ">> 提醒: 请到 product 仓 git add/commit/push，并手动在 GitHub 创建 Release。"
-else
-  echo ">> 未提供 product 仓路径，APK 位于: $APK"
-fi
-
 echo ""
 echo "发版产物就绪: $ACTUAL_NAME (code $ACTUAL_CODE)"
+echo "APK 位置: $APK"
+echo ""
 echo "后续步骤:"
 echo "  1. git tag $ACTUAL_NAME && git push origin $ACTUAL_NAME"
-echo "  2. 在 medtrace 源码仓与 product 仓分别创建 GitHub Release 并上传 APK"
-echo "  3. 更新三个 README 的版本号"
+echo "  2. 创建 GitHub Release 并上传 APK:"
+echo "     gh release create $ACTUAL_NAME $APK --title \"医迹 $ACTUAL_NAME\" --notes \"发布说明\""
+echo "  3. 更新 README 版本号"
