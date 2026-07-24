@@ -159,7 +159,8 @@ fun HomeScreen(
                                         Text(
                                             age?.let { "${member.relation} · ${it}岁" } ?: member.relation,
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = content.copy(alpha = 0.8f)
+                                            color = content.copy(alpha = 0.8f),
+                                            maxLines = 1
                                         )
                                     }
                                 }
@@ -208,7 +209,7 @@ fun HomeScreen(
                                 ) {
                                     Icon(Icons.Default.Add, "添加家人", tint = Primary, modifier = Modifier.size(20.dp))
                                 }
-                                Text("添加家人", color = Primary)
+                                Text("添加家人", color = Primary, maxLines = 1)
                             }
                         }
                     }
