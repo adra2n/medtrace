@@ -67,7 +67,7 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 用户信息卡片
+            // 个人信息卡片
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
@@ -77,8 +77,10 @@ fun ProfileScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // 头像和名称（左对齐）
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -88,14 +90,14 @@ fun ProfileScreen(
                             val (bg, content) = memberCardColors(defaultMember!!.relation, defaultMember!!.gender)
                             MemberAvatar(
                                 member = defaultMember!!,
-                                size = 64.dp,
+                                size = 56.dp,
                                 fallbackBackground = bg,
                                 fallbackContent = content
                             )
                         } else {
                             Box(
                                 modifier = Modifier
-                                    .size(64.dp)
+                                    .size(56.dp)
                                     .clip(CircleShape)
                                     .background(Primary.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
@@ -103,36 +105,21 @@ fun ProfileScreen(
                                 Icon(
                                     Icons.Default.Person,
                                     contentDescription = null,
-                                    modifier = Modifier.size(32.dp),
+                                    modifier = Modifier.size(28.dp),
                                     tint = Primary
                                 )
                             }
                         }
-                        Column {
-                            Text(
-                                defaultMember?.name ?: "我的医迹",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            if (defaultMember != null) {
-                                Text(
-                                    "${defaultMember!!.relation} · 版本 $appVersion",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            } else {
-                                Text(
-                                    "版本 $appVersion",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                        Text(
+                            defaultMember?.name ?: "我的医迹",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-                    // 数据统计
-                    Spacer(Modifier.height(16.dp))
-                    HorizontalDivider()
-                    Spacer(Modifier.height(12.dp))
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    // 数据统计（居中）
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
@@ -144,37 +131,114 @@ fun ProfileScreen(
                 }
             }
 
-            // 功能菜单
-            ProfileMenuGroup {
+            // 设置
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
                 ProfileMenuItem(
                     icon = Icons.Default.Settings,
                     title = "设置",
                     subtitle = "隐私、备份与偏好",
                     onClick = { navController.navigate(Screen.Settings.route) }
                 )
+            }
+
+            // 帮助与支持
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    ProfileMenuItem(
+                        icon = Icons.Default.Help,
+                        title = "帮助中心",
+                        subtitle = "使用说明与常见问题",
+                        onClick = { }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                    ProfileMenuItem(
+                        icon = Icons.Default.Feedback,
+                        title = "意见反馈",
+                        subtitle = "提交建议或问题",
+                        onClick = {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                                data = android.net.Uri.parse("mailto:cljkle@163.com")
+                                putExtra(android.content.Intent.EXTRA_SUBJECT, "医迹意见反馈")
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "发送邮件"))
+                        }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                    ProfileMenuItem(
+                        icon = Icons.Default.RateReview,
+                        title = "给我们评分",
+                        subtitle = "去应用商店评分",
+                        onClick = { }
+                    )
+                }
+            }
+
+            // 法律信息
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    ProfileMenuItem(
+                        icon = Icons.Default.Policy,
+                        title = "隐私政策",
+                        subtitle = "查看隐私政策",
+                        onClick = { }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                    ProfileMenuItem(
+                        icon = Icons.Default.Description,
+                        title = "用户协议",
+                        subtitle = "查看用户协议",
+                        onClick = { }
+                    )
+                }
+            }
+
+            // 关于
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
                 ProfileMenuItem(
-                    icon = Icons.Default.MedicalInformation,
-                    title = "医疗记录",
-                    subtitle = "查看病历档案",
-                    onClick = { navController.navigate("medical_records") }
+                    icon = Icons.Default.Info,
+                    title = "关于",
+                    subtitle = "版本 $appVersion",
+                    onClick = { }
                 )
-                ProfileMenuItem(
-                    icon = Icons.Default.InsertChart,
-                    title = "健康趋势",
-                    subtitle = "长期指标追踪",
-                    onClick = { navController.navigate("trends") }
+            }
+
+            // 版权信息
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "医迹 MedTrace",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                ProfileMenuItem(
-                    icon = Icons.Default.Notifications,
-                    title = "提醒管理",
-                    subtitle = "服药、复查提醒",
-                    onClick = { navController.navigate(Screen.Reminders.route) }
-                )
-                ProfileMenuItem(
-                    icon = Icons.Default.People,
-                    title = "家庭成员",
-                    subtitle = "管理家人档案",
-                    onClick = { navController.navigate(Screen.Family.route) }
+                Text(
+                    text = "© 2026 天津市津南区亦阳智创软件开发工作室",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

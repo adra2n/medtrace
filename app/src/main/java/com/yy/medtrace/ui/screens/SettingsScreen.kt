@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -18,6 +19,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import kotlinx.coroutines.Dispatchers
 import androidx.activity.result.contract.ActivityResultContracts
@@ -323,134 +329,113 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // AI 识别设置
-            SettingsSection(title = "AI 识别设置") {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "配置你自己的 OpenAI 兼容大模型（Base URL / Key / 模型名）。密钥仅保存在本机。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    OutlinedTextField(
-                        value = llmBaseUrl,
-                        onValueChange = { llmBaseUrl = it },
-                        label = { Text("API Base URL（如 https://api.openai.com/v1）") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = llmApiKey,
-                        onValueChange = { llmApiKey = it },
-                        label = { Text("API Key") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showApiKey = !showApiKey }) {
-                                Icon(
-                                    imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (showApiKey) "隐藏 Key" else "显示 Key"
-                                )
-                            }
-                        }
-                    )
-                    OutlinedTextField(
-                        value = llmModel,
-                        onValueChange = { llmModel = it },
-                        label = { Text("模型名（如 gpt-4o）") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                }
-            }
-
-            SettingsSection(title = "外观设置") {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    SettingsRow(
-                        label = "深色模式",
-                        trailing = {
-                            Switch(
-                                checked = darkMode,
-                                onCheckedChange = { isChecked ->
-                                    darkMode = isChecked
-                                    // 即时预览：切换即落库，MainActivity 的主题 Flow 会重新收集并应用。
-                                    scope.launch {
-                                        database.userSettingsDao()
-                                            .insertOrUpdate((settings ?: UserSettings()).copy(darkMode = isChecked))
-                                    }
-                                }
-                            )
-                        }
-                    )
-                }
-            }
-
-            SettingsSection(title = "安全") {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text(
-                        "开启应用锁后，每次进入或回到医迹都需要验证身份，保护你的家庭医疗数据。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    SettingsRow(
-                        label = "应用锁（指纹 / 面容 / PIN）",
-                        trailing = {
-                            Switch(
-                                checked = appLockEnabled,
-                                onCheckedChange = { checked ->
-                                    if (checked) {
-                                        activity?.let {
-                                            BiometricHelper.authenticate(
-                                                activity = it,
-                                                onSuccess = { appLockEnabled = true },
-                                                onError = { msg -> backupError = "验证失败：$msg" }
-                                            )
-                                        }
-                                    } else {
-                                        appLockEnabled = false
-                                    }
-                                }
-                            )
-                        }
-                    )
-
-                    if (appLockEnabled) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("自动锁定", style = MaterialTheme.typography.labelMedium)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                val options = listOf(0 to "立即", 60 to "1 分钟后", 300 to "5 分钟后")
-                                options.forEach { (sec, label) ->
-                                    FilterChip(
-                                        selected = autoLockSeconds == sec,
-                                        onClick = { autoLockSeconds = sec },
-                                        label = { Text(label) }
-                                    )
-                                }
-                            }
-                        }
-
+            // 🎨 外观设置
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    SectionHeader(icon = Icons.Default.Settings, title = "外观")
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                         SettingsRow(
-                            label = "PIN 备用密码",
+                            label = "深色模式",
                             trailing = {
-                                TextButton(onClick = { showPinDialog = true }) {
-                                    Text(if (pinSet) "清除" else "设置")
-                                }
+                                Switch(
+                                    checked = darkMode,
+                                    onCheckedChange = { isChecked ->
+                                        darkMode = isChecked
+                                        scope.launch {
+                                            database.userSettingsDao()
+                                                .insertOrUpdate((settings ?: UserSettings()).copy(darkMode = isChecked))
+                                        }
+                                    }
+                                )
                             }
                         )
                     }
+                }
+            }
 
-                    SettingsRow(
-                        label = "阻止截屏与录屏",
-                        trailing = {
-                            Switch(
-                                checked = secureScreen,
-                                onCheckedChange = { checked ->
-                                    secureScreen = checked
+            // 🔒 安全与锁屏
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    SectionHeader(icon = Icons.Default.Lock, title = "安全与锁屏")
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            "开启应用锁后，每次进入或回到医迹都需要验证身份，保护你的家庭医疗数据。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        SettingsRow(
+                            label = "应用锁（指纹 / 面容 / PIN）",
+                            trailing = {
+                                Switch(
+                                    checked = appLockEnabled,
+                                    onCheckedChange = { checked ->
+                                        if (checked) {
+                                            activity?.let {
+                                                BiometricHelper.authenticate(
+                                                    activity = it,
+                                                    onSuccess = { appLockEnabled = true },
+                                                    onError = { msg -> backupError = "验证失败：$msg" }
+                                                )
+                                            }
+                                        } else {
+                                            appLockEnabled = false
+                                        }
+                                    }
+                                )
+                            }
+                        )
+
+                        if (appLockEnabled) {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("自动锁定", style = MaterialTheme.typography.labelMedium)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    val options = listOf(0 to "立即", 60 to "1 分钟后", 300 to "5 分钟后")
+                                    options.forEach { (sec, label) ->
+                                        FilterChip(
+                                            selected = autoLockSeconds == sec,
+                                            onClick = { autoLockSeconds = sec },
+                                            label = { Text(label) }
+                                        )
+                                    }
+                                }
+                            }
+
+                            SettingsRow(
+                                label = "PIN 备用密码",
+                                trailing = {
+                                    TextButton(onClick = { showPinDialog = true }) {
+                                        Text(if (pinSet) "清除" else "设置")
+                                    }
                                 }
                             )
                         }
-                    )
+
+                        SettingsRow(
+                            label = "阻止截屏与录屏",
+                            trailing = {
+                                Switch(
+                                    checked = secureScreen,
+                                    onCheckedChange = { checked ->
+                                        secureScreen = checked
+                                    }
+                                )
+                            }
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
                 }
             }
 
@@ -473,125 +458,199 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSection(title = "数据备份与恢复") {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "将家庭成员与医疗记录导出为文件，或导入此前导出的备份恢复数据。可设置加密密码对备份加密，并同步到 GitHub Gist。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    OutlinedTextField(
-                        value = githubToken,
-                        onValueChange = { githubToken = it },
-                        label = { Text("GitHub Token（需 gist 权限）") },
-                        singleLine = true,
-                        visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showToken = !showToken }) {
-                                Icon(
-                                    imageVector = if (showToken) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (showToken) "隐藏 Token" else "显示 Token"
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = encryptPassword,
-                        onValueChange = { encryptPassword = it },
-                        label = { Text("加密密码（留空则不加密）") },
-                        singleLine = true,
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showPassword = !showPassword }) {
-                                Icon(
-                                    imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (showPassword) "隐藏密码" else "显示密码"
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // ☁️ 数据备份与同步
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    SectionHeader(icon = Icons.Default.Cloud, title = "数据备份与同步")
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        Text(
+                            "将家庭成员与医疗记录导出为文件，或导入此前导出的备份恢复数据。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        OutlinedTextField(
+                            value = githubToken,
+                            onValueChange = { githubToken = it },
+                            label = { Text("GitHub Token（需 gist 权限）") },
+                            singleLine = true,
+                            visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { showToken = !showToken }) {
+                                    Icon(
+                                        imageVector = if (showToken) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                        contentDescription = if (showToken) "隐藏 Token" else "显示 Token"
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = encryptPassword,
+                            onValueChange = { encryptPassword = it },
+                            label = { Text("加密密码（留空则不加密）") },
+                            singleLine = true,
+                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { showPassword = !showPassword }) {
+                                    Icon(
+                                        imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                        contentDescription = if (showPassword) "隐藏密码" else "显示密码"
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    val time = java.time.LocalDateTime.now()
+                                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                                    exportLauncher.launch("chiyaole_backup_$time.json")
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("导出备份") }
+                            OutlinedButton(
+                                onClick = { showImportConfirm = true },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("导入恢复") }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { syncToGist() },
+                                enabled = !busy,
+                                modifier = Modifier.weight(1f)
+                            ) { Text(if (existingGistId != null) "更新到 Gist" else "同步到 Gist") }
+                            OutlinedButton(
+                                onClick = { restoreFromGist() },
+                                enabled = !busy && existingGistId != null,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("从 Gist 恢复") }
+                        }
+
                         OutlinedButton(
                             onClick = {
-                                val time = java.time.LocalDateTime.now()
-                                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                                exportLauncher.launch("chiyaole_backup_$time.json")
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) { Text("导出备份") }
-                        OutlinedButton(
-                            onClick = { showImportConfirm = true },
-                            modifier = Modifier.weight(1f)
-                        ) { Text("导入恢复") }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { syncToGist() },
-                            enabled = !busy,
-                            modifier = Modifier.weight(1f)
-                        ) { Text(if (existingGistId != null) "更新到 Gist" else "同步到 Gist") }
-                        OutlinedButton(
-                            onClick = { restoreFromGist() },
-                            enabled = !busy && existingGistId != null,
-                            modifier = Modifier.weight(1f)
-                        ) { Text("从 Gist 恢复") }
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            scope.launch {
-                                try {
-                                    val csv = buildRecordsCsv(database)
-                                    withContext(Dispatchers.Main) {
-                                        context.startActivity(
-                                            Intent.createChooser(
-                                                shareCsvIntent(context, csv),
-                                                "导出医疗记录 CSV"
+                                scope.launch {
+                                    try {
+                                        val csv = buildRecordsCsv(database)
+                                        withContext(Dispatchers.Main) {
+                                            context.startActivity(
+                                                Intent.createChooser(
+                                                    shareCsvIntent(context, csv),
+                                                    "导出医疗记录 CSV"
+                                                )
                                             )
-                                        )
-                                    }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, "CSV 导出失败：${e.message}", Toast.LENGTH_LONG).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "CSV 导出失败：${e.message}", Toast.LENGTH_LONG).show()
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("导出 CSV 报告") }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("导出 CSV 报告") }
+                    }
+                    Spacer(Modifier.height(16.dp))
                 }
             }
 
-            SettingsSection(title = "关于") {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "医迹",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        "家庭医疗记录管理工具：拍照/粘贴即可用 AI 提取诊断、用药与医院信息，按家庭成员归类管理。",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "版本 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            // 🤖 AI 配置
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    SectionHeader(icon = Icons.Default.SmartToy, title = "AI 配置")
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            "配置你自己的 OpenAI 兼容大模型（Base URL / Key / 模型名）。密钥仅保存在本机。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedTextField(
+                            value = llmBaseUrl,
+                            onValueChange = { llmBaseUrl = it },
+                            label = { Text("API Base URL") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = llmApiKey,
+                            onValueChange = { llmApiKey = it },
+                            label = { Text("API Key") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { showApiKey = !showApiKey }) {
+                                    Icon(
+                                        imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                        contentDescription = if (showApiKey) "隐藏 Key" else "显示 Key"
+                                    )
+                                }
+                            }
+                        )
+                        OutlinedTextField(
+                            value = llmModel,
+                            onValueChange = { llmModel = it },
+                            label = { Text("模型名（如 gpt-4o）") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
                 }
             }
+
         }
+    }
+}
+
+@Composable
+fun SectionHeader(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 

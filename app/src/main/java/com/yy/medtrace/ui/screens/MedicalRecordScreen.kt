@@ -488,18 +488,18 @@ private fun MedicalRecordCard(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // 诊断信息（突出显示）
+                // 诊断信息
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.MedicalServices,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
                         text = record.diagnosis,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
