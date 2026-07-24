@@ -186,7 +186,7 @@ fun HomeScreen(
                     item {
                         Card(
                             modifier = Modifier
-                                .width(140.dp)
+                                .width(150.dp)
                                 .clickable { showAddDialog = true },
                             shape = AppShapes.large,
                             colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
