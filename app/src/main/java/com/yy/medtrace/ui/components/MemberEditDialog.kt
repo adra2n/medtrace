@@ -74,14 +74,20 @@ fun MemberEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (member == null) "新增家庭成员" else "编辑家庭成员") },
+        title = {
+            Text(
+                if (member == null) "新增家庭成员" else "编辑家庭成员",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
         text = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // 头像选择
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -112,16 +118,28 @@ fun MemberEditDialog(
                         Text("点击选择头像", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+
+                // 基本信息分组
+                DialogSectionTitle("👤 基本信息")
                 OutlinedTextField(name, { name = it }, label = { Text("姓名 *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(relation, { relation = it }, label = { Text("关系（如 本人/父亲/子女）") }, singleLine = true, modifier = Modifier.fillMaxWidth())
 
-                DialogSectionTitle("性别")
+                // 个人资料分组
+                DialogSectionTitle("🎂 个人资料")
+                Text("性别", style = MaterialTheme.typography.bodyMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     GENDER_OPTIONS.forEach { g ->
                         FilterChip(
                             selected = gender == g,
                             onClick = { gender = if (gender == g) "" else g },
-                            label = { Text(g) }
+                            label = {
+                                val icon = when(g) {
+                                    "男" -> "♂"
+                                    "女" -> "♀"
+                                    else -> "⚧"
+                                }
+                                Text("$icon $g")
+                            }
                         )
                     }
                 }
@@ -176,11 +194,16 @@ fun MemberEditDialog(
                         DatePicker(state = datePickerState)
                     }
                 }
-                DialogSectionTitle("血型与医疗信息")
+
+                // 健康信息分组
+                DialogSectionTitle("🏥 健康信息")
                 PresetField("血型", bloodType, { bloodType = it }, BLOOD_PRESETS, onPick = { bloodType = it })
                 PresetField("过敏史", allergy, { allergy = it }, ALLERGY_PRESETS, onPick = { allergy = appendCsv(allergy, it) })
                 PresetField("慢性病", chronic, { chronic = it }, CHRONIC_PRESETS, onPick = { chronic = appendCsv(chronic, it) })
                 PresetField("用药注意", medicationNote, { medicationNote = it }, MEDICATION_PRESETS, onPick = { medicationNote = appendCsv(medicationNote, it) })
+
+                // 备注分组
+                DialogSectionTitle("📝 备注")
                 OutlinedTextField(otherNote, { otherNote = it }, label = { Text("其他备注") }, singleLine = false, maxLines = 3, modifier = Modifier.fillMaxWidth())
             }
         },

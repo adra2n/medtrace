@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MedicalServices
@@ -104,7 +105,8 @@ fun MedicalRecordScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "医疗记录"
+                title = "医疗记录",
+                subtitle = if (records.isNotEmpty()) "共 ${records.size} 条记录" else null
             )
         },
         floatingActionButton = {
@@ -122,6 +124,7 @@ fun MedicalRecordScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 成员选择
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -161,59 +164,110 @@ fun MedicalRecordScreen(
                 }
             }
 
+            // 搜索筛选
             item {
-                Column(
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    shape = AppShapes.large,
+                    colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                    elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
                 ) {
-                    OutlinedTextField(
-                        value = keyword,
-                        onValueChange = { keyword = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("搜索诊断 / 医院 / 备注") },
-                        singleLine = true,
-                        trailingIcon = {
-                            if (keyword.isNotEmpty()) {
-                                IconButton(onClick = { keyword = "" }) {
-                                    Icon(Icons.Default.Close, "清除")
-                                }
-                            }
-                        },
-                        leadingIcon = { Icon(Icons.Default.Search, "搜索") }
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        FilterDateChip(
-                            label = "起始",
-                            value = fromDate?.format(dayFormatter),
-                            onClick = {
-                                datePickerTarget = DateTarget.From
-                                showDatePicker = true
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "搜索与筛选",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        OutlinedTextField(
+                            value = keyword,
+                            onValueChange = { keyword = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("搜索诊断 / 医院 / 备注") },
+                            singleLine = true,
+                            trailingIcon = {
+                                if (keyword.isNotEmpty()) {
+                                    IconButton(onClick = { keyword = "" }) {
+                                        Icon(Icons.Default.Close, "清除")
+                                    }
+                                }
                             },
-                            modifier = Modifier.weight(1f)
+                            leadingIcon = { Icon(Icons.Default.Search, "搜索") }
                         )
-                        FilterDateChip(
-                            label = "结束",
-                            value = toDate?.format(dayFormatter),
-                            onClick = {
-                                datePickerTarget = DateTarget.To
-                                showDatePicker = true
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (keyword.isNotEmpty() || fromDate != null || toDate != null) {
-                            TextButton(onClick = {
-                                keyword = ""
-                                fromDate = null
-                                toDate = null
-                            }) { Text("重置") }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterDateChip(
+                                label = "起始",
+                                value = fromDate?.format(dayFormatter),
+                                onClick = {
+                                    datePickerTarget = DateTarget.From
+                                    showDatePicker = true
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilterDateChip(
+                                label = "结束",
+                                value = toDate?.format(dayFormatter),
+                                onClick = {
+                                    datePickerTarget = DateTarget.To
+                                    showDatePicker = true
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (keyword.isNotEmpty() || fromDate != null || toDate != null) {
+                                TextButton(onClick = {
+                                    keyword = ""
+                                    fromDate = null
+                                    toDate = null
+                                }) { Text("重置") }
+                            }
                         }
                     }
                 }
             }
 
+            // 记录列表标题
+            if (records.isNotEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.MedicalServices,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "记录列表",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            // 记录列表
             if (error != null) {
                 item {
                     Box(
@@ -232,6 +286,9 @@ fun MedicalRecordScreen(
                         } else {
                             "该成员还没有医疗记录"
                         },
+                        hint = if (keyword.isEmpty() && fromDate == null && toDate == null) {
+                            "点击右下角按钮添加第一条记录"
+                        } else null,
                         modifier = Modifier.padding(top = 32.dp)
                     )
                 }
@@ -247,70 +304,148 @@ fun MedicalRecordScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // 成员名称和操作按钮
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = record.patientName,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.People,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = record.patientName,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
                                 Row {
-                                    IconButton(
-                                        onClick = { navController.navigate("add_record/${record.id}") }
+                                    TextButton(
+                                        onClick = { navController.navigate("add_record/${record.id}") },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                        modifier = Modifier.height(32.dp)
                                     ) {
-                                        Icon(Icons.Default.Edit, "编辑")
+                                        Icon(Icons.Default.Edit, "编辑", modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("编辑")
                                     }
-                                    IconButton(
-                                        onClick = { pendingDelete = record }
+                                    TextButton(
+                                        onClick = { pendingDelete = record },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                        modifier = Modifier.height(32.dp),
+                                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                                     ) {
-                                        Icon(Icons.Default.Delete, "删除")
+                                        Icon(Icons.Default.Delete, "删除", modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("删除")
                                     }
                                 }
                             }
 
-                            Text(
-                                text = "诊断结果：${record.diagnosis}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                            Text(
-                                text = "就诊时间：${record.onsetTime.format(dateFormatter)}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-
-                            if (record.hospital.isNotBlank()) {
+                            // 诊断信息
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.MedicalServices,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = "就诊医院：${record.hospital}",
-                                    style = MaterialTheme.typography.bodyMedium
+                                    text = record.diagnosis,
+                                    style = MaterialTheme.typography.bodyLarge
                                 )
                             }
 
-                            if (record.medItems.isNotEmpty()) {
-                                Text(
-                                    text = "开具药品：",
-                                    style = MaterialTheme.typography.bodyMedium
+                            // 就诊时间
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.DateRange,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
                                 )
-                                record.medItems.forEach { med ->
-                                    val parts = listOf(med.name, med.dose, med.freq, med.duration)
-                                        .filter { it.isNotBlank() }
-                                        .joinToString(" ")
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = record.onsetTime.format(dateFormatter),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            // 就诊医院
+                            if (record.hospital.isNotBlank()) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
                                     Text(
-                                        text = "· $parts",
+                                        text = record.hospital,
                                         style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.padding(start = 8.dp)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
 
+                            // 开具药品
+                            if (record.medItems.isNotEmpty()) {
+                                Row(verticalAlignment = Alignment.Top) {
+                                    Icon(
+                                        Icons.Default.MedicalServices,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = "开具药品",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        record.medItems.forEach { med ->
+                                            val parts = listOf(med.name, med.dose, med.freq, med.duration)
+                                                .filter { it.isNotBlank() }
+                                                .joinToString(" ")
+                                            Text(
+                                                text = "· $parts",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 备注
                             if (record.notes.isNotBlank()) {
-                                Text(
-                                    text = "备注：${record.notes}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                Row(verticalAlignment = Alignment.Top) {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = record.notes,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
