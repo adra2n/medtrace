@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -232,8 +233,18 @@ fun AddMedicalRecordScreen(
             }
 
             // AI 智能识别区
-            SectionCard(title = "AI 智能识别") {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.large,
+                colors = CardDefaults.cardColors(containerColor = Primary.copy(alpha = 0.05f)),
+                border = BorderStroke(1.5.dp, Primary.copy(alpha = 0.3f))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
