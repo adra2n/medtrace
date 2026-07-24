@@ -3,6 +3,7 @@ package com.yy.medtrace.viewmodel
 import com.yy.medtrace.TestDispatcherRule
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.repository.MemberRepository
+import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.data.repository.TodoRepository
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
@@ -24,6 +25,9 @@ class HomeViewModelTestWithRule {
     @MockK
     private lateinit var todoRepository: TodoRepository
     
+    @MockK
+    private lateinit var recordRepository: RecordRepository
+    
     private lateinit var viewModel: HomeViewModel
     
     @Before
@@ -32,11 +36,13 @@ class HomeViewModelTestWithRule {
         every { memberRepository.getAllMembers() } returns flowOf(emptyList())
         every { todoRepository.getByDate(any()) } returns flowOf(emptyList())
         coEvery { memberRepository.insert(any()) } returns 1L
+        every { recordRepository.getRecentRecords(any()) } returns flowOf(emptyList())
+        coEvery { recordRepository.countByMembers(any()) } returns emptyList()
     }
     
     @Test
     fun `should create default member when list is empty`() = runTest {
-        viewModel = HomeViewModel(memberRepository, todoRepository)
+        viewModel = HomeViewModel(memberRepository, todoRepository, recordRepository)
         
         // 验证插入默认成员被调用
         coVerify { memberRepository.insert(any()) }
@@ -47,7 +53,7 @@ class HomeViewModelTestWithRule {
         val members = listOf(FamilyMember(name = "测试用户", relation = "本人"))
         every { memberRepository.getAllMembers() } returns flowOf(members)
         
-        viewModel = HomeViewModel(memberRepository, todoRepository)
+        viewModel = HomeViewModel(memberRepository, todoRepository, recordRepository)
         
         // 验证状态更新
         val state = viewModel.uiState.value

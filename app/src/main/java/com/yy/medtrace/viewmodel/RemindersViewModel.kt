@@ -31,9 +31,11 @@ class RemindersViewModel(
             val todosFlow = database.healthTodoDao().getAll()
             combine(membersFlow, todosFlow) { m, t -> m to t }
                 .collect { (m, t) ->
+                    val sorted = t.sortedWith(compareBy({ it.done }, { it.dueDate }))
                     _uiState.update { it.copy(
                         members = m,
-                        todos = t.sortedWith(compareBy({ it.done }, { it.dueDate })),
+                        todos = sorted,
+                        monthlyStats = calculateMonthlyStats(sorted),
                         isLoading = false
                     ) }
                 }
@@ -90,8 +92,57 @@ class RemindersViewModel(
         }
     }
 
+    fun updateTodo(todo: HealthTodo) {
+        viewModelScope.launch {
+            database.healthTodoDao().update(todo)
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    private fun calculateMonthlyStats(todos: List<HealthTodo>): MonthlyStats {
+        val today = LocalDate.now()
+        val monthStart = today.withDayOfMonth(1)
+        val monthEnd = today.withDayOfMonth(today.lengthOfMonth())
+
+        val monthTodos = todos.filter { it.dueDate in monthStart..monthEnd }
+        val completed = monthTodos.count { it.done }
+        val overdue = monthTodos.count { !it.done && it.dueDate.isBefore(today) }
+
+        val completedDays = monthTodos.filter { it.done }.map { it.dueDate }.toSet()
+        val overdueDays = monthTodos.filter { !it.done && it.dueDate.isBefore(today) }.map { it.dueDate }.toSet()
+
+        val streak = calculateStreak(todos)
+
+        return MonthlyStats(
+            total = monthTodos.size,
+            completed = completed,
+            overdue = overdue,
+            completionRate = if (monthTodos.isNotEmpty()) completed.toFloat() / monthTodos.size else 0f,
+            streak = streak,
+            completedDays = completedDays,
+            overdueDays = overdueDays
+        )
+    }
+
+    private fun calculateStreak(todos: List<HealthTodo>): Int {
+        val today = LocalDate.now()
+        var streak = 0
+        var checkDate = today
+
+        while (true) {
+            val dayTodos = todos.filter { it.dueDate == checkDate }
+            if (dayTodos.isEmpty()) break
+            if (dayTodos.all { it.done }) {
+                streak++
+                checkDate = checkDate.minusDays(1)
+            } else {
+                break
+            }
+        }
+        return streak
     }
 
     companion object {
@@ -114,9 +165,20 @@ class RemindersViewModel(
     }
 }
 
+data class MonthlyStats(
+    val total: Int = 0,
+    val completed: Int = 0,
+    val overdue: Int = 0,
+    val completionRate: Float = 0f,
+    val streak: Int = 0,
+    val completedDays: Set<LocalDate> = emptySet(),
+    val overdueDays: Set<LocalDate> = emptySet()
+)
+
 data class RemindersUiState(
     val members: List<FamilyMember> = emptyList(),
     val todos: List<HealthTodo> = emptyList(),
+    val monthlyStats: MonthlyStats = MonthlyStats(),
     val error: String? = null,
     val isLoading: Boolean = false
 )

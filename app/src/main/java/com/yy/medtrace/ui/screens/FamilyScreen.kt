@@ -2,12 +2,6 @@ package com.yy.medtrace.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -16,13 +10,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,21 +24,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
-import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.data.repository.RecordRepository
-import com.yy.medtrace.data.model.CountResult
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
-import com.yy.medtrace.ui.theme.MemberColors
+import com.yy.medtrace.ui.theme.HealthTagColors
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
@@ -54,7 +44,6 @@ import com.yy.medtrace.ui.theme.memberCardColors
 import com.yy.medtrace.ui.components.MemberEditDialog
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -69,43 +58,43 @@ fun FamilyScreen(
     val context = LocalContext.current
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
     var recordCounts by remember { mutableStateOf<Map<Long, Int>>(emptyMap()) }
+    var recentRecordsMap by remember { mutableStateOf<Map<Long, List<com.yy.medtrace.data.model.MedicalRecord>>>(emptyMap()) }
     var showDialog by remember { mutableStateOf(false) }
     var editingMember by remember { mutableStateOf<FamilyMember?>(null) }
     var pendingDelete by remember { mutableStateOf<FamilyMember?>(null) }
-    var selectedMemberId by remember { mutableStateOf<Long?>(null) }
-    var todos by remember { mutableStateOf<List<HealthTodo>>(emptyList()) }
+    var expandedMemberId by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(Unit) {
         database.familyMemberDao().getAllMembers()
             .collectLatest { list -> members = list }
     }
 
-    LaunchedEffect(Unit) {
-        database.healthTodoDao().getAll()
-            .collectLatest { list -> todos = list }
-    }
-
     LaunchedEffect(members) {
         if (members.isEmpty()) {
             recordCounts = emptyMap()
+            recentRecordsMap = emptyMap()
             return@LaunchedEffect
         }
         val memberIds = members.map { it.id }
         val countResults = recordRepository.countByMembers(memberIds)
         recordCounts = countResults.associate { it.patientId to it.count }
+        val recentMap = mutableMapOf<Long, List<com.yy.medtrace.data.model.MedicalRecord>>()
+        members.forEach { member ->
+            recordRepository.getRecentRecordsByMember(member.id, 2).collect { records ->
+                recentMap[member.id] = records
+            }
+        }
+        recentRecordsMap = recentMap
     }
 
-    val today = LocalDate.now()
     val totalMembers = members.size
-    val pendingTodos = todos.count { !it.done }
-    val completedTodos = todos.count { it.done }
-    val overdueTodos = todos.count { !it.done && it.dueDate.isBefore(today) }
-    val completionRate = if (todos.isNotEmpty()) (completedTodos * 100 / todos.size) else 0
+    val recentRecordCount = recordCounts.values.sum()
 
     Scaffold(
         topBar = {
             GradientTopBar(
                 title = "家庭管理",
+                subtitle = "家人健康一目了然",
                 actions = {
                     IconButton(onClick = {
                         editingMember = null
@@ -130,78 +119,43 @@ fun FamilyScreen(
             if (members.isEmpty()) {
                 EmptyFamily()
             } else {
-                // 家庭健康仪表盘
+                // 家庭健康概览
                 HealthDashboard(
-                    totalMembers = totalMembers,
-                    pendingTodos = pendingTodos,
-                    completionRate = completionRate,
-                    overdueTodos = overdueTodos
+                    members = members,
+                    recentRecordCount = recentRecordCount
                 )
 
-                // 成员头像网格
+                // 成员卡片列表
                 Text(
-                    "成员概览",
+                    "成员列表",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
-                MemberAvatarGrid(
-                    members = members,
-                    todos = todos,
-                    selectedMemberId = selectedMemberId,
-                    onSelectMember = { memberId ->
-                        selectedMemberId = if (selectedMemberId == memberId) null else memberId
-                    }
-                )
-
-                // 选中成员的详情卡片
-                selectedMemberId?.let { memberId ->
-                    val member = members.find { it.id == memberId }
-                    val memberTodos = todos.filter { it.memberId == memberId && !it.done }
-                    val recordCount = recordCounts[memberId] ?: 0
-                    if (member != null) {
-                        MemberDetailCard(
-                            member = member,
-                            pendingTodos = memberTodos,
-                            recordCount = recordCount,
-                            onEdit = {
-                                editingMember = member
-                                showDialog = true
-                            },
-                            onDelete = { pendingDelete = member },
-                            onAddRecord = {
-                                scope.launch { SelectedMemberHolder.select(member.id, database) }
-                                navController.navigate("add_record")
-                            },
-                            onViewRecords = {
-                                scope.launch { SelectedMemberHolder.select(member.id, database) }
-                                navController.navigate("member_detail/${member.id}")
-                            }
-                        )
-                    }
-                }
-
-                // 待办事项列表
-                if (todos.any { !it.done }) {
-                    PendingTodosSection(todos = todos.filter { !it.done })
-                }
-
-                // 导出按钮
-                OutlinedButton(
-                    onClick = {
-                        android.widget.Toast.makeText(
-                            context,
-                            "全家健康简报导出功能开发中",
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp, bottom = 16.dp),
-                    contentPadding = PaddingValues(vertical = 12.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("导出全家健康简报")
+                members.forEach { member ->
+                    val recordCount = recordCounts[member.id] ?: 0
+                    val recentRecords = recentRecordsMap[member.id] ?: emptyList()
+                    MemberCard(
+                        member = member,
+                        isExpanded = expandedMemberId == member.id,
+                        recordCount = recordCount,
+                        recentRecords = recentRecords,
+                        onToggleExpand = {
+                            expandedMemberId = if (expandedMemberId == member.id) null else member.id
+                        },
+                        onEdit = {
+                            editingMember = member
+                            showDialog = true
+                        },
+                        onDelete = { pendingDelete = member },
+                        onAddRecord = {
+                            scope.launch { SelectedMemberHolder.select(member.id, database) }
+                            navController.navigate("add_record")
+                        },
+                        onViewRecords = {
+                            scope.launch { SelectedMemberHolder.select(member.id, database) }
+                            navController.navigate("member_detail/${member.id}")
+                        }
+                    )
                 }
             }
         }
@@ -231,13 +185,13 @@ fun FamilyScreen(
                     scope.launch {
                         database.medicalRecordDao().reassignToUnknown(member.id)
                         database.familyMemberDao().deleteById(member.id)
-                        if (SelectedMemberHolder.selectedMemberId.value == member.id) {
+                        if (com.yy.medtrace.ui.state.SelectedMemberHolder.selectedMemberId.value == member.id) {
                             val fallback = database.familyMemberDao().getDefaultMember()?.id
                                 ?: database.familyMemberDao().getAllMembersList().firstOrNull()?.id
                             if (fallback != null) {
-                                SelectedMemberHolder.select(fallback, database)
+                                com.yy.medtrace.ui.state.SelectedMemberHolder.select(fallback, database)
                             } else {
-                                SelectedMemberHolder.selectedMemberId.value = null
+                                com.yy.medtrace.ui.state.SelectedMemberHolder.selectedMemberId.value = null
                             }
                         }
                     }
@@ -252,12 +206,305 @@ fun FamilyScreen(
 }
 
 @Composable
-private fun HealthDashboard(
-    totalMembers: Int,
-    pendingTodos: Int,
-    completionRate: Int,
-    overdueTodos: Int
+private fun EmptyFamily() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(
+            shape = AppShapes.large,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(72.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Filled.People,
+                    contentDescription = null,
+                    modifier = Modifier.size(36.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+        EmptyState(
+            icon = Icons.Default.People,
+            title = "还没有家庭成员",
+            hint = "点击右上角按钮，添加你的第一位家人"
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MemberCard(
+    member: FamilyMember,
+    isExpanded: Boolean,
+    recordCount: Int,
+    recentRecords: List<com.yy.medtrace.data.model.MedicalRecord>,
+    onToggleExpand: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onAddRecord: () -> Unit,
+    onViewRecords: () -> Unit
 ) {
+    val (cardBg, cardContent) = memberCardColors(member.relation, member.gender)
+    val age = computeAge(member.birthday)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = AppShapes.large,
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // 头部：头像 + 基本信息 + 展开按钮
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MemberAvatar(
+                    member = member,
+                    size = if (isExpanded) 48.dp else 36.dp,
+                    fallbackBackground = cardContent.copy(alpha = 0.18f),
+                    fallbackContent = cardContent
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    // 姓名 + 默认标签
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            member.name,
+                            style = if (isExpanded) MaterialTheme.typography.titleMedium
+                                   else MaterialTheme.typography.bodyMedium,
+                            color = cardContent,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (member.isDefault) {
+                            Spacer(Modifier.width(6.dp))
+                            Surface(
+                                shape = AppShapes.small,
+                                color = cardContent.copy(alpha = 0.18f)
+                            ) {
+                                Text(
+                                    "默认",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = cardContent,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    // 关系 · 年龄（收起状态）
+                    if (!isExpanded) {
+                        val sub = buildList {
+                            if (member.relation.isNotBlank()) add(member.relation)
+                            age?.let { add("${it}岁") }
+                        }.joinToString(" · ")
+                        if (sub.isNotBlank()) {
+                            Text(
+                                sub,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = cardContent.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                    // 关系 · 年龄 · 性别 · 血型（展开状态）
+                    if (isExpanded) {
+                        val sub = buildList {
+                            if (member.relation.isNotBlank()) add(member.relation)
+                            age?.let { add("${it}岁") }
+                            if (member.gender.isNotBlank()) add(member.gender)
+                            if (member.bloodType.isNotBlank()) add("${member.bloodType}型")
+                        }.joinToString(" · ")
+                        if (sub.isNotBlank()) {
+                            Text(
+                                sub,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = cardContent.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+                // 展开/收起按钮
+                IconButton(onClick = onToggleExpand) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess
+                                     else Icons.Default.ExpandMore,
+                        contentDescription = if (isExpanded) "收起" else "展开",
+                        tint = cardContent.copy(alpha = 0.6f)
+                    )
+                }
+            }
+
+            // 健康标签（收起状态）
+            if (!isExpanded) {
+                val healthTags = buildList {
+                    member.allergy.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                        .forEach { add("过敏: $it") }
+                    member.chronic.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                        .forEach { add(it) }
+                }
+                if (healthTags.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        healthTags.forEach { tag ->
+                            val isAllergy = tag.startsWith("过敏:")
+                            Surface(
+                                shape = AppShapes.small,
+                                color = if (isAllergy) HealthTagColors.AllergyBg
+                                       else HealthTagColors.ChronicBg
+                            ) {
+                                Text(
+                                    tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isAllergy) HealthTagColors.AllergyContent
+                                           else HealthTagColors.ChronicContent,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 展开状态的内容
+            if (isExpanded) {
+                // 健康详情表格
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (member.allergy.isNotBlank()) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                "过敏",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = cardContent,
+                                modifier = Modifier.width(56.dp)
+                            )
+                            Text(
+                                member.allergy,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = cardContent.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                    if (member.chronic.isNotBlank()) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                "慢性病",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = cardContent,
+                                modifier = Modifier.width(56.dp)
+                            )
+                            Text(
+                                member.chronic,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = cardContent.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                    if (member.medicationNote.isNotBlank()) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                "用药",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = cardContent,
+                                modifier = Modifier.width(56.dp)
+                            )
+                            Text(
+                                member.medicationNote,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = cardContent.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+
+                // 最近就诊记录
+                if (recentRecords.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "最近就诊",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = cardContent
+                        )
+                        recentRecords.take(2).forEach { record ->
+                            Text(
+                                "${record.onsetTime.format(DateTimeFormatter.ofPattern("MM-dd"))} ${record.diagnosis}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = cardContent.copy(alpha = 0.8f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                // 统计信息 + 操作按钮（一行）
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "记录 $recordCount",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = cardContent.copy(alpha = 0.7f)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = "编辑", modifier = Modifier.size(16.dp), tint = cardContent)
+                        }
+                        IconButton(
+                            onClick = onAddRecord,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "添加记录", modifier = Modifier.size(16.dp), tint = cardContent)
+                        }
+                        IconButton(
+                            onClick = onViewRecords,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(Icons.Default.FavoriteBorder, contentDescription = "查看病历", modifier = Modifier.size(16.dp), tint = cardContent)
+                        }
+                    }
+                }
+
+                // 删除按钮
+                TextButton(
+                    onClick = onDelete,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 4.dp)
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("删除成员", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HealthDashboard(
+    members: List<FamilyMember>,
+    recentRecordCount: Int
+) {
+    val chronicCount = members.count { it.chronic.isNotBlank() }
+    val allergyCount = members.count { it.allergy.isNotBlank() }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = AppShapes.large,
@@ -266,7 +513,7 @@ private fun HealthDashboard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "家庭健康仪表盘",
+                "家庭健康概览",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
@@ -277,30 +524,30 @@ private fun HealthDashboard(
             ) {
                 StatCard(
                     icon = "👥",
-                    value = "$totalMembers",
+                    value = "${members.size}",
                     label = "成员",
                     color = Primary,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    icon = "📋",
-                    value = "$pendingTodos",
-                    label = "待办",
+                    icon = "🏥",
+                    value = "$chronicCount",
+                    label = "慢性病",
                     color = Color(0xFFFF9800),
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    icon = "✅",
-                    value = "$completionRate%",
-                    label = "完成",
-                    color = Color(0xFF4CAF50),
+                    icon = "⚠️",
+                    value = "$allergyCount",
+                    label = "过敏",
+                    color = if (allergyCount > 0) MaterialTheme.colorScheme.error else Color(0xFF9E9E9E),
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
-                    icon = "⚠️",
-                    value = "$overdueTodos",
-                    label = "逾期",
-                    color = if (overdueTodos > 0) MaterialTheme.colorScheme.error else Color(0xFF9E9E9E),
+                    icon = "📋",
+                    value = "$recentRecordCount",
+                    label = "本月记录",
+                    color = Color(0xFF4CAF50),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -341,413 +588,3 @@ private fun StatCard(
         }
     }
 }
-
-@Composable
-private fun MemberAvatarGrid(
-    members: List<FamilyMember>,
-    todos: List<HealthTodo>,
-    selectedMemberId: Long?,
-    onSelectMember: (Long) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        members.forEach { member ->
-            val memberTodos = todos.filter { it.memberId == member.id && !it.done }
-            val overdueCount = memberTodos.count { it.dueDate.isBefore(LocalDate.now()) }
-            val isSelected = selectedMemberId == member.id
-            val (cardBg, cardContent) = memberCardColors(member.relation, member.gender)
-
-            Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onSelectMember(member.id) },
-                shape = AppShapes.medium,
-                color = if (isSelected) Primary.copy(alpha = 0.15f) else cardBg,
-                border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, Primary) else null
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    MemberAvatar(
-                        member = member,
-                        size = 48.dp,
-                        fallbackBackground = cardContent.copy(alpha = 0.18f),
-                        fallbackContent = cardContent
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        member.name,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Surface(
-                        shape = CircleShape,
-                        color = if (overdueCount > 0) MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                        else Color(0xFF4CAF50).copy(alpha = 0.1f)
-                    ) {
-                        Text(
-                            "${memberTodos.size}待办",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (overdueCount > 0) MaterialTheme.colorScheme.error else Color(0xFF4CAF50),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                    }
-                    if (overdueCount > 0) {
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            "$overdueCount 逾期",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun MemberDetailCard(
-    member: FamilyMember,
-    pendingTodos: List<HealthTodo>,
-    recordCount: Int,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onAddRecord: () -> Unit,
-    onViewRecords: () -> Unit
-) {
-    val healthTags = buildList {
-        member.allergy.split(",").map { it.trim() }.filter { it.isNotBlank() }
-            .forEach { add("过敏 · $it") }
-        member.chronic.split(",").map { it.trim() }.filter { it.isNotBlank() }
-            .forEach { add("慢性病 · $it") }
-        member.medicationNote.split(",").map { it.trim() }.filter { it.isNotBlank() }
-            .forEach { add("用药 · $it") }
-    }
-
-    val (cardBg, cardContent) = memberCardColors(member.relation, member.gender)
-    val age = computeAge(member.birthday)
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
-        shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // 头部：头像 + 基本信息
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                MemberAvatar(
-                    member = member,
-                    size = 56.dp,
-                    fallbackBackground = cardContent.copy(alpha = 0.18f),
-                    fallbackContent = cardContent
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            member.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = cardContent,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        if (member.isDefault) {
-                            Spacer(Modifier.width(6.dp))
-                            Surface(
-                                shape = AppShapes.small,
-                                color = cardContent.copy(alpha = 0.18f)
-                            ) {
-                                Text(
-                                    "默认",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = cardContent,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
-                    val sub = buildList {
-                        if (member.relation.isNotBlank()) add(member.relation)
-                        age?.let { add("${it}岁") }
-                        if (member.gender.isNotBlank()) add(member.gender)
-                        if (member.bloodType.isNotBlank()) add("${member.bloodType}型")
-                    }.joinToString(" · ")
-                    if (sub.isNotBlank()) {
-                        Text(
-                            sub,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = cardContent.copy(alpha = 0.8f)
-                        )
-                    }
-                }
-            }
-
-            // 健康标签
-            if (healthTags.isNotEmpty()) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    healthTags.forEach { tag ->
-                        val abnormal = tag.contains("偏高") || tag.contains("异常")
-                        Surface(
-                            shape = AppShapes.small,
-                            color = if (abnormal) MemberColors.ElderMaleBg else cardContent.copy(alpha = 0.16f)
-                        ) {
-                            Text(
-                                tag,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (abnormal) MaterialTheme.colorScheme.error else cardContent,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 统计信息
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "$recordCount",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = cardContent
-                    )
-                    Text(
-                        "医疗记录",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = cardContent.copy(alpha = 0.7f)
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "${pendingTodos.size}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (pendingTodos.isNotEmpty()) Color(0xFFFF9800) else cardContent
-                    )
-                    Text(
-                        "待办事项",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = cardContent.copy(alpha = 0.7f)
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val overdueCount = pendingTodos.count { it.dueDate.isBefore(LocalDate.now()) }
-                    Text(
-                        "$overdueCount",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (overdueCount > 0) MaterialTheme.colorScheme.error else cardContent
-                    )
-                    Text(
-                        "逾期",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = cardContent.copy(alpha = 0.7f)
-                    )
-                }
-            }
-
-            // 操作按钮
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onEdit,
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    shape = AppShapes.small,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cardContent)
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("编辑", style = MaterialTheme.typography.labelMedium)
-                }
-                OutlinedButton(
-                    onClick = onAddRecord,
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    shape = AppShapes.small,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cardContent)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("添加记录", style = MaterialTheme.typography.labelMedium)
-                }
-                OutlinedButton(
-                    onClick = onViewRecords,
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    shape = AppShapes.small,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cardContent)
-                ) {
-                    Text("查看病历", style = MaterialTheme.typography.labelMedium)
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
-                }
-            }
-            // 删除按钮
-            OutlinedButton(
-                onClick = onDelete,
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                shape = AppShapes.small,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("删除成员", style = MaterialTheme.typography.labelMedium)
-            }
-        }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-private fun PendingTodosSection(todos: List<HealthTodo>) {
-    val today = LocalDate.now()
-    val tomorrow = today.plusDays(1)
-    val dayAfterTomorrow = today.plusDays(2)
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "📋 待办事项",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFFFF9800).copy(alpha = 0.1f)
-                ) {
-                    Text(
-                        "${todos.size}项",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFFF9800),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-
-            val groupedTodos = todos.groupBy { todo ->
-                when {
-                    todo.dueDate.isBefore(today) -> "逾期"
-                    todo.dueDate == today -> "今天"
-                    todo.dueDate == tomorrow -> "明天"
-                    todo.dueDate == dayAfterTomorrow -> "后天"
-                    else -> todo.dueDate.format(DateTimeFormatter.ofPattern("M月d日"))
-                }
-            }
-
-            groupedTodos.forEach { (dateLabel, dateTodos) ->
-                val isOverdue = dateLabel == "逾期"
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = AppShapes.small,
-                        color = if (isOverdue) MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                        else Color(0xFFFF9800).copy(alpha = 0.1f)
-                    ) {
-                        Text(
-                            dateLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isOverdue) MaterialTheme.colorScheme.error else Color(0xFFFF9800),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                        )
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        dateTodos.take(3).forEach { todo ->
-                            Text(
-                                "${todo.memberName} - ${todo.content}",
-                                style = MaterialTheme.typography.bodySmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        if (dateTodos.size > 3) {
-                            Text(
-                                "还有${dateTodos.size - 3}项...",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyFamily() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Surface(
-            shape = AppShapes.large,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(72.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Filled.People,
-                    contentDescription = null,
-                    modifier = Modifier.size(36.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
-        EmptyState(
-            icon = Icons.Default.People,
-            title = "还没有家庭成员",
-            hint = "点击右上角按钮，添加你的第一位家人"
-        )
-    }
-}
-

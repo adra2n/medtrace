@@ -4,40 +4,40 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.ui.components.EmptyState
-import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
-import com.yy.medtrace.ui.theme.memberCardColors
+import com.yy.medtrace.viewmodel.MonthlyStats
 import com.yy.medtrace.viewmodel.RemindersViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -50,11 +50,8 @@ fun RemindersScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
-    var selectedMemberId by remember { mutableStateOf<Long?>(null) }
     var editingTodo by remember { mutableStateOf<HealthTodo?>(null) }
-    var calendarExpanded by remember { mutableStateOf(false) }
-    var statusFilter by remember { mutableIntStateOf(0) } // 0=全部, 1=待完成, 2=已完成
-    var expandedMembers by remember { mutableStateOf(setOf<Long>()) }
+    var expandedTypes by remember { mutableStateOf(setOf<String>()) }
 
     LaunchedEffect(Unit) {
         viewModel.loadReminders()
@@ -62,21 +59,25 @@ fun RemindersScreen(
 
     val members = uiState.members
     val todos = uiState.todos
-    val filteredTodos = remember(todos, selectedMemberId, statusFilter) {
-        var result = if (selectedMemberId == null) todos
-        else todos.filter { it.memberId == selectedMemberId }
-        when (statusFilter) {
-            1 -> result = result.filter { !it.done }
-            2 -> result = result.filter { it.done }
-        }
-        result
+    val stats = uiState.monthlyStats
+
+    // 按类型分组
+    val groupedByType = remember(todos) {
+        todos.groupBy { it.category }
     }
+
+    val typeIcons = mapOf(
+        "服药" to "💊",
+        "复查" to "🏥",
+        "检查" to "🔬",
+        "其他" to "📋"
+    )
 
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "健康提醒",
-                subtitle = "服药复查，不遗漏",
+                title = "提醒管理",
+                subtitle = "查看和管理所有提醒",
                 actions = {
                     IconButton(onClick = { showAddDialog = true }) {
                         Icon(Icons.Default.Add, "添加提醒", tint = Color.White)
@@ -90,53 +91,46 @@ fun RemindersScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(vertical = 12.dp)
         ) {
+            // 月度统计
             item {
-                MedicationCalendarHeader(
-                    todos = filteredTodos,
-                    expanded = calendarExpanded,
-                    onToggle = { calendarExpanded = !calendarExpanded }
+                MonthlyStatsCard(stats = stats)
+            }
+
+            // 快速添加
+            item {
+                QuickAddSection(
+                    onAdd = { category ->
+                        // 设置默认类别后打开添加对话框
+                        showAddDialog = true
+                    }
                 )
             }
-            if (calendarExpanded) {
-                item {
-                    MedicationCalendar(todos = filteredTodos)
-                }
-            }
+
+            // 本周计划
             item {
-                StatusFilterRow(
-                    statusFilter = statusFilter,
-                    onSelect = { statusFilter = it }
-                )
+                WeeklyPlanSection(todos = todos)
             }
-            item {
-                MemberFilterRow(
-                    members = members,
-                    selectedMemberId = selectedMemberId,
-                    onSelect = { selectedMemberId = it }
-                )
-            }
-            if (filteredTodos.isEmpty()) {
+
+            // 按类型分组的提醒列表
+            if (groupedByType.isEmpty()) {
                 item {
                     EmptyReminders(onAdd = { showAddDialog = true })
                 }
             } else {
-                val grouped = filteredTodos.groupBy { it.memberId }
-                grouped.forEach { (memberId, memberTodos) ->
-                    val member = members.find { it.id == memberId }
-                    val isExpanded = expandedMembers.contains(memberId)
-                    val pendingCount = memberTodos.count { !it.done }
-                    item(key = "member_$memberId") {
-                        ReminderMemberGroup(
-                            member = member,
-                            todos = memberTodos,
-                            pendingCount = pendingCount,
+                groupedByType.forEach { (type, typeTodos) ->
+                    val isExpanded = expandedTypes.contains(type)
+                    item(key = "type_$type") {
+                        ReminderTypeGroup(
+                            type = type,
+                            icon = typeIcons[type] ?: "📋",
+                            todos = typeTodos,
                             isExpanded = isExpanded,
                             onToggleExpand = {
-                                expandedMembers = if (isExpanded) expandedMembers - memberId
-                                else expandedMembers + memberId
+                                expandedTypes = if (isExpanded) expandedTypes - type
+                                else expandedTypes + type
                             },
                             onToggle = { todo, done ->
                                 viewModel.setTodoDone(todo.id, done)
@@ -144,7 +138,7 @@ fun RemindersScreen(
                             onDelete = { todo ->
                                 viewModel.deleteTodo(todo)
                             },
-                            onEditRepeat = { todo ->
+                            onEdit = { todo ->
                                 editingTodo = todo
                             }
                         )
@@ -158,7 +152,7 @@ fun RemindersScreen(
         AddTodoDialog(
             members = members,
             onDismiss = { showAddDialog = false },
-            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval ->
+            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval, category ->
                 viewModel.insertTodo(
                     HealthTodo(
                         memberId = memberId,
@@ -166,7 +160,8 @@ fun RemindersScreen(
                         content = content,
                         dueDate = dueDate,
                         repeatType = repeatType,
-                        repeatInterval = repeatInterval
+                        repeatInterval = repeatInterval,
+                        category = category
                     )
                 )
                 showAddDialog = false
@@ -175,11 +170,17 @@ fun RemindersScreen(
     }
 
     editingTodo?.let { todo ->
-        RepeatEditDialog(
+        EditTodoDialog(
             todo = todo,
             onDismiss = { editingTodo = null },
-            onConfirm = { type, interval ->
-                viewModel.updateRepeat(todo.id, type, interval)
+            onUpdate = { content, category, dueDate, repeatType, repeatInterval ->
+                viewModel.updateTodo(todo.copy(
+                    content = content,
+                    category = category,
+                    dueDate = dueDate,
+                    repeatType = repeatType,
+                    repeatInterval = repeatInterval
+                ))
                 editingTodo = null
             }
         )
@@ -191,7 +192,7 @@ private fun EmptyReminders(onAdd: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 80.dp),
+            .padding(vertical = 60.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -201,16 +202,11 @@ private fun EmptyReminders(onAdd: () -> Unit) {
             modifier = Modifier.size(80.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Default.AlarmOn,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = Primary
-                )
+                Text("📋", style = MaterialTheme.typography.headlineLarge)
             }
         }
         EmptyState(
-            icon = Icons.Default.Alarm,
+            icon = Icons.Default.DateRange,
             title = "暂无提醒",
             hint = "点击右上角添加服药、复查等提醒",
             action = {
@@ -223,16 +219,87 @@ private fun EmptyReminders(onAdd: () -> Unit) {
 }
 
 @Composable
-private fun ReminderMemberGroup(
-    member: FamilyMember?,
+private fun MonthlyStatsCard(stats: MonthlyStats) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = AppShapes.large,
+        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "本月统计",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 完成率
+                Column {
+                    Text(
+                        "${(stats.completionRate * 100).toInt()}%",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Primary
+                    )
+                    Text("完成率", style = MaterialTheme.typography.labelSmall)
+                }
+
+                // 连续天数
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "${stats.streak}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFF9800)
+                    )
+                    Text("连续天数", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // 进度条
+            LinearProgressIndicator(
+                progress = { stats.completionRate },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = Primary,
+                trackColor = Primary.copy(alpha = 0.12f)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // 统计详情
+            Text(
+                "总计 ${stats.total}项 · 完成 ${stats.completed}项 · 逾期 ${stats.overdue}项",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+private fun ReminderTypeGroup(
+    type: String,
+    icon: String,
     todos: List<HealthTodo>,
-    pendingCount: Int = todos.count { !it.done },
-    isExpanded: Boolean = true,
-    onToggleExpand: () -> Unit = {},
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
     onToggle: (HealthTodo, Boolean) -> Unit,
     onDelete: (HealthTodo) -> Unit,
-    onEditRepeat: (HealthTodo) -> Unit
+    onEdit: (HealthTodo) -> Unit
 ) {
+    val pendingCount = todos.count { !it.done }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = AppShapes.large,
@@ -243,92 +310,67 @@ private fun ReminderMemberGroup(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onToggleExpand() }
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(12.dp)
         ) {
+            // 头部
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (member != null) {
-                    val (bg, content) = memberCardColors(member.relation, member.gender)
-                    MemberAvatar(
-                        member = member,
-                        size = 36.dp,
-                        fallbackBackground = bg,
-                        fallbackContent = content
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Primary.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "?",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-                Spacer(Modifier.width(10.dp))
+                Text(icon, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = member?.name ?: "未知成员",
-                        style = MaterialTheme.typography.titleMedium
+                        type,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "${todos.size}项 · ${pendingCount}待办",
+                        "${todos.size}项 · ${pendingCount}待办",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
-                    if (isExpanded) Icons.Default.Remove else Icons.Default.Alarm,
+                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
+            // 展开内容
             if (isExpanded) {
-                HorizontalDivider()
-
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 todos.forEach { todo ->
-                    ReminderTodoItem(
+                    ReminderItem(
                         todo = todo,
                         onToggle = { onToggle(todo, !todo.done) },
                         onDelete = { onDelete(todo) },
-                        onEditRepeat = { onEditRepeat(todo) }
+                        onEdit = { onEdit(todo) }
                     )
-                    if (todo != todos.last()) {
-                        HorizontalDivider(modifier = Modifier.padding(start = 44.dp))
-                    }
                 }
             }
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun ReminderTodoItem(
+private fun ReminderItem(
     todo: HealthTodo,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
-    onEditRepeat: () -> Unit
+    onEdit: () -> Unit
 ) {
     val isOverdue = todo.dueDate.isBefore(LocalDate.now()) && !todo.done
-    val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(todo.repeatType, todo.repeatInterval)
+    val repeatLabel = RemindersViewModel.repeatLabel(todo.repeatType, todo.repeatInterval)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggle() }
             .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Checkbox(
             checked = todo.done,
@@ -337,10 +379,11 @@ private fun ReminderTodoItem(
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = todo.content,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (todo.done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                textDecoration = if (todo.done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                todo.content,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (todo.done) MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.onSurface,
+                textDecoration = if (todo.done) TextDecoration.LineThrough else null
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -349,71 +392,52 @@ private fun ReminderTodoItem(
                 Icon(
                     Icons.Default.DateRange,
                     contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    modifier = Modifier.size(12.dp),
+                    tint = if (isOverdue) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = todo.dueDate.format(DateTimeFormatter.ofPattern("MM-dd")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    todo.dueDate.format(DateTimeFormatter.ofPattern("MM-dd")),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isOverdue) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (repeatLabel != null) {
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = Primary.copy(alpha = 0.12f),
-                        modifier = Modifier.clickable { onEditRepeat() }
+                        color = Primary.copy(alpha = 0.12f)
                     ) {
                         Text(
-                            text = repeatLabel,
+                            repeatLabel,
                             style = MaterialTheme.typography.labelSmall,
                             color = Primary,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }
+                Text(
+                    todo.memberName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
+        // 编辑按钮
+        IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = "编辑",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        // 删除按钮
         IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
             Icon(
                 Icons.Default.Delete,
                 contentDescription = "删除",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun MemberFilterRow(
-    members: List<FamilyMember>,
-    selectedMemberId: Long?,
-    onSelect: (Long?) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        FilterChip(
-            selected = selectedMemberId == null,
-            onClick = { onSelect(null) },
-            label = { Text("全部") },
-            colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = Primary,
-                selectedLabelColor = Color.White
-            )
-        )
-        members.forEach { member ->
-            FilterChip(
-                selected = selectedMemberId == member.id,
-                onClick = { onSelect(member.id) },
-                label = { Text(member.name) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Primary,
-                    selectedLabelColor = Color.White
-                )
             )
         }
     }
@@ -491,23 +515,12 @@ private fun RepeatEditDialog(
                     ) {
                         Text("每")
                         Spacer(Modifier.width(8.dp))
-                        IconButton(
-                            onClick = { if (interval > 1) interval-- },
-                            enabled = interval > 1
-                        ) {
-                            Icon(Icons.Default.Remove, "减少", tint = Primary)
-                        }
                         Text(
                             text = "$interval",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 12.dp)
                         )
-                        IconButton(
-                            onClick = { if (interval < 99) interval++ }
-                        ) {
-                            Icon(Icons.Default.Add, "增加", tint = Primary)
-                        }
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = units.firstOrNull { it.first == selectedType }?.second ?: "",
@@ -530,152 +543,375 @@ private fun RepeatEditDialog(
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MedicationCalendarHeader(
-    todos: List<HealthTodo>,
-    expanded: Boolean,
-    onToggle: () -> Unit
+private fun EditTodoDialog(
+    todo: HealthTodo,
+    onDismiss: () -> Unit,
+    onUpdate: (content: String, category: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int) -> Unit
 ) {
-    val completedCount = todos.count { it.done }
-    val pendingCount = todos.count { !it.done }
-    val today = LocalDate.now()
-    val todayTodos = todos.filter { it.dueDate == today }
-    val todayDone = todayTodos.count { it.done }
-    
+    var content by remember { mutableStateOf(todo.content) }
+    var category by remember { mutableStateOf(todo.category) }
+    var dueDate by remember { mutableStateOf(todo.dueDate) }
+    var repeatEnabled by remember { mutableStateOf(todo.repeatType != "none") }
+    var selectedType by remember { mutableStateOf(if (todo.repeatType == "none") "day" else todo.repeatType) }
+    var interval by remember { mutableIntStateOf(if (todo.repeatInterval < 1) 1 else todo.repeatInterval) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val categories = listOf("服药" to "💊", "复查" to "🏥", "检查" to "🔬", "其他" to "📋")
+    val units = listOf("day" to "天", "week" to "周", "month" to "月", "year" to "年")
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = dueDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            dueDate = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                        }
+                        showDatePicker = false
+                    }
+                ) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            }
+        ) { DatePicker(state = datePickerState) }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("编辑提醒") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 提醒类别
+                Text("提醒类别", style = MaterialTheme.typography.labelMedium)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // 第一行：服药、复查
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        categories.take(2).forEach { (type, icon) ->
+                            FilterChip(
+                                selected = category == type,
+                                onClick = { category = type },
+                                label = { Text("$icon$type") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Primary,
+                                    selectedLabelColor = Color.White
+                                ),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    // 第二行：检查、其他
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        categories.drop(2).forEach { (type, icon) ->
+                            FilterChip(
+                                selected = category == type,
+                                onClick = { category = type },
+                                label = { Text("$icon$type") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Primary,
+                                    selectedLabelColor = Color.White
+                                ),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                // 提醒内容
+                OutlinedTextField(
+                    value = content,
+                    onValueChange = { content = it },
+                    label = { Text("提醒内容") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 日期
+                Text("提醒日期", style = MaterialTheme.typography.labelMedium)
+                val dateLabel = dueDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                OutlinedTextField(
+                    value = dateLabel,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("计划日期") },
+                    trailingIcon = { Icon(Icons.Default.DateRange, "选择日期", tint = Primary) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDatePicker = true },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = Primary,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline
+                    ),
+                    enabled = false
+                )
+
+                // 重复设置
+                Text("重复", style = MaterialTheme.typography.labelMedium)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    FilterChip(
+                        selected = !repeatEnabled,
+                        onClick = { repeatEnabled = false },
+                        label = { Text("不重复") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Primary,
+                            selectedLabelColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = repeatEnabled,
+                        onClick = { repeatEnabled = true },
+                        label = { Text("重复") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Primary,
+                            selectedLabelColor = Color.White
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (repeatEnabled) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        units.forEach { (type, label) ->
+                            FilterChip(
+                                selected = selectedType == type,
+                                onClick = { selectedType = type },
+                                label = { Text(label) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Primary,
+                                    selectedLabelColor = Color.White
+                                ),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("每")
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "$interval",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = units.firstOrNull { it.first == selectedType }?.second ?: "",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val repeatType = if (repeatEnabled) selectedType else "none"
+                    onUpdate(content, category, dueDate, repeatType, interval)
+                },
+                enabled = content.isNotBlank()
+            ) { Text("保存") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
+}
+
+@Composable
+private fun QuickAddSection(onAdd: (String) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = AppShapes.large,
         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onToggle() }
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(12.dp)
         ) {
-            Column {
-                Text(
-                    today.format(DateTimeFormatter.ofPattern("M月")),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    "今日 $todayDone/${todayTodos.size} · 总计 $completedCount/${todos.size}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                "⚡ 快速添加",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(8.dp))
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF4CAF50)))
-                    Spacer(Modifier.width(3.dp))
-                    Text("完成", style = MaterialTheme.typography.labelSmall)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Primary.copy(alpha = 0.3f)))
-                    Spacer(Modifier.width(3.dp))
-                    Text("待服", style = MaterialTheme.typography.labelSmall)
-                }
-                Icon(
-                    if (expanded) Icons.Default.Remove else Icons.Default.DateRange,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                QuickAddChip(
+                    icon = "💊",
+                    label = "服药",
+                    onClick = { onAdd("服药") },
+                    modifier = Modifier.weight(1f)
+                )
+                QuickAddChip(
+                    icon = "🏥",
+                    label = "复查",
+                    onClick = { onAdd("复查") },
+                    modifier = Modifier.weight(1f)
+                )
+                QuickAddChip(
+                    icon = "🔬",
+                    label = "检查",
+                    onClick = { onAdd("检查") },
+                    modifier = Modifier.weight(1f)
+                )
+                QuickAddChip(
+                    icon = "📋",
+                    label = "其他",
+                    onClick = { onAdd("其他") },
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun StatusFilterRow(
-    statusFilter: Int,
-    onSelect: (Int) -> Unit
+private fun QuickAddChip(
+    icon: String,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    Surface(
+        modifier = modifier
+            .clickable { onClick() },
+        shape = AppShapes.medium,
+        color = Primary.copy(alpha = 0.1f)
     ) {
-        listOf("全部", "待完成", "已完成").forEachIndexed { index, label ->
-            FilterChip(
-                selected = statusFilter == index,
-                onClick = { onSelect(index) },
-                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Primary.copy(alpha = 0.1f),
-                    selectedLabelColor = Primary
-                ),
-                modifier = Modifier.weight(1f)
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(icon, style = MaterialTheme.typography.titleMedium)
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = Primary
             )
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun MedicationCalendar(
-    todos: List<HealthTodo>
-) {
-    val today = LocalDate.now()
-    val completedSet = remember(todos) { todos.filter { it.done }.map { it.dueDate.toString() }.toSet() }
-    val pendingSet = remember(todos) { todos.filter { !it.done }.map { it.dueDate.toString() }.toSet() }
-    
+private fun WeeklyPlanSection(todos: List<HealthTodo>) {
+    val today = java.time.LocalDate.now()
+    val weekEnd = today.plusDays(6)
+    val weeklyTodos = todos.filter { 
+        !it.done && it.dueDate in today..weekEnd 
+    }.sortedBy { it.dueDate }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = AppShapes.large,
         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(today.format(DateTimeFormatter.ofPattern("M月")), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF4CAF50)))
-                        Spacer(Modifier.width(3.dp))
-                        Text("完成", style = MaterialTheme.typography.labelSmall)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(Primary.copy(alpha = 0.3f)))
-                        Spacer(Modifier.width(3.dp))
-                        Text("待服", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
-            Spacer(Modifier.height(4.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                listOf("日","一","二","三","四","五","六").forEach { d ->
-                    Text(d, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                }
-            }
-            val days = (1..today.lengthOfMonth()).map { today.withDayOfMonth(it) }
-            days.chunked(7).forEach { week ->
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    week.forEach { date ->
-                        val done = date.toString() in completedSet
-                        val pending = date.toString() in pendingSet
-                        val isToday = date == today
-                        Box(
-                            modifier = Modifier.weight(1f).aspectRatio(1.2f).padding(1.5.dp)
-                                .clip(CircleShape)
-                                .background(when { done -> Color(0xFF4CAF50); pending -> Primary.copy(alpha = 0.3f); isToday -> Primary.copy(alpha = 0.1f); else -> Color.Transparent }),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("${date.dayOfMonth}", style = MaterialTheme.typography.labelSmall, color = when { done -> Color.White; isToday -> Primary; else -> MaterialTheme.colorScheme.onSurface })
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                "📅 本周计划",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(8.dp))
+            if (weeklyTodos.isEmpty()) {
+                Text(
+                    "本周暂无待办",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                weeklyTodos.take(5).forEach { todo ->
+                    val dayLabel = when (todo.dueDate) {
+                        today -> "今天"
+                        today.plusDays(1) -> "明天"
+                        today.plusDays(2) -> "后天"
+                        else -> {
+                            val dayOfWeek = todo.dueDate.dayOfWeek
+                            when (dayOfWeek) {
+                                java.time.DayOfWeek.MONDAY -> "周一"
+                                java.time.DayOfWeek.TUESDAY -> "周二"
+                                java.time.DayOfWeek.WEDNESDAY -> "周三"
+                                java.time.DayOfWeek.THURSDAY -> "周四"
+                                java.time.DayOfWeek.FRIDAY -> "周五"
+                                java.time.DayOfWeek.SATURDAY -> "周六"
+                                java.time.DayOfWeek.SUNDAY -> "周日"
+                                else -> todo.dueDate.format(DateTimeFormatter.ofPattern("MM-dd"))
+                            }
                         }
                     }
-                    repeat(7 - week.size) { Spacer(modifier = Modifier.weight(1f)) }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            dayLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (todo.dueDate == today) Primary else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.width(40.dp)
+                        )
+                        Text(
+                            todo.content,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            todo.memberName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (weeklyTodos.size > 5) {
+                    Text(
+                        "还有 ${weeklyTodos.size - 5} 项...",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
         }

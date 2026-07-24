@@ -63,6 +63,18 @@ object MemberColors {
     val ElderMaleContent = Color(0xFF444444)
 }
 
+// 健康标签颜色
+object HealthTagColors {
+    val AllergyBg = Color(0xFFFFEBEE)       // 浅红
+    val AllergyContent = Color(0xFFD32F2F)   // 红
+    val ChronicBg = Color(0xFFFFF3E0)        // 浅橙
+    val ChronicContent = Color(0xFFF57C00)   // 橙
+    val MedicationBg = Color(0xFFE3F2FD)     // 浅蓝
+    val MedicationContent = Color(0xFF1976D2) // 蓝
+    val DefaultBg = Color(0xFFF5F5F5)        // 浅灰
+    val DefaultContent = Color(0xFF757575)    // 灰
+}
+
 // 语义扩展（方便直接用 MaterialTheme.colorScheme.caption）
 val androidx.compose.material3.ColorScheme.caption
     get() = TextDisabled

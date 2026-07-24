@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
         FamilyMember::class,
         HealthTodo::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 @TypeConverters(
@@ -117,6 +117,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // health_todos: 新增提醒类别字段
+                database.execSQL("ALTER TABLE health_todos ADD COLUMN category TEXT NOT NULL DEFAULT '其他'")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -148,7 +155,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 "app_database"
             )
-                .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

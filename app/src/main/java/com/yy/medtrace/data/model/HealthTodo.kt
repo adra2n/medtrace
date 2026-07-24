@@ -18,7 +18,8 @@ data class HealthTodo(
     val repeatInterval: Int = 1,
     val startDate: LocalDate = LocalDate.now(),
     val durationDays: Int = 0,
-    val completedDates: String = ""
+    val completedDates: String = "",
+    val category: String = "其他"  // 服药/复查/检查/其他
 ) {
     fun getStreak(): Int {
         if (completedDates.isBlank()) return 0

@@ -67,58 +67,84 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 用户信息卡片
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(20.dp)
                 ) {
-                    if (defaultMember != null) {
-                        val (bg, content) = memberCardColors(defaultMember!!.relation, defaultMember!!.gender)
-                        MemberAvatar(
-                            member = defaultMember!!,
-                            size = 64.dp,
-                            fallbackBackground = bg,
-                            fallbackContent = content
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(Primary.copy(alpha = 0.12f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                modifier = Modifier.size(32.dp),
-                                tint = Primary
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        if (defaultMember != null) {
+                            val (bg, content) = memberCardColors(defaultMember!!.relation, defaultMember!!.gender)
+                            MemberAvatar(
+                                member = defaultMember!!,
+                                size = 64.dp,
+                                fallbackBackground = bg,
+                                fallbackContent = content
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(Primary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp),
+                                    tint = Primary
+                                )
+                            }
+                        }
+                        Column {
+                            Text(
+                                defaultMember?.name ?: "我的医迹",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (defaultMember != null) {
+                                Text(
+                                    "${defaultMember!!.relation} · 版本 $appVersion",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Text(
+                                    "版本 $appVersion",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
-                    Column {
-                        Text(
-                            "我的医迹",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "版本 $appVersion",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    // 数据统计
+                    Spacer(Modifier.height(16.dp))
+                    HorizontalDivider()
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        StatItem(count = "${uiState.recordCount}", label = "医疗记录")
+                        StatItem(count = "${uiState.memberCount}", label = "家庭成员")
+                        StatItem(count = "${uiState.todoCount}", label = "健康提醒")
                     }
                 }
             }
 
+            // 功能菜单
             ProfileMenuGroup {
                 ProfileMenuItem(
                     icon = Icons.Default.Settings,
@@ -138,9 +164,6 @@ fun ProfileScreen(
                     subtitle = "长期指标追踪",
                     onClick = { navController.navigate("trends") }
                 )
-            }
-
-            ProfileMenuGroup {
                 ProfileMenuItem(
                     icon = Icons.Default.Notifications,
                     title = "提醒管理",
@@ -155,6 +178,23 @@ fun ProfileScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun StatItem(count: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            count,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Primary
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

@@ -30,12 +30,24 @@ class ProfileViewModel(
                 ) }
             }
         }
+        viewModelScope.launch {
+            database.medicalRecordDao().getAllRecords().collect { records ->
+                _uiState.update { it.copy(recordCount = records.size) }
+            }
+        }
+        viewModelScope.launch {
+            database.healthTodoDao().getAll().collect { todos ->
+                _uiState.update { it.copy(todoCount = todos.size) }
+            }
+        }
     }
 }
 
 data class ProfileUiState(
     val defaultMember: FamilyMember? = null,
-    val memberCount: Int = 0
+    val memberCount: Int = 0,
+    val recordCount: Int = 0,
+    val todoCount: Int = 0
 )
 
 class ProfileViewModelFactory(

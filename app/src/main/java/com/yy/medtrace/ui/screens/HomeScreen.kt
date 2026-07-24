@@ -130,9 +130,10 @@ fun HomeScreen(
                         items(uiState.members) { member ->
                         val (bg, content) = memberCardColors(member.relation, member.gender)
                         val age = computeAge(member.birthday)
+                        val memberTodoCount = uiState.todos.count { it.memberId == member.id && !it.done }
                         Card(
                             modifier = Modifier
-                                .width(160.dp)
+                                .width(180.dp)
                                 .clickable { navController.navigate("member_detail/${member.id}") },
                             shape = AppShapes.large,
                             colors = CardDefaults.cardColors(containerColor = bg),
@@ -142,49 +143,68 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     MemberAvatar(
                                         member = member,
-                                        modifier = Modifier.size(48.dp),
+                                        modifier = Modifier.size(44.dp),
                                         fallbackBackground = content.copy(alpha = 0.18f),
                                         fallbackContent = content
                                     )
                                     Column(
                                         modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
                                         Text(
                                             member.name,
                                             style = MaterialTheme.typography.titleMedium,
-                                            color = content
+                                            color = content,
+                                            fontWeight = FontWeight.SemiBold
                                         )
                                         Text(
                                             age?.let { "${member.relation} · ${it}岁" } ?: member.relation,
-                                            style = MaterialTheme.typography.bodyMedium,
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = content.copy(alpha = 0.8f),
                                             maxLines = 1
                                         )
                                     }
                                 }
+                                // 健康状态指示
                                 val tag = buildTag(member)
                                 if (tag.isNotBlank()) {
                                     Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = if (tag.contains("偏高") || tag.contains("异常"))
-                                            MemberColors.ElderMaleBg else content.copy(alpha = 0.16f)
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = content.copy(alpha = 0.12f)
                                     ) {
                                         Text(
                                             tag,
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = if (tag.contains("偏高") || tag.contains("异常"))
-                                                MaterialTheme.colorScheme.error else content,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                            color = content.copy(alpha = 0.9f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                                // 待办统计
+                                if (memberTodoCount > 0) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            "💊",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                        Text(
+                                            "${memberTodoCount}项待办",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = content.copy(alpha = 0.7f)
                                         )
                                     }
                                 }
@@ -209,7 +229,8 @@ fun HomeScreen(
             }
 
             item {
-                SectionTitle("今日提醒")
+                val pendingCount = uiState.todos.count { !it.done }
+                SectionTitle("今日提醒 (${pendingCount}项待办)")
                 Spacer(Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -223,30 +244,6 @@ fun HomeScreen(
                             .padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Primary.copy(alpha = 0.14f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.Notifications, "今日健康提醒", tint = Primary, modifier = Modifier.size(18.dp))
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("按时提醒，别让健康溜走", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                        if (uiState.members.isNotEmpty()) {
-                            FamilyHealthOverview(
-                                members = uiState.members,
-                                todos = uiState.todos
-                            )
-                        }
                         if (uiState.todos.isEmpty()) {
                             EmptyState(
                                 icon = Icons.Default.EventNote,
@@ -262,7 +259,8 @@ fun HomeScreen(
                                     member = todoMember,
                                     done = todo.done,
                                     onToggle = { viewModel.toggleTodoDone(todo.id, !todo.done) },
-                                    todo = todo
+                                    todo = todo,
+                                    allTodos = uiState.todos
                                 )
                             }
                             if (uiState.todos.size > 5) {
@@ -321,6 +319,7 @@ fun HomeScreen(
                         icon = Icons.Default.CameraAlt,
                         title = "医疗记录",
                         desc = "AI扫描或手动录入",
+                        color = Color(0xFF2196F3),
                         onClick = { navController.navigate("add_record") }
                     )
                     FunctionTile(
@@ -328,6 +327,7 @@ fun HomeScreen(
                         icon = Icons.Default.MedicalInformation,
                         title = "病历档案",
                         desc = "病史与用药归档",
+                        color = Color(0xFF4CAF50),
                         onClick = { navController.navigate("medical_records") }
                     )
                 }
@@ -341,6 +341,7 @@ fun HomeScreen(
                         icon = Icons.Default.InsertChart,
                         title = "健康趋势",
                         desc = "长期指标追踪",
+                        color = Color(0xFFFF9800),
                         onClick = { navController.navigate("trends") }
                     )
                     FunctionTile(
@@ -348,6 +349,7 @@ fun HomeScreen(
                         icon = Icons.Default.Settings,
                         title = "功能设置",
                         desc = "隐私、备份与偏好",
+                        color = Color(0xFF9E9E9E),
                         onClick = { navController.navigate(Screen.Settings.route) }
                     )
                 }
@@ -407,7 +409,8 @@ private fun TodayTodoItem(
     member: FamilyMember?,
     done: Boolean,
     onToggle: () -> Unit,
-    todo: HealthTodo? = null
+    todo: HealthTodo? = null,
+    allTodos: List<HealthTodo> = emptyList()
 ) {
     val streak = todo?.getStreak() ?: 0
     val progress = todo?.getProgress() ?: 0f
@@ -424,6 +427,14 @@ private fun TodayTodoItem(
             kotlinx.coroutines.delay(500)
             showCelebration = false
         }
+    }
+    
+    // 类别图标
+    val categoryIcon = when (todo?.category) {
+        "服药" -> "💊"
+        "复查" -> "🏥"
+        "检查" -> "🔬"
+        else -> "📋"
     }
     
     Row(
@@ -449,32 +460,23 @@ private fun TodayTodoItem(
                 )
             }
         }
-        Spacer(Modifier.width(8.dp))
+        // 类别图标
+        Text(
+            categoryIcon,
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(start = 4.dp)
+        )
+        Spacer(Modifier.width(6.dp))
         if (member != null) {
             val (bg, content) = memberCardColors(member.relation, member.gender)
             MemberAvatar(
                 member = member,
-                size = 28.dp,
+                size = 24.dp,
                 fallbackBackground = bg,
                 fallbackContent = content
             )
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(Primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "我",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Primary,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
         }
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(6.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text,
@@ -482,44 +484,89 @@ private fun TodayTodoItem(
                 color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 textDecoration = if (done) TextDecoration.LineThrough else null
             )
-            if (todo != null && todo.durationDays > 0) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = Primary,
-                        trackColor = Primary.copy(alpha = 0.12f)
-                    )
-                    Text(
-                        "${todo.durationDays}天疗程",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            if (streak > 0) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 2.dp)
-                ) {
-                    Icon(
-                        Icons.Default.LocalFireDepartment,
-                        contentDescription = null,
-                        tint = Color(0xFFFF6B35),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(Modifier.width(2.dp))
-                    Text(
-                        "连续服药 $streak 天",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFFF6B35)
-                    )
+            // 按类别显示不同统计
+            if (todo != null) {
+                val today = java.time.LocalDate.now()
+                when (todo.category) {
+                    "服药" -> {
+                        if (streak > 0) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 2.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.LocalFireDepartment,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF6B35),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(Modifier.width(2.dp))
+                                Text(
+                                    "连续 $streak 天",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFFF6B35)
+                                )
+                            }
+                        }
+                    }
+                    "复查", "检查" -> {
+                        val label = if (todo.category == "复查") "复查" else "体检"
+                        // 查找未来日期的待办
+                        val futureTodo = allTodos.filter {
+                            it.category == todo.category && !it.done && it.dueDate.isAfter(today)
+                        }.minByOrNull { it.dueDate }
+                        
+                        val displayDate = futureTodo?.dueDate ?: todo.dueDate
+                        val daysUntil = java.time.temporal.ChronoUnit.DAYS.between(today, displayDate)
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.DateRange,
+                                contentDescription = null,
+                                tint = if (daysUntil < 0) MaterialTheme.colorScheme.error else Primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(Modifier.width(2.dp))
+                            Text(
+                                when {
+                                    daysUntil < 0 -> "$label 已逾期${-daysUntil}天"
+                                    daysUntil == 0L -> "$label 今天"
+                                    daysUntil <= 7 -> "$label ${daysUntil}天后"
+                                    else -> "$label ${displayDate.format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"))}"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (daysUntil < 0) MaterialTheme.colorScheme.error else Primary
+                            )
+                        }
+                    }
+                    else -> {
+                        // 其他类别显示疗程进度
+                        if (todo.durationDays > 0) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(top = 2.dp)
+                            ) {
+                                LinearProgressIndicator(
+                                    progress = { progress },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = Primary,
+                                    trackColor = Primary.copy(alpha = 0.12f)
+                                )
+                                Text(
+                                    "${todo.durationDays}天疗程",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -539,21 +586,21 @@ private fun RecentRecordItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (member != null) {
             val (bg, content) = memberCardColors(member.relation, member.gender)
             MemberAvatar(
                 member = member,
-                size = 32.dp,
+                size = 36.dp,
                 fallbackBackground = bg,
                 fallbackContent = content
             )
         } else {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.outlineVariant),
                 contentAlignment = Alignment.Center
@@ -561,7 +608,7 @@ private fun RecentRecordItem(
                 Icon(
                     Icons.Default.MedicalInformation,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -571,24 +618,38 @@ private fun RecentRecordItem(
             Text(
                 record.diagnosis,
                 style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            val hospitalText = record.hospital
-            Text(
-                buildString {
-                    if (hospitalText.isNotBlank()) {
-                        append(hospitalText)
-                    }
-                    if (timeAgo.isNotBlank()) {
-                        if (isNotBlank()) append(" · ")
-                        append(timeAgo)
-                    }
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    timeAgo,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (member != null) {
+                    Text(
+                        "·",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        member.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
@@ -609,9 +670,10 @@ private fun getTimeAgo(dateTime: java.time.LocalDateTime): String {
 internal fun AddTodoDialog(
     members: List<FamilyMember>,
     onDismiss: () -> Unit,
-    onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int) -> Unit
+    onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int, category: String) -> Unit
 ) {
     var content by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("其他") }
     var selectedMemberId by remember { mutableStateOf<Long?>(members.firstOrNull()?.id) }
     val selectedMember = members.firstOrNull { it.id == selectedMemberId }
     var memberExpanded by remember { mutableStateOf(false) }
@@ -620,6 +682,8 @@ internal fun AddTodoDialog(
     var repeatType by remember { mutableStateOf("none") }
     var repeatInterval by remember { mutableIntStateOf(1) }
     var showRepeatDialog by remember { mutableStateOf(false) }
+
+    val categories = listOf("服药" to "💊", "复查" to "🏥", "检查" to "🔬", "其他" to "📋")
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -672,6 +736,49 @@ internal fun AddTodoDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                // 提醒类别
+                Text("提醒类别", style = MaterialTheme.typography.labelMedium)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // 第一行：服药、复查
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        categories.take(2).forEach { (type, icon) ->
+                            FilterChip(
+                                selected = category == type,
+                                onClick = { category = type },
+                                label = { Text("$icon$type") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Primary,
+                                    selectedLabelColor = Color.White
+                                ),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    // 第二行：检查、其他
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        categories.drop(2).forEach { (type, icon) ->
+                            FilterChip(
+                                selected = category == type,
+                                onClick = { category = type },
+                                label = { Text("$icon$type") },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Primary,
+                                    selectedLabelColor = Color.White
+                                ),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
                 ExposedDropdownMenuBox(
                     expanded = memberExpanded,
                     onExpandedChange = { memberExpanded = !memberExpanded }
@@ -743,7 +850,7 @@ internal fun AddTodoDialog(
                 enabled = content.isNotBlank() && selectedMemberId != null,
                 onClick = {
                     val m = selectedMember ?: return@Button
-                    onSave(m.id, m.name, content.trim(), dueDate, repeatType, repeatInterval)
+                    onSave(m.id, m.name, content.trim(), dueDate, repeatType, repeatInterval, category)
                 }
             ) { Text("保存") }
         },
@@ -865,6 +972,7 @@ private fun FunctionTile(
     icon: ImageVector,
     title: String,
     desc: String,
+    color: Color = Primary,
     onClick: () -> Unit
 ) {
     Card(
@@ -886,10 +994,10 @@ private fun FunctionTile(
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Primary.copy(alpha = 0.10f)),
+                        .background(color.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, title, tint = Primary, modifier = Modifier.size(18.dp))
+                    Icon(icon, title, tint = color, modifier = Modifier.size(18.dp))
                 }
                 Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             }
