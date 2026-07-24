@@ -28,38 +28,39 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
-import com.yy.medtrace.data.security.BiometricHelper
-import com.yy.medtrace.data.security.PinManager
-import com.yy.medtrace.data.settings.SecuritySettingsStore
-import com.yy.medtrace.ui.screens.LockScreen
-import com.yy.medtrace.ui.screens.MemberDetailScreen
-import com.yy.medtrace.ui.theme.Primary
-import com.yy.medtrace.ui.theme.Background
-import androidx.activity.compose.BackHandler
 import androidx.navigation.NavController
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.*
+import androidx.activity.compose.BackHandler
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.UserSettings
 import com.yy.medtrace.data.repository.MemberRepository
 import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.data.repository.TodoRepository
-import com.yy.medtrace.navigation.NavGraph
+import com.yy.medtrace.data.security.BiometricHelper
+import com.yy.medtrace.data.security.PinManager
+import com.yy.medtrace.data.settings.SecuritySettingsStore
 import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.ui.screens.AddMedicalRecordScreen
 import com.yy.medtrace.ui.screens.FamilyScreen
 import com.yy.medtrace.ui.screens.HomeScreen
+import com.yy.medtrace.ui.screens.LockScreen
 import com.yy.medtrace.ui.screens.MedicalRecordScreen
+import com.yy.medtrace.ui.screens.MemberDetailScreen
 import com.yy.medtrace.ui.screens.SettingsScreen
-import com.yy.medtrace.ui.screens.SplashScreen
-import com.yy.medtrace.ui.screens.OnboardingScreen
-import com.yy.medtrace.ui.screens.PrivacyConsentScreen
+import com.yy.medtrace.ui.screens.RemindersScreen
+import com.yy.medtrace.ui.screens.ProfileScreen
 import com.yy.medtrace.ui.screens.TrendsScreen
+import com.yy.medtrace.ui.theme.Background
 import com.yy.medtrace.ui.theme.ChiyaoleTheme
+import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.reminder.ReminderHelper
+import com.yy.medtrace.viewmodel.RemindersViewModel
+import com.yy.medtrace.viewmodel.RemindersViewModelFactory
+import com.yy.medtrace.viewmodel.ProfileViewModel
+import com.yy.medtrace.viewmodel.ProfileViewModelFactory
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
@@ -69,6 +70,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -218,15 +220,16 @@ fun MainScreen(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute in screens.map { it.route } && currentRoute != null
+    val showBottomBar = currentRoute in screens.map { it.route }
 
-    val topLevelRoutes = screens.map { it.route }
     val activity = LocalContext.current as? ComponentActivity
-    BackHandler(enabled = currentRoute in topLevelRoutes) {
+    BackHandler(enabled = showBottomBar) {
         if (currentRoute == Screen.Home.route) {
             activity?.finish()
         } else {
-            navController.popBackStack(Screen.Home.route, false)
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Home.route) { inclusive = true }
+            }
         }
     }
 
@@ -256,7 +259,6 @@ fun MainScreen(
         )
         locked = appLockEnabled
 
-        // 处理从 SplashActivity 传来的导航参数
         if (initialRoute != null) {
             when (initialRoute) {
                 "onboarding" -> navController.navigate("onboarding")
@@ -342,7 +344,7 @@ fun MainScreen(
                             val selected = currentRoute == screen.route
                             val iconColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
                             val textColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            
+
                             Column(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(12.dp))
@@ -351,10 +353,9 @@ fun MainScreen(
                                     )
                                     .clickable {
                                         navController.navigate(screen.route) {
-                                            popUpTo(Screen.Home.route) {
-                                                inclusive = false
-                                            }
+                                            popUpTo(Screen.Home.route) { saveState = true }
                                             launchSingleTop = true
+                                            restoreState = true
                                         }
                                     }
                                     .weight(1f)
@@ -378,12 +379,62 @@ fun MainScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
-        NavGraph(
+        NavHost(
             navController = navController,
-            database = database,
-            memberRepository = memberRepository,
-            recordRepository = recordRepository,
-            todoRepository = todoRepository
-        )
+            startDestination = Screen.Home.route,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            composable(Screen.Home.route) {
+                HomeScreen(
+                    navController = navController,
+                    memberRepository = memberRepository,
+                    todoRepository = todoRepository,
+                    recordRepository = recordRepository
+                )
+            }
+            composable(Screen.Family.route) {
+                FamilyScreen(database, navController, recordRepository)
+            }
+            composable(Screen.Reminders.route) {
+                val viewModel: RemindersViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                    factory = RemindersViewModelFactory(database)
+                )
+                RemindersScreen(viewModel, navController)
+            }
+            composable(Screen.Profile.route) {
+                val viewModel: ProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                    factory = ProfileViewModelFactory(database)
+                )
+                ProfileScreen(viewModel, navController)
+            }
+            composable("add_record") {
+                AddMedicalRecordScreen(database, navController)
+            }
+            composable(
+                "add_record/{recordId}",
+                arguments = listOf(navArgument("recordId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("recordId")?.toLongOrNull() ?: -1L
+                AddMedicalRecordScreen(database, navController, recordId = id)
+            }
+            composable("medical_records") {
+                MedicalRecordScreen(database, navController)
+            }
+            composable("trends") {
+                TrendsScreen(database, navController)
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen(database, navController)
+            }
+            composable(
+                "member_detail/{memberId}",
+                arguments = listOf(navArgument("memberId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("memberId")?.toLongOrNull() ?: -1L
+                MemberDetailScreen(database, navController, memberId = id)
+            }
+        }
     }
 }

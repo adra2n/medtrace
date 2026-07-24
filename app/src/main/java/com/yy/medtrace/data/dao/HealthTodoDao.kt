@@ -34,6 +34,9 @@ interface HealthTodoDao {
     @Query("UPDATE health_todos SET done = :done WHERE id = :id")
     suspend fun setDone(id: Long, done: Boolean)
 
+    @Query("UPDATE health_todos SET completedDates = :completedDates WHERE id = :id")
+    suspend fun updateCompletedDates(id: Long, completedDates: String)
+
     @Delete
     suspend fun delete(todo: HealthTodo)
 }

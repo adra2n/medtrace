@@ -38,4 +38,21 @@ class TodoRepositoryImpl(private val healthTodoDao: HealthTodoDao) : TodoReposit
     override suspend fun delete(todo: HealthTodo) {
         healthTodoDao.delete(todo)
     }
+    
+    override suspend fun toggleTodoDone(id: Long, done: Boolean) {
+        val todo = healthTodoDao.getById(id) ?: return
+        val today = LocalDate.now().toString()
+        val newCompletedDates = if (done) {
+            if (todo.completedDates.isBlank()) today
+            else "${todo.completedDates},$today"
+        } else {
+            todo.completedDates.split(",").filter { it.trim() != today }.joinToString(",")
+        }
+        healthTodoDao.updateCompletedDates(id, newCompletedDates)
+        healthTodoDao.setDone(id, done)
+    }
+    
+    override suspend fun getById(id: Long): HealthTodo? {
+        return healthTodoDao.getById(id)
+    }
 }

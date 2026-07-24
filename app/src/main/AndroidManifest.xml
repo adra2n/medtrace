@@ -63,5 +63,17 @@
                 <action android:name="com.yy.medtrace.reminder.DAILY" />
             </intent-filter>
         </receiver>
+        
+        <receiver
+            android:name=".widget.MedicationWidget"
+            android:exported="true"
+            android:label="用药提醒">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_medication_info" />
+        </receiver>
     </application>
 </manifest>

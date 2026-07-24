@@ -11,6 +11,11 @@ class LocalDateConverter {
 
     @TypeConverter
     fun toLocalDate(value: String?): LocalDate? {
-        return value?.let { LocalDate.parse(it) }
+        if (value.isNullOrBlank()) return null
+        return try {
+            LocalDate.parse(value)
+        } catch (e: Exception) {
+            null
+        }
     }
 }

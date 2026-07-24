@@ -9,7 +9,9 @@ import com.yy.medtrace.common.Result
 import com.yy.medtrace.common.asResultWithoutLoading
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
+import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.data.repository.MemberRepository
+import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.data.repository.TodoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +24,8 @@ import java.time.format.DateTimeFormatter
 @RequiresApi(Build.VERSION_CODES.O)
 class HomeViewModel(
     private val memberRepository: MemberRepository,
-    private val todoRepository: TodoRepository
+    private val todoRepository: TodoRepository,
+    private val recordRepository: RecordRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -31,6 +34,7 @@ class HomeViewModel(
     init {
         loadMembers()
         loadTodos()
+        loadRecentRecords()
     }
     
     private fun loadMembers() {
@@ -41,7 +45,6 @@ class HomeViewModel(
                     when (result) {
                         is Result.Success -> {
                             if (result.data.isEmpty()) {
-                                // 创建默认成员
                                 memberRepository.insert(
                                     FamilyMember.DEFAULT
                                 )
@@ -80,6 +83,26 @@ class HomeViewModel(
         }
     }
     
+    private fun loadRecentRecords() {
+        viewModelScope.launch {
+            recordRepository.getRecentRecords(3)
+                .asResultWithoutLoading()
+                .collect { result ->
+                    when (result) {
+                        is Result.Success -> {
+                            _uiState.update { it.copy(recentRecords = result.data) }
+                        }
+                        is Result.Error -> {
+                            _uiState.update { it.copy(error = result.message) }
+                        }
+                        is Result.Loading -> {
+                            // 不需要处理加载状态
+                        }
+                    }
+                }
+        }
+    }
+    
     fun addMember(member: FamilyMember) {
         viewModelScope.launch {
             memberRepository.insert(member)
@@ -101,7 +124,7 @@ class HomeViewModel(
     
     fun toggleTodoDone(todoId: Long, done: Boolean) {
         viewModelScope.launch {
-            todoRepository.setDone(todoId, done)
+            todoRepository.toggleTodoDone(todoId, done)
         }
     }
     
@@ -123,6 +146,7 @@ class HomeViewModel(
 data class HomeUiState(
     val members: List<FamilyMember> = emptyList(),
     val todos: List<HealthTodo> = emptyList(),
+    val recentRecords: List<MedicalRecord> = emptyList(),
     val pendingCount: Int = 0,
     val error: String? = null,
     val todayLabel: String = LocalDate.now().let { today ->
@@ -133,12 +157,13 @@ data class HomeUiState(
 
 class HomeViewModelFactory(
     private val memberRepository: MemberRepository,
-    private val todoRepository: TodoRepository
+    private val todoRepository: TodoRepository,
+    private val recordRepository: RecordRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(memberRepository, todoRepository) as T
+            return HomeViewModel(memberRepository, todoRepository, recordRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

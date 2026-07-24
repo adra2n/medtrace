@@ -13,4 +13,6 @@ interface TodoRepository {
     suspend fun update(todo: HealthTodo)
     suspend fun setDone(id: Long, done: Boolean)
     suspend fun delete(todo: HealthTodo)
+    suspend fun toggleTodoDone(id: Long, done: Boolean)
+    suspend fun getById(id: Long): HealthTodo?
 }

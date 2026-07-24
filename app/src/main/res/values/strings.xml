@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">医迹</string>
+    <string name="widget_medication_description">显示今日待服药物提醒</string>
     
     <!-- 通知相关 -->
     <string name="notification_channel_name">用药提醒</string>

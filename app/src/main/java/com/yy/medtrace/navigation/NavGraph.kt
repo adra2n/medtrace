@@ -18,6 +18,8 @@ import com.yy.medtrace.ui.screens.*
 import com.yy.medtrace.viewmodel.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+private const val ANIMATION_DURATION = 150
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun NavGraph(
@@ -30,8 +32,10 @@ fun NavGraph(
     NavHost(
         navController = navController,
         startDestination = "splash",
-        enterTransition = { fadeIn(animationSpec = tween(300)) },
-        exitTransition = { fadeOut(animationSpec = tween(300)) }
+        enterTransition = { fadeIn(animationSpec = tween(ANIMATION_DURATION)) },
+        exitTransition = { fadeOut(animationSpec = tween(ANIMATION_DURATION)) },
+        popEnterTransition = { fadeIn(animationSpec = tween(ANIMATION_DURATION)) },
+        popExitTransition = { fadeOut(animationSpec = tween(ANIMATION_DURATION)) }
     ) {
         composable("splash") {
             SplashScreen(navController)
@@ -49,7 +53,8 @@ fun NavGraph(
             HomeScreen(
                 navController = navController,
                 memberRepository = memberRepository,
-                todoRepository = todoRepository
+                todoRepository = todoRepository,
+                recordRepository = recordRepository
             )
         }
         composable(Screen.Family.route) {

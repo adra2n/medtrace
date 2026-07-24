@@ -42,20 +42,29 @@ class RemindersViewModel(
 
     fun setTodoDone(todoId: Long, done: Boolean) {
         viewModelScope.launch {
-            database.healthTodoDao().setDone(todoId, done)
-            if (done) {
-                val todo = database.healthTodoDao().getById(todoId)
-                if (todo != null && todo.repeatType != "none") {
-                    val nextDate = calculateNextDueDate(todo.dueDate, todo.repeatType, todo.repeatInterval)
-                    database.healthTodoDao().insert(
-                        todo.copy(
-                            id = 0,
-                            dueDate = nextDate,
-                            done = false,
-                            notifiedDate = ""
-                        )
+            val todo = database.healthTodoDao().getById(todoId) ?: return@launch
+            val today = LocalDate.now().toString()
+            val newCompletedDates = if (done) {
+                if (todo.completedDates.isBlank()) today
+                else "${todo.completedDates},$today"
+            } else {
+                todo.completedDates.split(",").filter { it.trim() != today }.joinToString(",")
+            }
+            database.healthTodoDao().update(todo.copy(
+                done = done,
+                completedDates = newCompletedDates
+            ))
+            if (done && todo.repeatType != "none") {
+                val nextDate = calculateNextDueDate(todo.dueDate, todo.repeatType, todo.repeatInterval)
+                database.healthTodoDao().insert(
+                    todo.copy(
+                        id = 0,
+                        dueDate = nextDate,
+                        done = false,
+                        notifiedDate = "",
+                        completedDates = ""
                     )
-                }
+                )
             }
         }
     }

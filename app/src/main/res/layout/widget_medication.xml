@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_background">
+    
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="医迹"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#1976D2"/>
+    
+    <TextView
+        android:id="@+id/widget_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="7月24日 周四"
+        android:textSize="12sp"
+        android:textColor="#666666"
+        android:layout_marginTop="4dp"/>
+    
+    <TextView
+        android:id="@+id/widget_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="今日无待服药物"
+        android:textSize="14sp"
+        android:textColor="#333333"
+        android:layout_marginTop="8dp"/>
+    
+    <TextView
+        android:id="@+id/widget_todo_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="12sp"
+        android:textColor="#444444"
+        android:layout_marginTop="4dp"
+        android:visibility="gone"/>
+    
+</LinearLayout>
