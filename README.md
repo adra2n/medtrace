@@ -95,6 +95,16 @@ app/src/main/java/com/yy/medtrace/
 
 ## 版本里程碑
 
+- **v3.7.0**（versionCode 28，2026-07-25）
+  - UI 大改版：医疗记录页面重新设计（统计概览、分层卡片、成员选择优化）。
+  - UI：添加医疗记录页面优化（MemberSelector、AI识别区、药品列表）。
+  - UI：添加家人页面优化（分组图标、布局优化）。
+  - UI：我的页面重构（个人信息、帮助支持、法律信息、关于、版权）。
+  - UI：设置页面优化（卡片分组、外观/安全/备份/AI配置分区）。
+  - 修复：医疗记录卡片诊断结果字体过大问题。
+  - 版权信息：© 2026 天津市津南区亦阳智创软件开发工作室。
+  - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.7.0>
+
 - **v3.6.1**（versionCode 26，2026-07-23）
   - UI：家庭成员页面标题修改为「家庭管理」。
   - GitHub Releases：<https://github.com/adra2n/medtrace/releases/tag/v3.6.1>
