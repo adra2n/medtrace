@@ -420,7 +420,7 @@ fun MainScreen(
                 val viewModel: ProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
                     factory = ProfileViewModelFactory(database)
                 )
-                ProfileScreen(viewModel, navController)
+                ProfileScreen(viewModel, navController, premiumManager)
             }
             composable("add_record") {
                 AddMedicalRecordScreen(database, navController)
