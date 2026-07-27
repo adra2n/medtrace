@@ -12,13 +12,13 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.yy.medtrace.pure"
+        applicationId = "com.yy.medtrace"
         minSdk = 24
         targetSdk = 35
         // versionCode 约定：每个 minor 版本 +1（v2.0.0 = 10）。
         // versionCode = 10 + minor * 1 + patch
-        versionCode = 28
-        versionName = "v3.7.0-pure"
+        versionCode = 29
+        versionName = "v3.8.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -78,12 +78,16 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("release")
+            // 发布版：VIP功能需要购买
+            buildConfigField("boolean", "VIP_ENABLED", "false")
         }
         
         debug {
             // 调试版本不启用混淆；与 release 共用 applicationId，避免同机双实例/数据割裂
             isMinifyEnabled = false
             isDebuggable = true
+            // 开发版：VIP功能免费
+            buildConfigField("boolean", "VIP_ENABLED", "true")
         }
     }
 
