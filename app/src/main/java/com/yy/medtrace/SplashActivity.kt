@@ -10,6 +10,9 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.umeng.analytics.MobclickAgent
+import com.umeng.commonsdk.UMConfigure
+import com.yy.medtrace.common.Constants
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.data.settings.PrivacyConsentStore
 import kotlinx.coroutines.runBlocking
@@ -50,13 +53,21 @@ class SplashActivity : Activity() {
         Log.d(TAG, "privacyGranted: $privacyGranted")
 
         if (privacyGranted) {
-            // 已同意隐私协议，显示启动页并倒计时
+            // 已同意隐私协议，初始化统计 SDK 并显示启动页
+            initAnalytics()
             showSplash()
         } else {
             // 未同意隐私协议，直接跳转
             Log.d(TAG, "隐私协议未同意，跳转到隐私协议页面")
             navigateToNext()
         }
+    }
+
+    private fun initAnalytics() {
+        UMConfigure.preInit(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL)
+        UMConfigure.submitPolicyGrantResult(this, true)
+        UMConfigure.init(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL, UMConfigure.DEVICE_TYPE_PHONE, null)
+        MobclickAgent.setPageCollectionMode(MobclickAgent.PageMode.AUTO)
     }
 
     private fun showSplash() {
