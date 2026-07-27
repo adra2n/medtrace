@@ -131,6 +131,21 @@ fun ProfileScreen(
                 }
             }
 
+            // 解锁高级版
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = Primary.copy(alpha = 0.1f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
+                ProfileMenuItem(
+                    icon = Icons.Default.Star,
+                    title = "解锁高级版",
+                    subtitle = "¥9.90 一次购买，永久使用",
+                    onClick = { navController.navigate("premium") }
+                )
+            }
+
             // 设置
             Card(
                 modifier = Modifier.fillMaxWidth(),

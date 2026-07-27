@@ -53,6 +53,9 @@ import com.yy.medtrace.ui.screens.SettingsScreen
 import com.yy.medtrace.ui.screens.RemindersScreen
 import com.yy.medtrace.ui.screens.ProfileScreen
 import com.yy.medtrace.ui.screens.TrendsScreen
+import com.yy.medtrace.ui.screens.PremiumScreen
+import com.yy.medtrace.payment.PaymentManager
+import com.yy.medtrace.data.settings.PremiumManager
 import com.yy.medtrace.ui.theme.Background
 import com.yy.medtrace.ui.theme.ChiyaoleTheme
 import com.yy.medtrace.ui.theme.Primary
@@ -84,6 +87,12 @@ class MainActivity : FragmentActivity() {
     
     @Inject
     lateinit var todoRepository: TodoRepository
+    
+    @Inject
+    lateinit var premiumManager: PremiumManager
+    
+    @Inject
+    lateinit var paymentManager: PaymentManager
     
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,6 +139,7 @@ class MainActivity : FragmentActivity() {
                         memberRepository = memberRepository,
                         recordRepository = recordRepository,
                         todoRepository = todoRepository,
+                        paymentManager = paymentManager,
                         initialRoute = navigateTo
                     )
                 }
@@ -213,6 +223,7 @@ fun MainScreen(
     memberRepository: MemberRepository,
     recordRepository: RecordRepository,
     todoRepository: TodoRepository,
+    paymentManager: com.yy.medtrace.payment.PaymentManager,
     initialRoute: String? = null
 ) {
     val navController = rememberNavController()
@@ -452,6 +463,13 @@ fun MainScreen(
             }
             composable("user_agreement") {
                 com.yy.medtrace.ui.screens.UserAgreementScreen(navController)
+            }
+            composable("premium") {
+                PremiumScreen(
+                    navController = navController,
+                    paymentManager = paymentManager,
+                    onPurchaseSuccess = { /* 购买成功回调 */ }
+                )
             }
         }
     }
