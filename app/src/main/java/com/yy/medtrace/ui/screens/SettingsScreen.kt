@@ -461,124 +461,135 @@ fun SettingsScreen(
                 )
             }
 
-            // ☁️ 数据备份与同步
+            // ☁️ 数据备份与同步（高级功能）
+            val isPremiumActive = premiumManager?.isPremiumActive() ?: false
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = AppShapes.large,
-                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isPremiumActive) cardContainerColor()
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    SectionHeader(icon = Icons.Default.Cloud, title = "数据备份与同步")
-                    Column(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            Icons.Default.Cloud,
+                            contentDescription = null,
+                            tint = if (isPremiumActive) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            "将家庭成员与就诊记录导出为文件，或导入此前导出的备份恢复数据。",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            "数据备份与同步",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isPremiumActive) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(Modifier.width(8.dp))
+                        if (!isPremiumActive) {
+                            Surface(
+                                shape = AppShapes.small,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    "高级版",
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
 
-                        OutlinedTextField(
-                            value = githubToken,
-                            onValueChange = { githubToken = it },
-                            label = { Text("GitHub Token（需 gist 权限）") },
-                            singleLine = true,
-                            visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                IconButton(onClick = { showToken = !showToken }) {
-                                    Icon(
-                                        imageVector = if (showToken) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                        contentDescription = if (showToken) "隐藏 Token" else "显示 Token"
-                                    )
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = encryptPassword,
-                            onValueChange = { encryptPassword = it },
-                            label = { Text("加密密码（留空则不加密）") },
-                            singleLine = true,
-                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                IconButton(onClick = { showPassword = !showPassword }) {
-                                    Icon(
-                                        imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                        contentDescription = if (showPassword) "隐藏密码" else "显示密码"
-                                    )
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    if (isPremiumActive) {
+                        // 已购买：显示完整功能
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            OutlinedButton(
-                                onClick = {
-                                    if (premiumManager != null && !premiumManager.isPremiumActive()) {
-                                        premiumFeatureName = "数据导出"
-                                        showPremiumDialog = true
-                                    } else {
+                            Text(
+                                "将家庭成员与就诊记录导出为文件，或导入此前导出的备份恢复数据。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            OutlinedTextField(
+                                value = githubToken,
+                                onValueChange = { githubToken = it },
+                                label = { Text("GitHub Token（需 gist 权限）") },
+                                singleLine = true,
+                                visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
+                                trailingIcon = {
+                                    IconButton(onClick = { showToken = !showToken }) {
+                                        Icon(
+                                            imageVector = if (showToken) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                            contentDescription = if (showToken) "隐藏 Token" else "显示 Token"
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            OutlinedTextField(
+                                value = encryptPassword,
+                                onValueChange = { encryptPassword = it },
+                                label = { Text("加密密码（留空则不加密）") },
+                                singleLine = true,
+                                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                                trailingIcon = {
+                                    IconButton(onClick = { showPassword = !showPassword }) {
+                                        Icon(
+                                            imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                            contentDescription = if (showPassword) "隐藏密码" else "显示密码"
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
                                         val time = java.time.LocalDateTime.now()
                                             .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                                         exportLauncher.launch("chiyaole_backup_$time.json")
-                                    }
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) { Text("导出备份") }
-                            OutlinedButton(
-                                onClick = {
-                                    if (premiumManager != null && !premiumManager.isPremiumActive()) {
-                                        premiumFeatureName = "数据导入"
-                                        showPremiumDialog = true
-                                    } else {
-                                        showImportConfirm = true
-                                    }
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) { Text("导入恢复") }
-                        }
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("导出备份") }
+                                OutlinedButton(
+                                    onClick = { showImportConfirm = true },
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("导入恢复") }
+                            }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    if (premiumManager != null && !premiumManager.isPremiumActive()) {
-                                        premiumFeatureName = "云端同步"
-                                        showPremiumDialog = true
-                                    } else {
-                                        syncToGist()
-                                    }
-                                },
-                                enabled = !busy,
-                                modifier = Modifier.weight(1f)
-                            ) { Text(if (existingGistId != null) "更新到 Gist" else "同步到 Gist") }
-                            OutlinedButton(
-                                onClick = {
-                                    if (premiumManager != null && !premiumManager.isPremiumActive()) {
-                                        premiumFeatureName = "云端恢复"
-                                        showPremiumDialog = true
-                                    } else {
-                                        restoreFromGist()
-                                    }
-                                },
-                                enabled = !busy && existingGistId != null,
-                                modifier = Modifier.weight(1f)
-                            ) { Text("从 Gist 恢复") }
-                        }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { syncToGist() },
+                                    enabled = !busy,
+                                    modifier = Modifier.weight(1f)
+                                ) { Text(if (existingGistId != null) "更新到 Gist" else "同步到 Gist") }
+                                OutlinedButton(
+                                    onClick = { restoreFromGist() },
+                                    enabled = !busy && existingGistId != null,
+                                    modifier = Modifier.weight(1f)
+                                ) { Text("从 Gist 恢复") }
+                            }
 
-                        OutlinedButton(
-                            onClick = {
-                                if (premiumManager != null && !premiumManager.isPremiumActive()) {
-                                    premiumFeatureName = "CSV 导出"
-                                    showPremiumDialog = true
-                                } else {
+                            OutlinedButton(
+                                onClick = {
                                     scope.launch {
                                         try {
                                             val csv = buildRecordsCsv(database)
@@ -596,10 +607,35 @@ fun SettingsScreen(
                                             }
                                         }
                                     }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("导出 CSV 报告") }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("导出 CSV 报告") }
+                        }
+                    } else {
+                        // 未购买：显示锁定状态
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "升级高级版解锁数据备份与同步功能",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            TextButton(onClick = { navController.navigate("premium") }) {
+                                Text("了解高级版")
+                            }
+                        }
                     }
                     Spacer(Modifier.height(16.dp))
                 }
@@ -613,46 +649,109 @@ fun SettingsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    SectionHeader(icon = Icons.Default.SmartToy, title = "AI 配置")
-                    Column(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            Icons.Default.SmartToy,
+                            contentDescription = null,
+                            tint = if (isPremiumActive) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            "配置你自己的 OpenAI 兼容大模型（Base URL / Key / 模型名）。密钥仅保存在本机。",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            "AI 配置",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isPremiumActive) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        OutlinedTextField(
-                            value = llmBaseUrl,
-                            onValueChange = { llmBaseUrl = it },
-                            label = { Text("API Base URL") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = llmApiKey,
-                            onValueChange = { llmApiKey = it },
-                            label = { Text("API Key") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                IconButton(onClick = { showApiKey = !showApiKey }) {
-                                    Icon(
-                                        imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                        contentDescription = if (showApiKey) "隐藏 Key" else "显示 Key"
-                                    )
-                                }
+                        Spacer(Modifier.width(8.dp))
+                        if (!isPremiumActive) {
+                            Surface(
+                                shape = AppShapes.small,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    "高级版",
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                             }
-                        )
-                        OutlinedTextField(
-                            value = llmModel,
-                            onValueChange = { llmModel = it },
-                            label = { Text("模型名（如 gpt-4o）") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
+                        }
+                    }
+
+                    if (isPremiumActive) {
+                        // 已购买：显示完整功能
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                "配置你自己的 OpenAI 兼容大模型（Base URL / Key / 模型名）。密钥仅保存在本机。",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            OutlinedTextField(
+                                value = llmBaseUrl,
+                                onValueChange = { llmBaseUrl = it },
+                                label = { Text("API Base URL") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = llmApiKey,
+                                onValueChange = { llmApiKey = it },
+                                label = { Text("API Key") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
+                                trailingIcon = {
+                                    IconButton(onClick = { showApiKey = !showApiKey }) {
+                                        Icon(
+                                            imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                            contentDescription = if (showApiKey) "隐藏 Key" else "显示 Key"
+                                        )
+                                    }
+                                }
+                            )
+                            OutlinedTextField(
+                                value = llmModel,
+                                onValueChange = { llmModel = it },
+                                label = { Text("模型名（如 gpt-4o）") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+                        }
+                    } else {
+                        // 未购买：显示锁定状态
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "升级高级版解锁 AI 智能识别功能",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            TextButton(onClick = { navController.navigate("premium") }) {
+                                Text("了解高级版")
+                            }
+                        }
                     }
                     Spacer(Modifier.height(16.dp))
                 }

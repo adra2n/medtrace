@@ -14,7 +14,7 @@ import javax.inject.Singleton
 
 /**
  * 支付管理器
- * 用于管理应用内购买流程
+ * 支持小米支付SDK和测试模式
  */
 @Singleton
 class PaymentManager @Inject constructor(
@@ -40,7 +40,6 @@ class PaymentManager @Inject constructor(
 
     /**
      * 发起购买
-     * 注意：当前为测试模式，实际使用时需要集成小米支付SDK
      */
     fun startPurchase(activity: Activity) {
         if (premiumManager.isPremiumActive()) {
@@ -50,21 +49,39 @@ class PaymentManager @Inject constructor(
 
         _payState.value = PayState.Loading
         
-        // 测试模式：直接模拟购买成功
-        // 实际项目中，这里应该调用小米支付SDK
-        _payState.value = PayState.NeedContactForPayment
+        // 显示支付选择界面
+        _payState.value = PayState.ShowPayOptions
+    }
+
+    /**
+     * 选择支付方式
+     */
+    fun selectPayMethod(method: PayMethod) {
+        when (method) {
+            PayMethod.XIAOMI_PAY -> {
+                // 调用小米支付SDK
+                // TODO: 集成小米支付SDK
+                _payState.value = PayState.Error("小米支付暂未集成，请选择其他方式")
+            }
+            PayMethod.EMAIL -> {
+                contactForPayment()
+            }
+            PayMethod.TEST -> {
+                // 测试模式：直接模拟购买成功
+                simulatePurchaseSuccess()
+            }
+        }
     }
 
     /**
      * 联系客服购买
-     * 用户通过邮件联系开发者进行购买
      */
     fun contactForPayment() {
         val intent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:$CONTACT_EMAIL")
             putExtra(Intent.EXTRA_SUBJECT, "医迹高级版购买")
             putExtra(Intent.EXTRA_TEXT, """
-                我想购买医迹高级版（¥9.90）
+                我想购买医迹高级版（${PRODUCT_PRICE_DISPLAY}）
 
                 设备信息：
                 - 应用版本：${getAppVersion()}
@@ -85,18 +102,44 @@ class PaymentManager @Inject constructor(
     }
 
     /**
-     * 验证购买状态
-     */
-    fun verifyPurchase(): Boolean {
-        return premiumManager.verifyPurchase()
-    }
-
-    /**
      * 模拟购买成功（测试用）
      */
     fun simulatePurchaseSuccess(orderId: String = "test_${System.currentTimeMillis()}") {
         premiumManager.savePurchase(orderId)
         _payState.value = PayState.Success(orderId)
+    }
+
+    /**
+     * 支付成功回调
+     * 在小米支付SDK回调中调用此方法
+     */
+    fun onPaymentSuccess(orderId: String, receipt: String) {
+        Log.d(TAG, "支付成功: orderId=$orderId")
+        premiumManager.savePurchase(orderId)
+        _payState.value = PayState.Success(orderId)
+    }
+
+    /**
+     * 支付失败回调
+     */
+    fun onPaymentFailed(code: Int, message: String) {
+        Log.e(TAG, "支付失败: code=$code, msg=$message")
+        _payState.value = PayState.Error("支付失败: $message")
+    }
+
+    /**
+     * 支付取消回调
+     */
+    fun onPaymentCanceled() {
+        Log.d(TAG, "支付取消")
+        _payState.value = PayState.Canceled
+    }
+
+    /**
+     * 验证购买状态
+     */
+    fun verifyPurchase(): Boolean {
+        return premiumManager.verifyPurchase()
     }
 
     /**
@@ -120,13 +163,23 @@ class PaymentManager @Inject constructor(
 }
 
 /**
+ * 支付方式
+ */
+enum class PayMethod {
+    XIAOMI_PAY, // 小米支付
+    EMAIL,      // 邮件购买
+    TEST        // 测试模式
+}
+
+/**
  * 支付状态
  */
 sealed class PayState {
     data object Idle : PayState()
     data object Loading : PayState()
+    data object ShowPayOptions : PayState()
     data object AlreadyPurchased : PayState()
-    data object NeedContactForPayment : PayState()
+    data object Canceled : PayState()
     data object ContactEmailSent : PayState()
     data class Success(val orderId: String) : PayState()
     data class Error(val message: String) : PayState()

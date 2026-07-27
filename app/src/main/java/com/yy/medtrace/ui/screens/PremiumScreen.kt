@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.yy.medtrace.payment.PaymentManager
+import com.yy.medtrace.payment.PayMethod
 import com.yy.medtrace.payment.PayState
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.Primary
@@ -41,7 +43,6 @@ fun PremiumScreen(
                 navController.popBackStack()
             }
             is PayState.Error -> {
-                // 显示错误，然后重置
                 kotlinx.coroutines.delay(2000)
                 paymentManager.resetState()
             }
@@ -161,27 +162,52 @@ fun PremiumScreen(
                 }
             }
 
-            // 状态提示
+            // 支付方式选择
             when (payState) {
-                is PayState.NeedContactForPayment -> {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                    ) {
+                is PayState.ShowPayOptions -> {
+                    Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
-                                "请通过邮件联系开发者购买",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                "选择支付方式",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                "邮件地址：${PaymentManager.CONTACT_EMAIL}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                            )
+                            
+                            // 小米支付（暂未集成）
+                            OutlinedButton(
+                                onClick = { paymentManager.selectPayMethod(PayMethod.XIAOMI_PAY) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Phone, contentDescription = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("小米支付（开发中）")
+                            }
+                            
+                            // 邮件购买
+                            Button(
+                                onClick = { paymentManager.selectPayMethod(PayMethod.EMAIL) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                            ) {
+                                Icon(Icons.Default.Email, contentDescription = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("邮件购买 ${PaymentManager.PRODUCT_PRICE_DISPLAY}")
+                            }
+                            
+                            // 测试按钮
+                            if (com.yy.medtrace.BuildConfig.DEBUG) {
+                                OutlinedButton(
+                                    onClick = { paymentManager.selectPayMethod(PayMethod.TEST) },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Check, contentDescription = null)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("测试：模拟购买成功")
+                                }
+                            }
                         }
                     }
                 }
@@ -212,37 +238,21 @@ fun PremiumScreen(
                 else -> {}
             }
 
-            // 操作按钮
-            when (payState) {
-                is PayState.NeedContactForPayment -> {
-                    Button(
-                        onClick = { paymentManager.contactForPayment() },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                    ) {
-                        Icon(Icons.Default.Email, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("发送购买邮件")
-                    }
-                }
-                is PayState.AlreadyPurchased -> {
-                    // 已购买，显示返回按钮
-                }
-                else -> {
-                    Button(
-                        onClick = { activity?.let { paymentManager.startPurchase(it) } },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = payState !is PayState.Loading,
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                    ) {
-                        if (payState is PayState.Loading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            Text("立即购买 ${PaymentManager.PRODUCT_PRICE_DISPLAY}", fontSize = 16.sp)
-                        }
+            // 购买按钮（未显示支付选项时）
+            if (payState !is PayState.ShowPayOptions && payState !is PayState.AlreadyPurchased) {
+                Button(
+                    onClick = { activity?.let { paymentManager.startPurchase(it) } },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = payState !is PayState.Loading,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) {
+                    if (payState is PayState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("立即购买 ${PaymentManager.PRODUCT_PRICE_DISPLAY}", fontSize = 16.sp)
                     }
                 }
             }
@@ -258,16 +268,6 @@ fun PremiumScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            // 测试按钮（仅开发时使用）
-            if (com.yy.medtrace.BuildConfig.DEBUG) {
-                OutlinedButton(
-                    onClick = { paymentManager.simulatePurchaseSuccess() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("测试：模拟购买成功 (仅调试模式)")
-                }
-            }
         }
     }
 }
