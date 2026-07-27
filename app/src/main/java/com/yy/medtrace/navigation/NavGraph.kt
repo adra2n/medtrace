@@ -94,5 +94,11 @@ fun NavGraph(
             val id = backStackEntry.arguments?.getString("memberId")?.toLongOrNull() ?: -1L
             MemberDetailScreen(database, navController, memberId = id)
         }
+        composable("privacy_policy") {
+            PrivacyPolicyScreen(navController)
+        }
+        composable("user_agreement") {
+            UserAgreementScreen(navController)
+        }
     }
 }

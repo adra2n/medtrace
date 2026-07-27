@@ -316,6 +316,28 @@ fun AddMedicalRecordScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) { Text("分析文本") }
                     }
+
+                    // 免责声明
+                    Surface(
+                        shape = AppShapes.small,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "⚠️",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            Text(
+                                text = "AI 分析结果仅供参考，请以医生诊断为准",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
 

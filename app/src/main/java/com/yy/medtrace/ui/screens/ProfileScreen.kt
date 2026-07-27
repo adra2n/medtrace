@@ -195,14 +195,14 @@ fun ProfileScreen(
                         icon = Icons.Default.Policy,
                         title = "隐私政策",
                         subtitle = "查看隐私政策",
-                        onClick = { }
+                        onClick = { navController.navigate("privacy_policy") }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
                     ProfileMenuItem(
                         icon = Icons.Default.Description,
                         title = "用户协议",
                         subtitle = "查看用户协议",
-                        onClick = { }
+                        onClick = { navController.navigate("user_agreement") }
                     )
                 }
             }
