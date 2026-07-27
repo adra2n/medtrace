@@ -435,6 +435,18 @@ fun MainScreen(
                 val id = backStackEntry.arguments?.getString("memberId")?.toLongOrNull() ?: -1L
                 MemberDetailScreen(database, navController, memberId = id)
             }
+            composable("privacy_consent") {
+                com.yy.medtrace.ui.screens.PrivacyConsentScreen(
+                    navController = navController,
+                    onDecline = { }
+                )
+            }
+            composable("privacy_policy") {
+                com.yy.medtrace.ui.screens.PrivacyPolicyScreen(navController)
+            }
+            composable("user_agreement") {
+                com.yy.medtrace.ui.screens.UserAgreementScreen(navController)
+            }
         }
     }
 }
