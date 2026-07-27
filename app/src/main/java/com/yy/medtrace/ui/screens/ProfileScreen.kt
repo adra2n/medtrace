@@ -135,15 +135,50 @@ fun ProfileScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = Primary.copy(alpha = 0.1f)),
-                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+                colors = CardDefaults.cardColors(containerColor = Primary),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                onClick = { navController.navigate("premium") }
             ) {
-                ProfileMenuItem(
-                    icon = Icons.Default.Star,
-                    title = "解锁高级版",
-                    subtitle = "¥9.90 一次购买，永久使用",
-                    onClick = { navController.navigate("premium") }
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "解锁高级版",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "¥9.90 一次购买，永久使用",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                    }
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.8f)
+                    )
+                }
             }
 
             // 设置
