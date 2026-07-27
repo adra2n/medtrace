@@ -649,11 +649,14 @@ fun SettingsScreen(
                 }
             }
 
-            // 🤖 AI 配置
+            // 🤖 AI 配置（高级功能）
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = AppShapes.large,
-                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isPremiumActive) cardContainerColor()
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
