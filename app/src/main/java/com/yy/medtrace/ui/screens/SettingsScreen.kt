@@ -272,7 +272,7 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showImportConfirm = false },
             title = { Text("恢复备份") },
-            text = { Text("将用备份文件覆盖当前所有家庭成员与医疗记录，确定继续？") },
+            text = { Text("将用备份文件覆盖当前所有家庭成员与就诊记录，确定继续？") },
             confirmButton = {
                 TextButton(onClick = {
                     showImportConfirm = false
@@ -472,7 +472,7 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            "将家庭成员与医疗记录导出为文件，或导入此前导出的备份恢复数据。",
+                            "将家庭成员与就诊记录导出为文件，或导入此前导出的备份恢复数据。",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -553,7 +553,7 @@ fun SettingsScreen(
                                             context.startActivity(
                                                 Intent.createChooser(
                                                     shareCsvIntent(context, csv),
-                                                    "导出医疗记录 CSV"
+                                                    "导出就诊记录 CSV"
                                                 )
                                             )
                                         }

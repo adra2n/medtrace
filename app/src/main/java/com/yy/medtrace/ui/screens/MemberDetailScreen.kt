@@ -41,7 +41,7 @@ import kotlinx.coroutines.launch
 private enum class DetailTab(val label: String) {
     Medication("用药记录"),
     Exam("检查报告"),
-    Metric("健康指标"),
+    Metric("检查指标"),
     Visit("就诊记录")
 }
 

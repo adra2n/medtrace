@@ -191,7 +191,7 @@ fun AddMedicalRecordScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = if (existingId != null) "编辑医疗记录" else "添加医疗记录",
+                title = if (existingId != null) "编辑就诊记录" else "添加就诊记录",
                 subtitle = "智能识别，快速记录",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {

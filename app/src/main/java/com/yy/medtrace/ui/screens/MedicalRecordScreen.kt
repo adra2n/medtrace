@@ -107,7 +107,7 @@ fun MedicalRecordScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "医疗记录",
+                title = "就诊记录",
                 subtitle = if (records.isNotEmpty()) "共 ${records.size} 条记录" else null,
                 actions = {
                     IconButton(onClick = { navController.navigate("add_record") }) {
@@ -346,7 +346,7 @@ fun MedicalRecordScreen(
                         title = if (keyword.isNotEmpty() || fromDate != null || toDate != null) {
                             "没有符合筛选条件的记录"
                         } else {
-                            "该成员还没有医疗记录"
+                            "该成员还没有就诊记录"
                         },
                         hint = if (keyword.isEmpty() && fromDate == null && toDate == null) {
                             "点击右上角 + 按钮添加第一条记录"
@@ -386,7 +386,7 @@ fun MedicalRecordScreen(
     pendingDelete?.let { record ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("删除医疗记录") },
+            title = { Text("删除就诊记录") },
             text = { Text("确定删除「${record.diagnosis}」这条记录？此操作不可撤销。") },
             confirmButton = {
                 TextButton(onClick = {

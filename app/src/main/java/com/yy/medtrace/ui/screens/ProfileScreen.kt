@@ -124,9 +124,9 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatItem(count = "${uiState.recordCount}", label = "医疗记录")
+                        StatItem(count = "${uiState.recordCount}", label = "就诊记录")
                         StatItem(count = "${uiState.memberCount}", label = "家庭成员")
-                        StatItem(count = "${uiState.todoCount}", label = "健康提醒")
+                        StatItem(count = "${uiState.todoCount}", label = "待办提醒")
                     }
                 }
             }

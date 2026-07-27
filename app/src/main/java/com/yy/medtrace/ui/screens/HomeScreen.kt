@@ -247,8 +247,8 @@ fun HomeScreen(
                         if (uiState.todos.isEmpty()) {
                             EmptyState(
                                 icon = Icons.Default.EventNote,
-                                title = "今天暂无健康计划",
-                                hint = "点击添加服药、复查提醒"
+                                title = "今天暂无日程提醒",
+                                hint = "点击添加用药、复查提醒"
                             )
                         } else {
                             uiState.todos.take(5).forEachIndexed { idx, todo ->
@@ -317,7 +317,7 @@ fun HomeScreen(
                     FunctionTile(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.CameraAlt,
-                        title = "医疗记录",
+                        title = "就诊记录",
                         desc = "AI扫描或手动录入",
                         color = Color(0xFF2196F3),
                         onClick = { navController.navigate("add_record") }
@@ -431,7 +431,7 @@ private fun TodayTodoItem(
     
     // 类别图标
     val categoryIcon = when (todo?.category) {
-        "服药" -> "💊"
+        "用药" -> "💊"
         "复查" -> "🏥"
         "检查" -> "🔬"
         else -> "📋"
@@ -488,7 +488,7 @@ private fun TodayTodoItem(
             if (todo != null) {
                 val today = java.time.LocalDate.now()
                 when (todo.category) {
-                    "服药" -> {
+                    "用药" -> {
                         if (streak > 0) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -683,7 +683,7 @@ internal fun AddTodoDialog(
     var repeatInterval by remember { mutableIntStateOf(1) }
     var showRepeatDialog by remember { mutableStateOf(false) }
 
-    val categories = listOf("服药" to "💊", "复查" to "🏥", "检查" to "🔬", "其他" to "📋")
+    val categories = listOf("用药" to "💊", "复查" to "🏥", "检查" to "🔬", "其他" to "📋")
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -722,7 +722,7 @@ internal fun AddTodoDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加健康待办") },
+        title = { Text("添加待办提醒") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -742,7 +742,7 @@ internal fun AddTodoDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // 第一行：服药、复查
+                    // 第一行：用药、复查
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()

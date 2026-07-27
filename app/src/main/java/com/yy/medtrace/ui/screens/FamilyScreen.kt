@@ -94,7 +94,7 @@ fun FamilyScreen(
         topBar = {
             GradientTopBar(
                 title = "家庭管理",
-                subtitle = "家人健康一目了然",
+                subtitle = "家人档案一目了然",
                 actions = {
                     IconButton(onClick = {
                         editingMember = null
@@ -179,7 +179,7 @@ fun FamilyScreen(
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
             title = { Text("删除家庭成员") },
-            text = { Text("确定删除「${member.name}」？其医疗记录将归入「未归属」，仍可在记录页查看。") },
+            text = { Text("确定删除「${member.name}」？其就诊记录将归入「未归属」，仍可在记录页查看。") },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {

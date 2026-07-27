@@ -67,7 +67,7 @@ fun RemindersScreen(
     }
 
     val typeIcons = mapOf(
-        "服药" to "💊",
+        "用药" to "💊",
         "复查" to "🏥",
         "检查" to "🔬",
         "其他" to "📋"
@@ -208,7 +208,7 @@ private fun EmptyReminders(onAdd: () -> Unit) {
         EmptyState(
             icon = Icons.Default.DateRange,
             title = "暂无提醒",
-            hint = "点击右上角添加服药、复查等提醒",
+            hint = "点击右上角添加用药、复查等提醒",
             action = {
                 Button(onClick = onAdd) {
                     Text("添加提醒")
@@ -558,7 +558,7 @@ private fun EditTodoDialog(
     var interval by remember { mutableIntStateOf(if (todo.repeatInterval < 1) 1 else todo.repeatInterval) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val categories = listOf("服药" to "💊", "复查" to "🏥", "检查" to "🔬", "其他" to "📋")
+    val categories = listOf("用药" to "💊", "复查" to "🏥", "检查" to "🔬", "其他" to "📋")
     val units = listOf("day" to "天", "week" to "周", "month" to "月", "year" to "年")
 
     if (showDatePicker) {
@@ -597,7 +597,7 @@ private fun EditTodoDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // 第一行：服药、复查
+                    // 第一行：用药、复查
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -771,8 +771,8 @@ private fun QuickAddSection(onAdd: (String) -> Unit) {
             ) {
                 QuickAddChip(
                     icon = "💊",
-                    label = "服药",
-                    onClick = { onAdd("服药") },
+                    label = "用药",
+                    onClick = { onAdd("用药") },
                     modifier = Modifier.weight(1f)
                 )
                 QuickAddChip(
