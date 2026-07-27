@@ -258,6 +258,16 @@ fun PremiumScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            // 测试按钮（仅开发时使用）
+            if (com.yy.medtrace.BuildConfig.DEBUG) {
+                OutlinedButton(
+                    onClick = { paymentManager.simulatePurchaseSuccess() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("测试：模拟购买成功 (仅调试模式)")
+                }
+            }
         }
     }
 }

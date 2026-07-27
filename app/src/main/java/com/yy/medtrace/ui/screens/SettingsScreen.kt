@@ -58,12 +58,15 @@ import kotlinx.coroutines.withContext
 @Composable
 fun SettingsScreen(
     database: AppDatabase,
-    navController: NavController
+    navController: NavController,
+    premiumManager: com.yy.medtrace.data.settings.PremiumManager? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val llmSettings = remember { LlmSettingsStore(context) }
     var settings by remember { mutableStateOf<UserSettings?>(null) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
+    var premiumFeatureName by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         database.userSettingsDao().getUserSettings().collect { userSettings ->
@@ -516,14 +519,26 @@ fun SettingsScreen(
                         ) {
                             OutlinedButton(
                                 onClick = {
-                                    val time = java.time.LocalDateTime.now()
-                                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                                    exportLauncher.launch("chiyaole_backup_$time.json")
+                                    if (premiumManager != null && !premiumManager.isPremiumActive()) {
+                                        premiumFeatureName = "数据导出"
+                                        showPremiumDialog = true
+                                    } else {
+                                        val time = java.time.LocalDateTime.now()
+                                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                                        exportLauncher.launch("chiyaole_backup_$time.json")
+                                    }
                                 },
                                 modifier = Modifier.weight(1f)
                             ) { Text("导出备份") }
                             OutlinedButton(
-                                onClick = { showImportConfirm = true },
+                                onClick = {
+                                    if (premiumManager != null && !premiumManager.isPremiumActive()) {
+                                        premiumFeatureName = "数据导入"
+                                        showPremiumDialog = true
+                                    } else {
+                                        showImportConfirm = true
+                                    }
+                                },
                                 modifier = Modifier.weight(1f)
                             ) { Text("导入恢复") }
                         }
@@ -533,12 +548,26 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             OutlinedButton(
-                                onClick = { syncToGist() },
+                                onClick = {
+                                    if (premiumManager != null && !premiumManager.isPremiumActive()) {
+                                        premiumFeatureName = "云端同步"
+                                        showPremiumDialog = true
+                                    } else {
+                                        syncToGist()
+                                    }
+                                },
                                 enabled = !busy,
                                 modifier = Modifier.weight(1f)
                             ) { Text(if (existingGistId != null) "更新到 Gist" else "同步到 Gist") }
                             OutlinedButton(
-                                onClick = { restoreFromGist() },
+                                onClick = {
+                                    if (premiumManager != null && !premiumManager.isPremiumActive()) {
+                                        premiumFeatureName = "云端恢复"
+                                        showPremiumDialog = true
+                                    } else {
+                                        restoreFromGist()
+                                    }
+                                },
                                 enabled = !busy && existingGistId != null,
                                 modifier = Modifier.weight(1f)
                             ) { Text("从 Gist 恢复") }
@@ -546,20 +575,25 @@ fun SettingsScreen(
 
                         OutlinedButton(
                             onClick = {
-                                scope.launch {
-                                    try {
-                                        val csv = buildRecordsCsv(database)
-                                        withContext(Dispatchers.Main) {
-                                            context.startActivity(
-                                                Intent.createChooser(
-                                                    shareCsvIntent(context, csv),
-                                                    "导出就诊记录 CSV"
+                                if (premiumManager != null && !premiumManager.isPremiumActive()) {
+                                    premiumFeatureName = "CSV 导出"
+                                    showPremiumDialog = true
+                                } else {
+                                    scope.launch {
+                                        try {
+                                            val csv = buildRecordsCsv(database)
+                                            withContext(Dispatchers.Main) {
+                                                context.startActivity(
+                                                    Intent.createChooser(
+                                                        shareCsvIntent(context, csv),
+                                                        "导出就诊记录 CSV"
+                                                    )
                                                 )
-                                            )
-                                        }
-                                    } catch (e: Exception) {
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "CSV 导出失败：${e.message}", Toast.LENGTH_LONG).show()
+                                            }
+                                        } catch (e: Exception) {
+                                            withContext(Dispatchers.Main) {
+                                                Toast.makeText(context, "CSV 导出失败：${e.message}", Toast.LENGTH_LONG).show()
+                                            }
                                         }
                                     }
                                 }
@@ -625,6 +659,28 @@ fun SettingsScreen(
             }
 
         }
+    }
+
+    // 高级版提示对话框
+    if (showPremiumDialog) {
+        AlertDialog(
+            onDismissRequest = { showPremiumDialog = false },
+            title = { Text("解锁高级版") },
+            text = { Text("「${premiumFeatureName}」是高级版功能。升级高级版（¥9.90）即可解锁所有功能！") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPremiumDialog = false
+                    navController.navigate("premium")
+                }) {
+                    Text("立即升级")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPremiumDialog = false }) {
+                    Text("稍后再说")
+                }
+            }
+        )
     }
 }
 

@@ -52,7 +52,8 @@ import java.time.format.DateTimeFormatter
 fun FamilyScreen(
     database: AppDatabase,
     navController: NavController,
-    recordRepository: RecordRepository
+    recordRepository: RecordRepository,
+    premiumManager: com.yy.medtrace.data.settings.PremiumManager? = null
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -63,6 +64,7 @@ fun FamilyScreen(
     var editingMember by remember { mutableStateOf<FamilyMember?>(null) }
     var pendingDelete by remember { mutableStateOf<FamilyMember?>(null) }
     var expandedMemberId by remember { mutableStateOf<Long?>(null) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         database.familyMemberDao().getAllMembers()
@@ -97,8 +99,13 @@ fun FamilyScreen(
                 subtitle = "家人档案一目了然",
                 actions = {
                     IconButton(onClick = {
-                        editingMember = null
-                        showDialog = true
+                        // 检查是否可以添加更多成员
+                        if (premiumManager != null && !premiumManager.isPremiumActive() && members.size >= 1) {
+                            showPremiumDialog = true
+                        } else {
+                            editingMember = null
+                            showDialog = true
+                        }
                     }) {
                         Icon(Icons.Default.Add, "新增家庭成员", tint = Color.White)
                     }
@@ -171,6 +178,28 @@ fun FamilyScreen(
                     else database.familyMemberDao().update(m)
                 }
                 showDialog = false
+            }
+        )
+    }
+
+    // 高级版提示对话框
+    if (showPremiumDialog) {
+        AlertDialog(
+            onDismissRequest = { showPremiumDialog = false },
+            title = { Text("解锁高级版") },
+            text = { Text("免费版最多支持1位家庭成员。升级高级版可添加更多成员，还有更多功能等你解锁！") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPremiumDialog = false
+                    navController.navigate("premium")
+                }) {
+                    Text("立即升级")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPremiumDialog = false }) {
+                    Text("稍后再说")
+                }
             }
         )
     }

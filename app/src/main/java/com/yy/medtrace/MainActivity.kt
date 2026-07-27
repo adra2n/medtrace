@@ -139,6 +139,7 @@ class MainActivity : FragmentActivity() {
                         memberRepository = memberRepository,
                         recordRepository = recordRepository,
                         todoRepository = todoRepository,
+                        premiumManager = premiumManager,
                         paymentManager = paymentManager,
                         initialRoute = navigateTo
                     )
@@ -223,6 +224,7 @@ fun MainScreen(
     memberRepository: MemberRepository,
     recordRepository: RecordRepository,
     todoRepository: TodoRepository,
+    premiumManager: com.yy.medtrace.data.settings.PremiumManager,
     paymentManager: com.yy.medtrace.payment.PaymentManager,
     initialRoute: String? = null
 ) {
@@ -406,7 +408,7 @@ fun MainScreen(
                 )
             }
             composable(Screen.Family.route) {
-                FamilyScreen(database, navController, recordRepository)
+                FamilyScreen(database, navController, recordRepository, premiumManager)
             }
             composable(Screen.Reminders.route) {
                 val viewModel: RemindersViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
@@ -437,7 +439,7 @@ fun MainScreen(
                 TrendsScreen(database, navController)
             }
             composable(Screen.Settings.route) {
-                SettingsScreen(database, navController)
+                SettingsScreen(database, navController, premiumManager)
             }
             composable(
                 "member_detail/{memberId}",
