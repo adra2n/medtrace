@@ -73,6 +73,8 @@ fun RemindersScreen(
         "其他" to "📋"
     )
 
+    var selectedCategory by remember { mutableStateOf("其他") }
+
     Scaffold(
         topBar = {
             GradientTopBar(
@@ -103,7 +105,7 @@ fun RemindersScreen(
             item {
                 QuickAddSection(
                     onAdd = { category ->
-                        // 设置默认类别后打开添加对话框
+                        selectedCategory = category
                         showAddDialog = true
                     }
                 )
@@ -151,6 +153,7 @@ fun RemindersScreen(
     if (showAddDialog) {
         AddTodoDialog(
             members = members,
+            initialCategory = selectedCategory,
             onDismiss = { showAddDialog = false },
             onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval, category ->
                 viewModel.insertTodo(

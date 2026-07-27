@@ -669,11 +669,12 @@ private fun getTimeAgo(dateTime: java.time.LocalDateTime): String {
 @Composable
 internal fun AddTodoDialog(
     members: List<FamilyMember>,
+    initialCategory: String = "其他",
     onDismiss: () -> Unit,
     onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int, category: String) -> Unit
 ) {
     var content by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("其他") }
+    var category by remember { mutableStateOf(initialCategory) }
     var selectedMemberId by remember { mutableStateOf<Long?>(members.firstOrNull()?.id) }
     val selectedMember = members.firstOrNull { it.id == selectedMemberId }
     var memberExpanded by remember { mutableStateOf(false) }
