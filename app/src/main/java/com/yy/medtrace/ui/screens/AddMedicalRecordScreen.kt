@@ -303,7 +303,7 @@ fun AddMedicalRecordScreen(
                     OutlinedTextField(
                         value = noteText,
                         onValueChange = { noteText = it },
-                        label = { Text("粘贴文本（可选，如处方文字）") },
+                        label = { Text("粘贴文本（可选，如病历文字）") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = false,
                         maxLines = 3
@@ -332,7 +332,7 @@ fun AddMedicalRecordScreen(
                                 style = MaterialTheme.typography.labelSmall
                             )
                             Text(
-                                text = "AI 分析结果仅供参考，请以医生诊断为准",
+                                text = "识别结果仅供参考，请以实际病历为准",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -346,7 +346,7 @@ fun AddMedicalRecordScreen(
                 OutlinedTextField(
                     value = diagnosis,
                     onValueChange = { diagnosis = it },
-                    label = { Text("诊断结果") },
+                    label = { Text("就诊类型") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -387,8 +387,8 @@ fun AddMedicalRecordScreen(
                 }
             }
 
-            // 开具药品
-            SectionCard(title = "开具药品") {
+            // 用药记录
+            SectionCard(title = "用药记录") {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     medItems.forEachIndexed { index, item ->
                         Card(
@@ -492,7 +492,7 @@ fun AddMedicalRecordScreen(
                             return@Button
                         }
                         if (diagnosis.isBlank() || medItems.isEmpty()) {
-                            error = "请填写诊断结果与至少一项药品"
+                            error = "请填写就诊类型与至少一项药品"
                             return@Button
                         }
 

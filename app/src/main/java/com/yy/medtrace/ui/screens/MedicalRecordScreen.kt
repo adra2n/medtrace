@@ -256,7 +256,7 @@ fun MedicalRecordScreen(
                             value = keyword,
                             onValueChange = { keyword = it },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("搜索诊断 / 医院 / 备注") },
+                            placeholder = { Text("搜索就诊类型 / 医院 / 备注") },
                             singleLine = true,
                             trailingIcon = {
                                 if (keyword.isNotEmpty()) {
