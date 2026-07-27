@@ -339,7 +339,7 @@ fun HomeScreen(
                     FunctionTile(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.InsertChart,
-                        title = "健康趋势",
+                        title = "数据统计",
                         desc = "长期指标追踪",
                         color = Color(0xFFFF9800),
                         onClick = { navController.navigate("trends") }

@@ -2,7 +2,6 @@ package com.yy.medtrace.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -10,25 +9,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.medtrace.data.AppDatabase
-import com.yy.medtrace.data.llm.ComprehensiveAnalysisUseCase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
-import com.yy.medtrace.data.settings.LlmSettingsStore
 import com.yy.medtrace.ui.components.EmptyRecords
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.components.MemberEditDialog
@@ -43,7 +36,6 @@ import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
 import com.yy.medtrace.ui.theme.memberCardColors
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 private enum class DetailTab(val label: String) {
@@ -69,15 +61,8 @@ fun MemberDetailScreen(
             if (initialTab == "check") DetailTab.Exam else DetailTab.Medication
         )
     }
-    var aiSummary by remember { mutableStateOf<String?>(null) }
-    var aiAdvice by remember { mutableStateOf<String?>(null) }
-    var aiAnalyzing by remember { mutableStateOf(false) }
-    var aiError by remember { mutableStateOf<String?>(null) }
-    var aiJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var showEdit by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val llmSettings = remember { LlmSettingsStore(context) }
 
     LaunchedEffect(memberId) {
         scope.launch {
@@ -93,6 +78,7 @@ fun MemberDetailScreen(
     val examRecords = remember(records) { records.filter { it.metricsJson.isNotBlank() } }
     val visitRecords = remember(records) { records }
     val metricPoints = remember(records) {
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm")
         buildSeries(records).flatMap { series ->
             series.points.map { point ->
                 MetricView(
@@ -100,7 +86,7 @@ fun MemberDetailScreen(
                     value = point.raw,
                     unit = series.unit,
                     abnormal = point.abnormal,
-                    time = point.time
+                    time = point.time.format(formatter)
                 )
             }
         }
@@ -124,35 +110,6 @@ fun MemberDetailScreen(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (aiAnalyzing) {
-                        aiJob?.cancel()
-                        return@FloatingActionButton
-                    }
-                    val m = member ?: return@FloatingActionButton
-                    aiError = null
-                    aiAnalyzing = true
-                    aiJob = scope.launch {
-                        try {
-                            val result = ComprehensiveAnalysisUseCase(llmSettings)
-                                .analyze(m, records)
-                            aiSummary = result.trend.ifBlank { result.raw }
-                            aiAdvice = result.advice.ifBlank { null }
-                        } catch (e: Exception) {
-                            if (e is kotlinx.coroutines.CancellationException) return@launch
-                            aiError = e.message ?: "分析失败"
-                        } finally {
-                            aiAnalyzing = false
-                        }
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.AutoAwesome, "AI健康汇总", tint = MaterialTheme.colorScheme.onPrimary)
-            }
         }
     ) { padding ->
         LazyColumn(
@@ -161,7 +118,7 @@ fun MemberDetailScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 88.dp, top = 16.dp)
+            contentPadding = PaddingValues(bottom = 16.dp, top = 16.dp)
         ) {
             item {
                 Row(
@@ -186,40 +143,6 @@ fun MemberDetailScreen(
                     }
                 }
             }
-            if (aiError != null) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = AppShapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                    ) {
-                        Text(
-                            "AI 分析失败：$aiError",
-                            modifier = Modifier.padding(14.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-            }
-            aiSummary?.let {
-                item {
-                    SectionCard(title = "AI 健康汇总") {
-                        if (aiAnalyzing) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                        } else {
-                            if (aiAdvice != null) {
-                                Text("健康建议", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                                Spacer(Modifier.height(4.dp))
-                                Text(aiAdvice!!, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(Modifier.height(10.dp))
-                            }
-                            Text("趋势解读", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                            Spacer(Modifier.height(4.dp))
-                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                }
-            }
 
             item {
                 FlowRow(
@@ -227,18 +150,11 @@ fun MemberDetailScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    DetailTab.values().forEach { tab ->
-                        val selected = selectedTab == tab
-                        val count = when (tab) {
-                            DetailTab.Medication -> medicationRecords.size
-                            DetailTab.Exam -> examRecords.size
-                            DetailTab.Metric -> metricPoints.size
-                            DetailTab.Visit -> visitRecords.size
-                        }
+                    DetailTab.entries.forEach { tab ->
                         FilterChip(
-                            selected = selected,
+                            selected = selectedTab == tab,
                             onClick = { selectedTab = tab },
-                            label = { Text("${tab.label} $count") }
+                            label = { Text(tab.label) }
                         )
                     }
                 }
@@ -246,35 +162,78 @@ fun MemberDetailScreen(
 
             when (selectedTab) {
                 DetailTab.Medication -> {
-                    if (medicationRecords.isEmpty()) item { EmptyRecords() }
-                    else items(medicationRecords) { MedicalRecordCard(it) }
+                    if (medicationRecords.isEmpty()) {
+                        item { EmptyRecords() }
+                    } else {
+                        items(medicationRecords, key = { it.id }) { record ->
+                            MedicalRecordCard(record)
+                        }
+                    }
                 }
                 DetailTab.Exam -> {
-                    if (examRecords.isEmpty()) item { EmptyRecords() }
-                    else items(examRecords) { MedicalRecordCard(it) }
+                    if (examRecords.isEmpty()) {
+                        item { EmptyRecords() }
+                    } else {
+                        items(examRecords, key = { it.id }) { record ->
+                            MedicalRecordCard(record)
+                        }
+                    }
                 }
                 DetailTab.Metric -> {
-                    if (metricPoints.isEmpty()) item { EmptyRecords() }
-                    else items(metricPoints) { mv ->
-                        MetricRowCard(mv)
+                    if (metricPoints.isEmpty()) {
+                        item { EmptyRecords() }
+                    } else {
+                        items(metricPoints, key = { "${it.name}-${it.time}" }) { point ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = AppShapes.medium,
+                                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(point.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                        Text(point.time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Text(
+                                        "${point.value} ${point.unit}",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (point.abnormal) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 DetailTab.Visit -> {
-                    if (visitRecords.isEmpty()) item { EmptyRecords() }
-                    else items(visitRecords) { MedicalRecordCard(it) }
+                    if (visitRecords.isEmpty()) {
+                        item { EmptyRecords() }
+                    } else {
+                        items(visitRecords, key = { it.id }) { record ->
+                            MedicalRecordCard(record)
+                        }
+                    }
                 }
             }
         }
     }
 
-    if (showEdit && member != null) {
+    if (showEdit) {
         MemberEditDialog(
             member = member,
             onDismiss = { showEdit = false },
             onSave = { m ->
                 scope.launch {
-                    database.familyMemberDao().update(m)
-                    member = database.familyMemberDao().getMemberById(m.id)
+                    if (member == null) database.familyMemberDao().insert(m)
+                    else database.familyMemberDao().update(m)
+                    member = m
                 }
                 showEdit = false
             }
@@ -282,49 +241,10 @@ fun MemberDetailScreen(
     }
 }
 
-private data class MetricView(
+data class MetricView(
     val name: String,
     val value: String,
     val unit: String,
     val abnormal: Boolean,
-    val time: java.time.LocalDateTime
+    val time: String
 )
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-private fun MetricRowCard(mv: MetricView) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = if (mv.abnormal)
-                MaterialTheme.colorScheme.errorContainer else cardContainerColor()
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(mv.name, style = MaterialTheme.typography.titleSmall,
-                    color = if (mv.abnormal) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface)
-                Text(
-                    mv.time.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (mv.abnormal) MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(
-                "${mv.value}${if (mv.unit.isNotBlank()) " " + mv.unit else ""}",
-                style = MaterialTheme.typography.titleMedium,
-                color = if (mv.abnormal) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}

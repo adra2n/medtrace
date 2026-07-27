@@ -37,12 +37,12 @@ fun OnboardingScreen(navController: NavController) {
     var page by remember { mutableStateOf(0) }
 
     val pages = listOf(
-        OnboardPage(Icons.Filled.AutoAwesome, "AI 智能识别",
+        OnboardPage(Icons.Filled.AutoAwesome, "智能识别",
             "拍照或粘贴处方文本，自动提取诊断、用药与检查指标，省去手动录入。"),
-        OnboardPage(Icons.Filled.People, "家庭健康管理",
+        OnboardPage(Icons.Filled.People, "家庭档案管理",
             "为每位家人建立健康档案，归类历次就诊记录与注意事项。"),
-        OnboardPage(Icons.AutoMirrored.Filled.ShowChart, "趋势与解读",
-            "检查指标自动成图，AI 给出趋势解读与健康建议，异常一目了然。")
+        OnboardPage(Icons.AutoMirrored.Filled.ShowChart, "数据统计",
+            "检查指标自动成图，数据变化一目了然。")
     )
 
     fun finish() {

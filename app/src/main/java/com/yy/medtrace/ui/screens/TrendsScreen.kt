@@ -8,8 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,10 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yy.medtrace.data.AppDatabase
-import com.yy.medtrace.data.llm.ComprehensiveAnalysisUseCase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
-import com.yy.medtrace.data.settings.LlmSettingsStore
 import com.yy.medtrace.ui.components.MemberSelector
 import com.yy.medtrace.ui.components.TrendSection
 import com.yy.medtrace.ui.components.buildSeries
@@ -45,17 +41,10 @@ fun TrendsScreen(
     navController: NavController
 ) {
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val llmSettings = remember { LlmSettingsStore(context) }
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
     var records by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
-    var aiTrend by remember { mutableStateOf<String?>(null) }
-    var aiAnalyzing by remember { mutableStateOf(false) }
-    var aiError by remember { mutableStateOf<String?>(null) }
-    var aiJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
-    val dayFmt = DateTimeFormatter.ofPattern("MM-dd")
 
     val periods = listOf(
         "7天" to 7L,
@@ -64,24 +53,6 @@ fun TrendsScreen(
         "全年" to 365L
     )
     var selectedPeriodDays by remember { mutableStateOf(180L) }
-
-    fun runAiAnalysis() {
-        val member = members.firstOrNull { it.id == selectedMemberId } ?: return
-        aiError = null
-        aiAnalyzing = true
-        aiJob = scope.launch {
-            try {
-                val result = ComprehensiveAnalysisUseCase(llmSettings)
-                    .analyze(member, records)
-                aiTrend = result.trend.ifBlank { result.raw }
-            } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) return@launch
-                aiError = e.message ?: "分析失败"
-            } finally {
-                aiAnalyzing = false
-            }
-        }
-    }
 
     LaunchedEffect(Unit) {
         database.familyMemberDao().getAllMembers()
@@ -115,7 +86,7 @@ fun TrendsScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "健康分析",
+                title = "数据统计",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
@@ -139,69 +110,6 @@ fun TrendsScreen(
                     onSelect = { member -> scope.launch { SelectedMemberHolder.select(member.id, database) } },
                     emptyHint = "暂无家庭成员，请先在家庭中添加"
                 )
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = AppShapes.large,
-                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(AppShapes.small)
-                                .background(Primary.copy(alpha = 0.14f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Filled.AutoAwesome, "AI 健康概览", tint = Primary, modifier = Modifier.size(20.dp))
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        Column {
-                            Text("AI 健康概览", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                            Text("基于近期健康指标智能总结", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-
-                    Button(
-                        onClick = { if (aiAnalyzing) aiJob?.cancel() else runAiAnalysis() },
-                        enabled = aiAnalyzing || members.any { it.id == selectedMemberId },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                    ) {
-                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (aiAnalyzing) "停止分析" else "生成健康概览", color = MaterialTheme.colorScheme.onPrimary)
-                    }
-
-                    aiError?.let {
-                        Text("分析失败：$it", color = MaterialTheme.colorScheme.error)
-                    }
-
-                    aiTrend?.let { trend ->
-                        Surface(
-                            shape = AppShapes.medium,
-                            color = Primary.copy(alpha = 0.08f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(trend, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                                Text("AI 生成内容仅供参考，不替代专业医疗诊断", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
             }
 
             Row(
@@ -255,20 +163,71 @@ fun TrendsScreen(
                 }
             }
 
-            Button(
-                onClick = {
-                    android.widget.Toast.makeText(
-                        context,
-                        "PDF 病历导出功能开发中",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
-                },
+            // 记录统计
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                shape = AppShapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
-                Icon(Icons.Filled.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-                Spacer(Modifier.width(8.dp))
-                Text("导出 PDF 完整病历", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "记录统计",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "${records.size}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Primary
+                            )
+                            Text(
+                                text = "总记录",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val recentCount = records.count {
+                                it.onsetTime?.isAfter(LocalDateTime.now().minusDays(30)) ?: false
+                            }
+                            Text(
+                                text = "$recentCount",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Primary
+                            )
+                            Text(
+                                text = "近30天",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "${records.sumOf { it.medItems.size }}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Primary
+                            )
+                            Text(
+                                text = "药品数",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
         }
     }
