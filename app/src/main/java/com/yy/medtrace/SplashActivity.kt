@@ -10,13 +10,6 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.umeng.analytics.MobclickAgent
-import com.umeng.commonsdk.UMConfigure
-import com.umeng.union.UMSplashAD
-import com.umeng.union.UMUnionSdk
-import com.umeng.union.api.UMAdConfig
-import com.umeng.union.api.UMUnionApi
-import com.yy.medtrace.common.Constants
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.data.settings.PrivacyConsentStore
 import kotlinx.coroutines.runBlocking
@@ -28,14 +21,11 @@ class SplashActivity : Activity() {
     private var fallbackLayout: LinearLayout? = null
     private var skipTextView: TextView? = null
     private var countDownTimer: CountDownTimer? = null
-    private var splashAd: UMSplashAD? = null
 
     companion object {
         private const val TAG = "SplashActivity"
-        private const val SKIP_DELAY = 5000L
+        private const val SKIP_DELAY = 3000L
         private const val COUNT_DOWN_INTERVAL = 1000L
-        private const val AD_SLOT_ID = "100012523"
-        private const val AD_TIMEOUT = 5000
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +40,7 @@ class SplashActivity : Activity() {
             navigateToNext()
         }
 
-        // 先检查隐私协议状态
+        // 检查隐私协议状态
         val privacyGranted = runBlocking {
             runCatching {
                 PrivacyConsentStore(this@SplashActivity).isGranted()
@@ -60,8 +50,8 @@ class SplashActivity : Activity() {
         Log.d(TAG, "privacyGranted: $privacyGranted")
 
         if (privacyGranted) {
-            // 已同意隐私协议，加载广告
-            loadSplashAd()
+            // 已同意隐私协议，显示启动页并倒计时
+            showSplash()
         } else {
             // 未同意隐私协议，直接跳转
             Log.d(TAG, "隐私协议未同意，跳转到隐私协议页面")
@@ -69,51 +59,13 @@ class SplashActivity : Activity() {
         }
     }
 
-    private fun loadSplashAd() {
-        // 初始化友盟统计 SDK
-        UMConfigure.preInit(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL)
-        UMConfigure.submitPolicyGrantResult(this, true)
-        UMConfigure.init(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL, UMConfigure.DEVICE_TYPE_PHONE, null)
-        MobclickAgent.setPageCollectionMode(MobclickAgent.PageMode.AUTO)
-
-        // 初始化广告 SDK
-        UMUnionSdk.init(this)
-
-        // 构建广告配置
-        val adConfig = UMAdConfig.Builder()
-            .setSlotId(AD_SLOT_ID)
-            .build()
-
-        // 加载开屏广告
-        UMUnionSdk.loadSplashAd(adConfig, object : UMUnionApi.AdLoadListener<UMSplashAD> {
-            override fun onSuccess(adType: UMUnionApi.AdType?, ad: UMSplashAD?) {
-                Log.d(TAG, "开屏广告加载成功")
-                splashAd = ad
-                ad?.setAdCloseListener {
-                    Log.d(TAG, "广告关闭")
-                    navigateToNext()
-                }
-                // 隐藏兜底布局，显示广告
-                fallbackLayout?.visibility = View.GONE
-                splashContainer?.let { container ->
-                    ad?.show(container)
-                }
-            }
-
-            override fun onFailure(adType: UMUnionApi.AdType?, msg: String?) {
-                Log.e(TAG, "开屏广告加载失败: $msg")
-                // 显示兜底布局
-                showFallback()
-            }
-        }, AD_TIMEOUT)
-
-        // 启动倒计时兜底
-        startCountDown()
-    }
-
-    private fun showFallback() {
+    private fun showSplash() {
+        // 显示兜底布局（App图标）
         fallbackLayout?.visibility = View.VISIBLE
         splashContainer?.visibility = View.GONE
+
+        // 启动倒计时
+        startCountDown()
     }
 
     private fun startCountDown() {

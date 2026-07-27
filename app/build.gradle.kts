@@ -12,13 +12,13 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.yy.medtrace"
+        applicationId = "com.yy.medtrace.pure"
         minSdk = 24
         targetSdk = 35
         // versionCode 约定：每个 minor 版本 +1（v2.0.0 = 10）。
         // versionCode = 10 + minor * 1 + patch
         versionCode = 28
-        versionName = "v3.7.0"
+        versionName = "v3.7.0-pure"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
