@@ -615,60 +615,33 @@ fun SettingsScreen(
                             ) { Text("导出 CSV 报告") }
                         }
                     } else {
-                        // 未购买：显示锁定状态（带功能说明）
+                        // 未购买：显示锁定状态（使用 SectionCard 样式）
+                        SectionHeader(icon = Icons.Default.Cloud, title = "数据备份与同步")
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp),
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // 标题行
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Default.Cloud,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp),
-                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                        )
-                                    }
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                    )
                                 }
-                                Text(
-                                    "数据备份与同步",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
                             }
-                            
-                            // 功能说明
                             Text(
-                                "解锁后可使用：",
+                                "解锁后可使用：导出备份、导入恢复、云端同步",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                SettingsFeatureTag("📤 导出备份")
-                                SettingsFeatureTag("📥 导入恢复")
-                                SettingsFeatureTag("☁️ 云端同步")
-                            }
-                            Text(
-                                "将就诊记录导出为文件，支持加密备份到 GitHub Gist",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            
-                            // 升级按钮
                             Button(
                                 onClick = { navController.navigate("premium") },
                                 modifier = Modifier.fillMaxWidth(),
@@ -773,60 +746,33 @@ fun SettingsScreen(
                             )
                         }
                     } else {
-                        // 未购买：显示锁定状态（带功能说明）
+                        // 未购买：显示锁定状态（使用 SectionCard 样式）
+                        SectionHeader(icon = Icons.Default.SmartToy, title = "AI 配置")
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp),
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // 标题行
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    modifier = Modifier.size(40.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Default.SmartToy,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp),
-                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                        )
-                                    }
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                    )
                                 }
-                                Text(
-                                    "AI 配置",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
                             }
-                            
-                            // 功能说明
                             Text(
-                                "解锁后可使用：",
+                                "解锁后可使用：AI 识别、拍照提取、文本分析",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                SettingsFeatureTag("🤖 AI 识别")
-                                SettingsFeatureTag("📷 拍照提取")
-                                SettingsFeatureTag("🔍 文本分析")
-                            }
-                            Text(
-                                "配置 AI 模型，自动提取诊断和用药信息",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            
-                            // 升级按钮
                             Button(
                                 onClick = { navController.navigate("premium") },
                                 modifier = Modifier.fillMaxWidth(),

@@ -2,6 +2,7 @@ package com.yy.medtrace.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -33,6 +34,7 @@ import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.theme.AppShapes
+import com.yy.medtrace.ui.components.SectionCard
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
@@ -751,52 +753,35 @@ private fun EditTodoDialog(
 
 @Composable
 private fun QuickAddSection(onAdd: (String) -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
+    SectionCard(title = "⚡ 快速添加") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                "⚡ 快速添加",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
+            QuickAddChip(
+                icon = "💊",
+                label = "用药",
+                onClick = { onAdd("用药") },
+                modifier = Modifier.weight(1f)
             )
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                QuickAddChip(
-                    icon = "💊",
-                    label = "用药",
-                    onClick = { onAdd("用药") },
-                    modifier = Modifier.weight(1f)
-                )
-                QuickAddChip(
-                    icon = "🏥",
-                    label = "复查",
-                    onClick = { onAdd("复查") },
-                    modifier = Modifier.weight(1f)
-                )
-                QuickAddChip(
-                    icon = "🔬",
-                    label = "检查",
-                    onClick = { onAdd("检查") },
-                    modifier = Modifier.weight(1f)
-                )
-                QuickAddChip(
-                    icon = "📋",
-                    label = "其他",
-                    onClick = { onAdd("其他") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            QuickAddChip(
+                icon = "🏥",
+                label = "复查",
+                onClick = { onAdd("复查") },
+                modifier = Modifier.weight(1f)
+            )
+            QuickAddChip(
+                icon = "🔬",
+                label = "检查",
+                onClick = { onAdd("检查") },
+                modifier = Modifier.weight(1f)
+            )
+            QuickAddChip(
+                icon = "📋",
+                label = "其他",
+                onClick = { onAdd("其他") },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -812,10 +797,11 @@ private fun QuickAddChip(
         modifier = modifier
             .clickable { onClick() },
         shape = AppShapes.medium,
-        color = Primary.copy(alpha = 0.1f)
+        color = Primary.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -823,7 +809,8 @@ private fun QuickAddChip(
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
-                color = Primary
+                color = Primary,
+                fontWeight = FontWeight.Medium
             )
         }
     }
@@ -838,84 +825,67 @@ private fun WeeklyPlanSection(todos: List<HealthTodo>) {
         !it.done && it.dueDate in today..weekEnd 
     }.sortedBy { it.dueDate }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
+    SectionCard(title = "📅 本周计划") {
+        if (weeklyTodos.isEmpty()) {
             Text(
-                "📅 本周计划",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
+                "本周暂无待办",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(8.dp))
-            if (weeklyTodos.isEmpty()) {
-                Text(
-                    "本周暂无待办",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                weeklyTodos.take(5).forEach { todo ->
-                    val dayLabel = when (todo.dueDate) {
-                        today -> "今天"
-                        today.plusDays(1) -> "明天"
-                        today.plusDays(2) -> "后天"
-                        else -> {
-                            val dayOfWeek = todo.dueDate.dayOfWeek
-                            when (dayOfWeek) {
-                                java.time.DayOfWeek.MONDAY -> "周一"
-                                java.time.DayOfWeek.TUESDAY -> "周二"
-                                java.time.DayOfWeek.WEDNESDAY -> "周三"
-                                java.time.DayOfWeek.THURSDAY -> "周四"
-                                java.time.DayOfWeek.FRIDAY -> "周五"
-                                java.time.DayOfWeek.SATURDAY -> "周六"
-                                java.time.DayOfWeek.SUNDAY -> "周日"
-                                else -> todo.dueDate.format(DateTimeFormatter.ofPattern("MM-dd"))
-                            }
+        } else {
+            weeklyTodos.take(5).forEach { todo ->
+                val dayLabel = when (todo.dueDate) {
+                    today -> "今天"
+                    today.plusDays(1) -> "明天"
+                    today.plusDays(2) -> "后天"
+                    else -> {
+                        val dayOfWeek = todo.dueDate.dayOfWeek
+                        when (dayOfWeek) {
+                            java.time.DayOfWeek.MONDAY -> "周一"
+                            java.time.DayOfWeek.TUESDAY -> "周二"
+                            java.time.DayOfWeek.WEDNESDAY -> "周三"
+                            java.time.DayOfWeek.THURSDAY -> "周四"
+                            java.time.DayOfWeek.FRIDAY -> "周五"
+                            java.time.DayOfWeek.SATURDAY -> "周六"
+                            java.time.DayOfWeek.SUNDAY -> "周日"
+                            else -> todo.dueDate.format(DateTimeFormatter.ofPattern("MM-dd"))
                         }
                     }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            dayLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (todo.dueDate == today) Primary else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.width(40.dp)
-                        )
-                        Text(
-                            todo.content,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            todo.memberName,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
-                if (weeklyTodos.size > 5) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Text(
-                        "还有 ${weeklyTodos.size - 5} 项...",
+                        dayLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (todo.dueDate == today) Primary else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.width(40.dp)
+                    )
+                    Text(
+                        todo.content,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        todo.memberName,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+            if (weeklyTodos.size > 5) {
+                Text(
+                    "还有 ${weeklyTodos.size - 5} 项...",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
     }
