@@ -20,9 +20,14 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.PrimaryLight
+
+// 卡片形状（圆角更大）
+val CardShape = RoundedCornerShape(20.dp)
+
+// 卡片阴影
+val CardElevation = 8.dp
 
 val PrimaryGradient: Brush
     @Composable
@@ -32,7 +37,7 @@ val PrimaryGradient: Brush
         endY = 400f
     )
 
-val SoftElevation = 6.dp
+val SoftElevation = 8.dp
 
 @Composable
 fun GradientTopBar(
@@ -46,13 +51,7 @@ fun GradientTopBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Primary, PrimaryDark),
-                    startY = 0f,
-                    endY = 100f
-                )
-            )
+            .background(Color.White) // 白色背景
             .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
@@ -62,37 +61,31 @@ fun GradientTopBar(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             navigationIcon?.let {
-                CompositionLocalProvider(LocalContentColor provides Color.White) {
-                    it()
-                }
+                it()
             }
             leadingContent?.let {
-                CompositionLocalProvider(LocalContentColor provides Color.White) {
-                    it()
-                }
+                it()
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color(0xFF2E3A46)
                 )
                 subtitle?.let {
-                    Spacer(Modifier.height(1.dp))
+                    Spacer(Modifier.height(2.dp))
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.6f)
+                        color = Color(0xFF5F6B7A)
                     )
                 }
             }
-            CompositionLocalProvider(LocalContentColor provides Color.White) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    content = actions
-                )
-            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                content = actions
+            )
         }
     }
 }
@@ -102,7 +95,8 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF2ECDC6), // 青绿色
         modifier = modifier
     )
 }
