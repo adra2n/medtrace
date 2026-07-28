@@ -84,7 +84,7 @@ fun RemindersScreen(
                 subtitle = "查看和管理所有提醒",
                 actions = {
                     IconButton(onClick = { showAddDialog = true }) {
-                        Icon(Icons.Default.Add, "添加提醒", tint = Color.White)
+                        Icon(Icons.Default.Add, "添加提醒", tint = Primary)
                     }
                 }
             )

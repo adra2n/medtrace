@@ -47,7 +47,6 @@ import com.yy.medtrace.data.settings.SyncSettingsStore
 import com.yy.medtrace.data.security.BiometricHelper
 import com.yy.medtrace.data.security.PinManager
 import androidx.fragment.app.FragmentActivity
-import com.yy.medtrace.ui.components.SectionCard
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.Primary
@@ -616,41 +615,39 @@ fun SettingsScreen(
                             ) { Text("导出 CSV 报告") }
                         }
                     } else {
-                        // 未购买：显示锁定状态（与AI智能识别卡片样式一致）
-                        SectionCard(title = "数据备份与同步") {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                        // 未购买：显示锁定状态（使用 SectionCard 样式）
+                        SectionHeader(icon = Icons.Default.Cloud, title = "数据备份与同步")
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Default.Lock,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(24.dp),
-                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                        )
-                                    }
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                    )
                                 }
-                                Text(
-                                    "解锁后可使用：导出备份、导入恢复、云端同步",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Button(
-                                    onClick = { navController.navigate("premium") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Text("立即升级 ¥9.90 解锁")
-                                }
+                            }
+                            Text(
+                                "解锁后可使用：导出备份、导入恢复、云端同步",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Button(
+                                onClick = { navController.navigate("premium") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Text("立即升级 ¥9.90 解锁")
                             }
                         }
                     }
@@ -749,41 +746,39 @@ fun SettingsScreen(
                             )
                         }
                     } else {
-                        // 未购买：显示锁定状态（与AI智能识别卡片样式一致）
-                        SectionCard(title = "AI 配置") {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                        // 未购买：显示锁定状态（使用 SectionCard 样式）
+                        SectionHeader(icon = Icons.Default.SmartToy, title = "AI 配置")
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                modifier = Modifier.size(48.dp)
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    modifier = Modifier.size(48.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            Icons.Default.Lock,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(24.dp),
-                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                        )
-                                    }
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                    )
                                 }
-                                Text(
-                                    "解锁后可使用：AI 识别、拍照提取、文本分析",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Button(
-                                    onClick = { navController.navigate("premium") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Text("立即升级 ¥9.90 解锁")
-                                }
+                            }
+                            Text(
+                                "解锁后可使用：AI 识别、拍照提取、文本分析",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Button(
+                                onClick = { navController.navigate("premium") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Text("立即升级 ¥9.90 解锁")
                             }
                         }
                     }

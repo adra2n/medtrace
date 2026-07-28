@@ -107,7 +107,7 @@ fun FamilyScreen(
                             showDialog = true
                         }
                     }) {
-                        Icon(Icons.Default.Add, "新增家庭成员", tint = Color.White)
+                        Icon(Icons.Default.Add, "新增家庭成员", tint = Primary)
                     }
                 }
             )
