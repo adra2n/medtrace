@@ -357,6 +357,25 @@ fun HomeScreen(
         }
     }
 
+    // 添加待办对话框
+    if (showAddTodoDialog) {
+        AddTodoDialog(
+            members = uiState.members,
+            onDismiss = { showAddTodoDialog = false },
+            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval, category ->
+                viewModel.addTodo(
+                    memberId = memberId,
+                    memberName = memberName,
+                    content = content,
+                    dueDate = dueDate,
+                    repeatType = repeatType,
+                    repeatInterval = repeatInterval,
+                    category = category
+                )
+                showAddTodoDialog = false
+            }
+        )
+    }
 }
 
 @Composable

@@ -109,14 +109,25 @@ class HomeViewModel(
         }
     }
     
-    fun addTodo(memberId: Long, memberName: String, content: String, dueDate: LocalDate) {
+    fun addTodo(
+        memberId: Long,
+        memberName: String,
+        content: String,
+        dueDate: LocalDate,
+        repeatType: String = "none",
+        repeatInterval: Int = 1,
+        category: String = "其他"
+    ) {
         viewModelScope.launch {
             todoRepository.insert(
                 HealthTodo(
                     memberId = memberId,
                     memberName = memberName,
                     content = content,
-                    dueDate = dueDate
+                    dueDate = dueDate,
+                    repeatType = repeatType,
+                    repeatInterval = repeatInterval,
+                    category = category
                 )
             )
         }
