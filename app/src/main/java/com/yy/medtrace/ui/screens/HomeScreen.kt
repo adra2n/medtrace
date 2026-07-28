@@ -97,13 +97,13 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.16f)),
+                            .background(Primary.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Filled.Favorite,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = Primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -127,7 +127,7 @@ fun HomeScreen(
                     LazyRow(
                         state = familyListState,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(end = 4.dp)
+                        contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
                         items(uiState.members) { member ->
                         val (bg, content) = memberCardColors(member.relation, member.gender)

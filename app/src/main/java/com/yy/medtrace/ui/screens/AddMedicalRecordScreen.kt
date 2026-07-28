@@ -239,176 +239,107 @@ fun AddMedicalRecordScreen(
             val isPremiumActive = premiumManager?.isPremiumActive() ?: false
             
             if (isPremiumActive) {
-                // VIP用户：显示完整功能
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = AppShapes.large,
-                    colors = CardDefaults.cardColors(containerColor = Primary.copy(alpha = 0.05f)),
-                    border = BorderStroke(1.5.dp, Primary.copy(alpha = 0.3f))
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                // VIP用户：显示完整功能（与基本信息卡片样式一致）
+                SectionCard(title = "AI 智能识别") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { launchCamera() },
+                            enabled = !analyzing,
+                            modifier = Modifier.weight(1f)
+                        ) { Text("拍照识别") }
+                        Button(
+                            onClick = { galleryLauncher.launch("image/*") },
+                            enabled = !analyzing,
+                            modifier = Modifier.weight(1f)
+                        ) { Text("相册选择") }
+                    }
+
+                    if (images.isNotEmpty()) {
+                        Text("已添加 ${images.size} 张图片", style = MaterialTheme.typography.bodyMedium)
+                    }
+
+                    if (analyzing) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                Icons.Filled.AutoAwesome,
-                                "AI 识别",
-                                tint = Primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Column {
-                                Text(
-                                    "AI 智能识别",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Primary
-                                )
-                                Text(
-                                    "拍照或粘贴文本，AI 自动提取信息",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Primary)
+                            Text("AI 识别中…", color = Primary)
                         }
+                    }
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
-                                onClick = { launchCamera() },
-                                enabled = !analyzing,
-                                modifier = Modifier.weight(1f)
-                            ) { Text("拍照识别") }
-                            Button(
-                                onClick = { galleryLauncher.launch("image/*") },
-                                enabled = !analyzing,
-                                modifier = Modifier.weight(1f)
-                            ) { Text("相册选择") }
-                        }
+                    analysisError?.let {
+                        Text("识别失败：$it", color = MaterialTheme.colorScheme.error)
+                    }
 
-                        if (images.isNotEmpty()) {
-                            Text("已添加 ${images.size} 张图片", style = MaterialTheme.typography.bodyMedium)
-                        }
+                    OutlinedTextField(
+                        value = noteText,
+                        onValueChange = { noteText = it },
+                        label = { Text("粘贴文本（可选，如病历文字）") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false,
+                        maxLines = 3
+                    )
 
-                        if (analyzing) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Primary)
-                                Text("AI 识别中…", color = Primary)
-                            }
-                        }
+                    if (noteText.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = { runAnalysis() },
+                            enabled = !analyzing,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("分析文本") }
+                    }
 
-                        analysisError?.let {
-                            Text("识别失败：$it", color = MaterialTheme.colorScheme.error)
-                        }
-
-                        OutlinedTextField(
-                            value = noteText,
-                            onValueChange = { noteText = it },
-                            label = { Text("粘贴文本（可选，如病历文字）") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = false,
-                            maxLines = 3
-                        )
-
-                        if (noteText.isNotBlank()) {
-                            OutlinedButton(
-                                onClick = { runAnalysis() },
-                                enabled = !analyzing,
-                                modifier = Modifier.fillMaxWidth()
-                            ) { Text("分析文本") }
-                        }
-
-                        // 免责声明
-                        Surface(
-                            shape = AppShapes.small,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    // 免责声明
+                    Surface(
+                        shape = AppShapes.small,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = "⚠️",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                                Text(
-                                    text = "识别结果仅供参考，请以实际病历为准",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            Text(
+                                text = "⚠️",
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                            Text(
+                                text = "识别结果仅供参考，请以实际病历为准",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
             } else {
-                // 非VIP用户：显示锁定状态（带功能说明和立体感）
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = AppShapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                ) {
+                // 非VIP用户：显示锁定状态（与基本信息卡片样式一致）
+                SectionCard(title = "AI 智能识别") {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 20.dp),
+                            .padding(vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // 标题行
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            modifier = Modifier.size(48.dp)
                         ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                    )
-                                }
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                )
                             }
-                            Text(
-                                "AI 智能识别",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
                         }
-                        
-                        // 功能说明
                         Text(
-                            "解锁后可使用：",
+                            "解锁后可使用：拍照识别、文本分析、自动提取",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            FeatureTag("📷 拍照识别")
-                            FeatureTag("📋 文本分析")
-                            FeatureTag("🔍 自动提取")
-                        }
-                        Text(
-                            "拍照或粘贴处方，AI 自动提取诊断、用药信息",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        
-                        // 升级按钮
                         Button(
                             onClick = { navController.navigate("premium") },
                             modifier = Modifier.fillMaxWidth(),
