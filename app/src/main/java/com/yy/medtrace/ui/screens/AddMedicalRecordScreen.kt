@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -347,7 +348,7 @@ fun AddMedicalRecordScreen(
                     }
                 }
             } else {
-                // 非VIP用户：显示锁定状态
+                // 非VIP用户：显示锁定状态（与设置页面样式一致）
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.large,
@@ -356,33 +357,28 @@ fun AddMedicalRecordScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp, vertical = 20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = Primary.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             modifier = Modifier.size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    Icons.Filled.AutoAwesome,
+                                    Icons.Default.Lock,
                                     contentDescription = null,
                                     modifier = Modifier.size(24.dp),
-                                    tint = Primary.copy(alpha = 0.6f)
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                                 )
                             }
                         }
                         Text(
-                            "AI 智能识别",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
                             "升级高级版解锁此功能",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         TextButton(onClick = { navController.navigate("premium") }) {
                             Text("立即升级 ¥9.90")
