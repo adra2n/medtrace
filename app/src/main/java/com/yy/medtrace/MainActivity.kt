@@ -423,14 +423,14 @@ fun MainScreen(
                 ProfileScreen(viewModel, navController, premiumManager)
             }
             composable("add_record") {
-                AddMedicalRecordScreen(database, navController)
+                AddMedicalRecordScreen(database, navController, premiumManager = premiumManager)
             }
             composable(
                 "add_record/{recordId}",
                 arguments = listOf(navArgument("recordId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getString("recordId")?.toLongOrNull() ?: -1L
-                AddMedicalRecordScreen(database, navController, recordId = id)
+                AddMedicalRecordScreen(database, navController, recordId = id, premiumManager = premiumManager)
             }
             composable("medical_records") {
                 MedicalRecordScreen(database, navController)

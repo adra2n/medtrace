@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -66,7 +67,8 @@ private fun encodeMetrics(metrics: List<Metric>): String =
 fun AddMedicalRecordScreen(
     database: AppDatabase,
     navController: NavController,
-    recordId: Long = -1L
+    recordId: Long = -1L,
+    premiumManager: com.yy.medtrace.data.settings.PremiumManager? = null
 ) {
     var selectedMemberId by remember { mutableStateOf<Long?>(null) }
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
@@ -233,109 +235,157 @@ fun AddMedicalRecordScreen(
             }
 
             // AI 智能识别区
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = AppShapes.large,
-                colors = CardDefaults.cardColors(containerColor = Primary.copy(alpha = 0.05f)),
-                border = BorderStroke(1.5.dp, Primary.copy(alpha = 0.3f))
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            val isPremiumActive = premiumManager?.isPremiumActive() ?: false
+            
+            if (isPremiumActive) {
+                // VIP用户：显示完整功能
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.large,
+                    colors = CardDefaults.cardColors(containerColor = Primary.copy(alpha = 0.05f)),
+                    border = BorderStroke(1.5.dp, Primary.copy(alpha = 0.3f))
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            Icons.Filled.AutoAwesome,
-                            "AI 识别",
-                            tint = Primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Column {
-                            Text(
-                                "AI 智能识别",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Primary
-                            )
-                            Text(
-                                "拍照或粘贴文本，AI 自动提取信息",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = { launchCamera() },
-                            enabled = !analyzing,
-                            modifier = Modifier.weight(1f)
-                        ) { Text("拍照识别") }
-                        Button(
-                            onClick = { galleryLauncher.launch("image/*") },
-                            enabled = !analyzing,
-                            modifier = Modifier.weight(1f)
-                        ) { Text("相册选择") }
-                    }
-
-                    if (images.isNotEmpty()) {
-                        Text("已添加 ${images.size} 张图片", style = MaterialTheme.typography.bodyMedium)
-                    }
-
-                    if (analyzing) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Primary)
-                            Text("AI 识别中…", color = Primary)
+                            Icon(
+                                Icons.Filled.AutoAwesome,
+                                "AI 识别",
+                                tint = Primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column {
+                                Text(
+                                    "AI 智能识别",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Primary
+                                )
+                                Text(
+                                    "拍照或粘贴文本，AI 自动提取信息",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { launchCamera() },
+                                enabled = !analyzing,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("拍照识别") }
+                            Button(
+                                onClick = { galleryLauncher.launch("image/*") },
+                                enabled = !analyzing,
+                                modifier = Modifier.weight(1f)
+                            ) { Text("相册选择") }
+                        }
+
+                        if (images.isNotEmpty()) {
+                            Text("已添加 ${images.size} 张图片", style = MaterialTheme.typography.bodyMedium)
+                        }
+
+                        if (analyzing) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Primary)
+                                Text("AI 识别中…", color = Primary)
+                            }
+                        }
+
+                        analysisError?.let {
+                            Text("识别失败：$it", color = MaterialTheme.colorScheme.error)
+                        }
+
+                        OutlinedTextField(
+                            value = noteText,
+                            onValueChange = { noteText = it },
+                            label = { Text("粘贴文本（可选，如病历文字）") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = false,
+                            maxLines = 3
+                        )
+
+                        if (noteText.isNotBlank()) {
+                            OutlinedButton(
+                                onClick = { runAnalysis() },
+                                enabled = !analyzing,
+                                modifier = Modifier.fillMaxWidth()
+                            ) { Text("分析文本") }
+                        }
+
+                        // 免责声明
+                        Surface(
+                            shape = AppShapes.small,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "⚠️",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                                Text(
+                                    text = "识别结果仅供参考，请以实际病历为准",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
-
-                    analysisError?.let {
-                        Text("识别失败：$it", color = MaterialTheme.colorScheme.error)
-                    }
-
-                    OutlinedTextField(
-                        value = noteText,
-                        onValueChange = { noteText = it },
-                        label = { Text("粘贴文本（可选，如病历文字）") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = false,
-                        maxLines = 3
-                    )
-
-                    if (noteText.isNotBlank()) {
-                        OutlinedButton(
-                            onClick = { runAnalysis() },
-                            enabled = !analyzing,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("分析文本") }
-                    }
-
-                    // 免责声明
-                    Surface(
-                        shape = AppShapes.small,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                }
+            } else {
+                // 非VIP用户：显示锁定状态
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.large,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        Surface(
+                            shape = CircleShape,
+                            color = Primary.copy(alpha = 0.1f),
+                            modifier = Modifier.size(48.dp)
                         ) {
-                            Text(
-                                text = "⚠️",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                            Text(
-                                text = "识别结果仅供参考，请以实际病历为准",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Filled.AutoAwesome,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = Primary.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                        Text(
+                            "AI 智能识别",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "升级高级版解锁此功能",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        TextButton(onClick = { navController.navigate("premium") }) {
+                            Text("立即升级 ¥9.90")
                         }
                     }
                 }
