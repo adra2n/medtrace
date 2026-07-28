@@ -348,11 +348,13 @@ fun AddMedicalRecordScreen(
                     }
                 }
             } else {
-                // 非VIP用户：显示锁定状态（与设置页面样式一致）
+                // 非VIP用户：显示锁定状态（带功能说明和立体感）
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 ) {
                     Column(
                         modifier = Modifier
