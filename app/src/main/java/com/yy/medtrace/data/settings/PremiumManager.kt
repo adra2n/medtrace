@@ -34,14 +34,9 @@ class PremiumManager @Inject constructor(
 
     /**
      * 是否已解锁高级功能
-     * Debug版本默认解锁，Release版本需要购买
+     * Debug和Release版本都需要购买（用于测试购买流程）
      */
     fun isPremiumActive(): Boolean {
-        // Debug版本免费使用所有功能
-        if (com.yy.medtrace.BuildConfig.DEBUG) {
-            return true
-        }
-        // Release版本检查购买状态
         return prefs.getBoolean(KEY_PREMIUM_ACTIVE, false)
     }
 

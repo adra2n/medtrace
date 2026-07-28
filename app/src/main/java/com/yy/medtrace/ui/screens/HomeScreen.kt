@@ -55,6 +55,7 @@ import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.EmptyState
+import com.yy.medtrace.ui.components.EmptyHomeState
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.MemberColors
@@ -84,6 +85,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory(memberRepository, todoRepository, recordRepository))
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showAddTodoDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -245,10 +247,8 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (uiState.todos.isEmpty()) {
-                            EmptyState(
-                                icon = Icons.Default.EventNote,
-                                title = "今天暂无日程提醒",
-                                hint = "点击添加用药、复查提醒"
+                            EmptyHomeState(
+                                onAdd = { showAddTodoDialog = true }
                             )
                         } else {
                             uiState.todos.take(5).forEachIndexed { idx, todo ->

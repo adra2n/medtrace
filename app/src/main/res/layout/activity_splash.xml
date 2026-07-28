@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white">
+    android:background="#2196F3">
 
     <FrameLayout
         android:id="@+id/splash_container"
@@ -16,22 +16,65 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:orientation="vertical"
-        android:visibility="gone">
+        android:visibility="gone"
+        android:padding="32dp">
         
+        <!-- 应用图标 -->
         <ImageView
             android:layout_width="120dp"
             android:layout_height="120dp"
-            android:src="@mipmap/ic_launcher"
-            android:contentDescription="App Icon" />
+            android:src="@mipmap/ic_launcher_round"
+            android:contentDescription="医迹"
+            android:layout_marginBottom="24dp" />
         
+        <!-- 应用名称 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
             android:text="医迹"
-            android:textSize="24sp"
-            android:textColor="#333333"
-            android:textStyle="bold" />
+            android:textSize="32sp"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+        
+        <!-- 标语 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="为您的家人记录每一次就诊"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:alpha="0.9" />
+        
+        <!-- 功能图标 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+            
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_medical_record"
+                android:layout_marginHorizontal="16dp"
+                android:alpha="0.8" />
+            
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_medication"
+                android:layout_marginHorizontal="16dp"
+                android:alpha="0.8" />
+            
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_notification"
+                android:layout_marginHorizontal="16dp"
+                android:alpha="0.8" />
+        </LinearLayout>
     </LinearLayout>
 
     <TextView
