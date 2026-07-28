@@ -21,8 +21,8 @@
         
         <!-- 应用图标 -->
         <ImageView
-            android:layout_width="120dp"
-            android:layout_height="120dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
             android:src="@mipmap/ic_launcher_round"
             android:contentDescription="医迹"
             android:layout_marginBottom="24dp" />
@@ -32,10 +32,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="医迹"
-            android:textSize="32sp"
+            android:textSize="36sp"
             android:textColor="@android:color/white"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="12dp" />
         
         <!-- 标语 -->
         <TextView
@@ -44,39 +44,38 @@
             android:text="为您的家人记录每一次就诊"
             android:textSize="16sp"
             android:textColor="#FFFFFF"
-            android:alpha="0.9" />
+            android:alpha="0.85"
+            android:letterSpacing="0.05" />
         
-        <!-- 功能图标 -->
+        <!-- 底部装饰线条 -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="48dp"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="100dp"
             android:orientation="horizontal"
-            android:gravity="center">
+            android:alpha="0.15">
             
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/ic_medical_record"
-                android:layout_marginHorizontal="16dp"
-                android:alpha="0.8" />
+            <View
+                android:layout_width="60dp"
+                android:layout_height="2dp"
+                android:background="@android:color/white"
+                android:layout_marginEnd="8dp" />
             
-            <ImageView
+            <View
                 android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/ic_medication"
-                android:layout_marginHorizontal="16dp"
-                android:alpha="0.8" />
+                android:layout_height="2dp"
+                android:background="@android:color/white"
+                android:layout_marginEnd="8dp" />
             
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/ic_notification"
-                android:layout_marginHorizontal="16dp"
-                android:alpha="0.8" />
+            <View
+                android:layout_width="20dp"
+                android:layout_height="2dp"
+                android:background="@android:color/white" />
         </LinearLayout>
     </LinearLayout>
 
+    <!-- 跳过按钮 -->
     <TextView
         android:id="@+id/skip_text"
         android:layout_width="wrap_content"
@@ -85,11 +84,12 @@
         android:layout_marginTop="48dp"
         android:layout_marginEnd="16dp"
         android:background="@drawable/bg_skip_button"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="8dp"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="10dp"
         android:text="跳过 5s"
         android:textColor="@android:color/white"
         android:textSize="14sp"
         android:visibility="gone" />
 
 </FrameLayout>
+
