@@ -1,27 +1,26 @@
 package com.yy.medtrace.ui.screens
 
-import android.app.Activity
+import android.os.Build
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.yy.medtrace.payment.PaymentManager
-import com.yy.medtrace.payment.PayMethod
-import com.yy.medtrace.payment.PayState
+import com.yy.medtrace.data.settings.PremiumManager
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.Primary
 
@@ -29,34 +28,20 @@ import com.yy.medtrace.ui.theme.Primary
 @Composable
 fun PremiumScreen(
     navController: NavController,
-    paymentManager: PaymentManager,
-    onPurchaseSuccess: () -> Unit
+    premiumManager: PremiumManager
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
-    val payState by paymentManager.payState.collectAsState()
-
-    LaunchedEffect(payState) {
-        when (payState) {
-            is PayState.Success -> {
-                onPurchaseSuccess()
-                navController.popBackStack()
-            }
-            is PayState.Error -> {
-                kotlinx.coroutines.delay(2000)
-                paymentManager.resetState()
-            }
-            is PayState.AlreadyPurchased -> {
-                navController.popBackStack()
-            }
-            else -> {}
-        }
-    }
+    var activationCode by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf<String?>(null) }
+    var isSuccess by remember { mutableStateOf(false) }
+    
+    val isPremiumActive = remember { premiumManager.isPremiumActive() }
+    val deviceId = remember { premiumManager.getDeviceId() }
 
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "解锁全部功能",
+                title = "高级版",
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
@@ -73,10 +58,12 @@ fun PremiumScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 价格展示
+            // 状态卡片
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Primary)
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isPremiumActive) Primary else MaterialTheme.colorScheme.surfaceVariant
+                )
             ) {
                 Column(
                     modifier = Modifier
@@ -85,194 +72,146 @@ fun PremiumScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        Icons.Default.Star,
+                        Icons.Default.VpnKey,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = if (isPremiumActive) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "医迹高级版",
+                        if (isPremiumActive) "已激活高级版" else "未激活",
                         style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = if (isPremiumActive) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        PaymentManager.PRODUCT_PRICE_DISPLAY,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "一次购买，永久使用",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                     )
                 }
             }
 
-            // 功能对比
+            // 功能列表
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "功能对比",
+                        "高级版功能",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-
-                    // 免费版
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("免费版", style = MaterialTheme.typography.bodyLarge)
-                        Text("¥0", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Column(modifier = Modifier.padding(start = 8.dp)) {
-                        FeatureItem("就诊记录", "最多 10 条", false)
-                        FeatureItem("家庭成员", "1 人", false)
-                        FeatureItem("AI 识别", "3 次/天", false)
-                        FeatureItem("数据导出", "不支持", false)
-                        FeatureItem("加密备份", "不支持", false)
-                    }
-
-                    HorizontalDivider()
-
-                    // 高级版
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("高级版", style = MaterialTheme.typography.bodyLarge, color = Primary)
-                        Text(PaymentManager.PRODUCT_PRICE_DISPLAY, style = MaterialTheme.typography.bodyMedium, color = Primary, fontWeight = FontWeight.Bold)
-                    }
-                    Column(modifier = Modifier.padding(start = 8.dp)) {
-                        FeatureItem("就诊记录", "无限制", true)
-                        FeatureItem("家庭成员", "无限制", true)
-                        FeatureItem("AI 识别", "无限制", true)
-                        FeatureItem("数据导出", "支持", true)
-                        FeatureItem("数据导入", "支持", true)
-                        FeatureItem("加密备份", "支持", true)
-                        FeatureItem("Gist 云端同步", "支持", true)
-                    }
+                    FeatureItem("无限家庭成员")
+                    FeatureItem("无限就诊记录")
+                    FeatureItem("无限AI识别")
+                    FeatureItem("数据导出")
+                    FeatureItem("加密备份")
+                    FeatureItem("云端同步")
                 }
             }
 
-            // 支付方式选择
-            when (payState) {
-                is PayState.ShowPayOptions -> {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Text(
-                                "选择支付方式",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            
-                            // 小米支付（暂未集成）
-                            OutlinedButton(
-                                onClick = { paymentManager.selectPayMethod(PayMethod.XIAOMI_PAY) },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(Icons.Default.Phone, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("小米支付（开发中）")
-                            }
-                            
-                            // 邮件购买
-                            Button(
-                                onClick = { paymentManager.selectPayMethod(PayMethod.EMAIL) },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                            ) {
-                                Icon(Icons.Default.Email, contentDescription = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text("邮件购买 ${PaymentManager.PRODUCT_PRICE_DISPLAY}")
-                            }
-                            
-                            // 测试按钮
-                            if (com.yy.medtrace.BuildConfig.DEBUG) {
-                                OutlinedButton(
-                                    onClick = { paymentManager.selectPayMethod(PayMethod.TEST) },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(Icons.Default.Check, contentDescription = null)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("测试：模拟购买成功")
-                                }
-                            }
+            // 设备ID
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "您的设备ID",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "请联系开发者获取注册码",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = deviceId,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = {
+                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) 
+                                as android.content.ClipboardManager
+                            val clip = android.content.ClipData.newPlainText("Device ID", deviceId)
+                            clipboard.setPrimaryClip(clip)
+                        }) {
+                            Icon(Icons.Default.ContentCopy, "复制")
                         }
                     }
                 }
-                is PayState.Error -> {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                    ) {
-                        Text(
-                            (payState as PayState.Error).message,
-                            modifier = Modifier.padding(12.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-                is PayState.AlreadyPurchased -> {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                    ) {
-                        Text(
-                            "您已购买高级版！",
-                            modifier = Modifier.padding(12.dp),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-                else -> {}
             }
 
-            // 购买按钮（未显示支付选项时）
-            if (payState !is PayState.ShowPayOptions && payState !is PayState.AlreadyPurchased) {
-                Button(
-                    onClick = { activity?.let { paymentManager.startPurchase(it) } },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = payState !is PayState.Loading,
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                ) {
-                    if (payState is PayState.Loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
+            // 注册码输入
+            if (!isPremiumActive) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            "输入注册码",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
-                    } else {
-                        Text("立即购买 ${PaymentManager.PRODUCT_PRICE_DISPLAY}", fontSize = 16.sp)
+                        OutlinedTextField(
+                            value = activationCode,
+                            onValueChange = { activationCode = it },
+                            label = { Text("注册码") },
+                            placeholder = { Text("XXXX-XXXX-XXXX-XXXX") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        
+                        Button(
+                            onClick = {
+                                if (activationCode.isBlank()) {
+                                    message = "请输入注册码"
+                                    isSuccess = false
+                                } else {
+                                    val success = premiumManager.activateVip(activationCode)
+                                    if (success) {
+                                        message = "✅ 激活成功！"
+                                        isSuccess = true
+                                    } else {
+                                        message = "❌ 注册码无效，请检查后重试"
+                                        isSuccess = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                        ) {
+                            Text("激活")
+                        }
+                        
+                        message?.let {
+                            Text(
+                                text = it,
+                                color = if (isSuccess) Primary else MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
-                }
-                
-                // 恢复购买按钮
-                OutlinedButton(
-                    onClick = { paymentManager.restorePurchase() },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = payState !is PayState.Loading
-                ) {
-                    Text("恢复购买")
                 }
             }
 
             // 说明
             Text(
                 text = """
-                    购买须知：
-                    1. 购买后立即生效，永久使用
-                    2. 支持同一账号在多台设备上使用
-                    3. 如有问题请联系：${PaymentManager.CONTACT_EMAIL}
+                    如何获取注册码：
+                    1. 复制上方设备ID发送给开发者
+                    2. 支付后获取注册码
+                    3. 输入注册码激活高级版
+                    
+                    联系方式：cljkle@163.com
                 """.trimIndent(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -282,11 +221,7 @@ fun PremiumScreen(
 }
 
 @Composable
-private fun FeatureItem(
-    name: String,
-    value: String,
-    included: Boolean
-) {
+private fun FeatureItem(name: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -297,18 +232,9 @@ private fun FeatureItem(
             Icons.Default.Check,
             contentDescription = null,
             modifier = Modifier.size(16.dp),
-            tint = if (included) Primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+            tint = Primary
         )
         Spacer(Modifier.width(8.dp))
-        Text(
-            name,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Text(name, style = MaterialTheme.typography.bodyMedium)
     }
 }

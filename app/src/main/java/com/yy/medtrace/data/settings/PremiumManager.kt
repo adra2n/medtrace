@@ -8,25 +8,18 @@ import javax.inject.Singleton
 
 /**
  * 高级功能管理器
- * 管理应用内购买状态和功能解锁
+ * 通过注册码验证VIP状态
  */
 @Singleton
 class PremiumManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val registrationCodeManager: RegistrationCodeManager
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences(
         "premium_prefs", Context.MODE_PRIVATE
     )
 
     companion object {
-        // 产品 ID
-        const val PRODUCT_UNLOCK_ALL = "medtrace_unlock_all"
-        
-        // 本地存储 key
-        private const val KEY_PREMIUM_ACTIVE = "premium_active"
-        private const val KEY_PURCHASE_TIME = "purchase_time"
-        private const val KEY_ORDER_ID = "order_id"
-        
         // 功能限制
         const val FREE_MEMBER_LIMIT = 1
         const val FREE_AI_DAILY_LIMIT = 3
@@ -34,43 +27,36 @@ class PremiumManager @Inject constructor(
 
     /**
      * 是否已解锁高级功能
-     * Debug和Release版本都需要购买（用于测试购买流程）
+     * 每次都会通过注册码重新验证
      */
     fun isPremiumActive(): Boolean {
-        return prefs.getBoolean(KEY_PREMIUM_ACTIVE, false)
+        return registrationCodeManager.isVipActive()
     }
 
     /**
-     * 获取购买时间
+     * 激活VIP（输入注册码后调用）
+     * @return true 如果注册码有效
      */
-    fun getPurchaseTime(): Long {
-        return prefs.getLong(KEY_PURCHASE_TIME, 0)
+    fun activateVip(code: String): Boolean {
+        val isValid = registrationCodeManager.verifyCode(code)
+        if (isValid) {
+            registrationCodeManager.saveCode(code)
+        }
+        return isValid
     }
 
     /**
-     * 获取订单号
+     * 获取设备ID（供用户联系开发者时提供）
      */
-    fun getOrderId(): String? {
-        return prefs.getString(KEY_ORDER_ID, null)
+    fun getDeviceId(): String {
+        return registrationCodeManager.getDeviceId()
     }
 
     /**
-     * 保存购买状态（购买成功后调用）
+     * 清除VIP状态（用于测试）
      */
-    fun savePurchase(orderId: String) {
-        prefs.edit()
-            .putBoolean(KEY_PREMIUM_ACTIVE, true)
-            .putLong(KEY_PURCHASE_TIME, System.currentTimeMillis())
-            .putString(KEY_ORDER_ID, orderId)
-            .apply()
-    }
-
-    /**
-     * 验证购买状态（启动时调用）
-     */
-    fun verifyPurchase(): Boolean {
-        // 本地验证，实际项目中应该调用服务器验证
-        return isPremiumActive()
+    fun clearVip() {
+        registrationCodeManager.clearCode()
     }
 
     /**
@@ -95,13 +81,6 @@ class PremiumManager @Inject constructor(
     fun canUseFeature(feature: PremiumFeature): Boolean {
         if (isPremiumActive()) return true
         return feature.isFree
-    }
-
-    /**
-     * 清除购买状态（用于测试）
-     */
-    fun clearPurchase() {
-        prefs.edit().clear().apply()
     }
 }
 

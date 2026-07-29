@@ -469,8 +469,7 @@ fun MainScreen(
             composable("premium") {
                 PremiumScreen(
                     navController = navController,
-                    paymentManager = paymentManager,
-                    onPurchaseSuccess = { /* 购买成功回调 */ }
+                    premiumManager = premiumManager
                 )
             }
         }

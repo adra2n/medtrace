@@ -105,7 +105,6 @@ class PaymentManager @Inject constructor(
      * 模拟购买成功（测试用）
      */
     fun simulatePurchaseSuccess(orderId: String = "test_${System.currentTimeMillis()}") {
-        premiumManager.savePurchase(orderId)
         _payState.value = PayState.Success(orderId)
     }
 
@@ -115,7 +114,6 @@ class PaymentManager @Inject constructor(
      */
     fun onPaymentSuccess(orderId: String, receipt: String) {
         Log.d(TAG, "支付成功: orderId=$orderId")
-        premiumManager.savePurchase(orderId)
         _payState.value = PayState.Success(orderId)
     }
 
@@ -139,7 +137,7 @@ class PaymentManager @Inject constructor(
      * 验证购买状态
      */
     fun verifyPurchase(): Boolean {
-        return premiumManager.verifyPurchase()
+        return premiumManager.isPremiumActive()
     }
 
     /**
@@ -150,8 +148,7 @@ class PaymentManager @Inject constructor(
         _payState.value = PayState.Loading
         
         if (premiumManager.isPremiumActive()) {
-            val orderId = premiumManager.getOrderId() ?: "restored"
-            _payState.value = PayState.Success(orderId)
+            _payState.value = PayState.Success("restored")
         } else {
             _payState.value = PayState.Error("未找到购买记录。如已购买请联系 $CONTACT_EMAIL")
         }
