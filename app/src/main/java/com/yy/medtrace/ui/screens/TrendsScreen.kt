@@ -1,5 +1,7 @@
 package com.yy.medtrace.ui.screens
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,19 +13,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.MemberSelector
+import com.yy.medtrace.ui.components.TrendSection
+import com.yy.medtrace.ui.components.buildSeries
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
+import com.yy.medtrace.viewmodel.TrendsViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -31,38 +34,23 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrendsScreen(
-    database: AppDatabase,
+    viewModel: TrendsViewModel = hiltViewModel(),
     navController: NavController
 ) {
-    val scope = rememberCoroutineScope()
-    var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
-    var records by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
+    val uiState by viewModel.uiState.collectAsState()
+    val members = uiState.members
+    val records = uiState.records
+    val error = uiState.error
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
     val dateFormatter = DateTimeFormatter.ofPattern("MM-dd HH:mm")
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        database.familyMemberDao().getAllMembers()
-            .catch { e -> error = e.message }
-            .collect { list ->
-                members = list + com.yy.medtrace.ui.state.UNKNOWN_MEMBER
-                if (SelectedMemberHolder.selectedMemberId.value == null && list.isNotEmpty()) {
-                    SelectedMemberHolder.selectedMemberId.value = list.first().id
-                }
-            }
+        viewModel.loadMembers()
     }
 
     LaunchedEffect(selectedMemberId) {
-        selectedMemberId?.let { id ->
-            val flow = if (id == 0L) {
-                database.medicalRecordDao().getUnknownRecords()
-            } else {
-                database.medicalRecordDao().getRecordsByMember(id)
-            }
-            flow
-                .catch { e -> error = e.message }
-                .collectLatest { records = it }
-        } ?: run { records = emptyList() }
+        selectedMemberId?.let { viewModel.loadRecords(selectedMemberId, 365L) }
     }
 
     Scaffold(
@@ -85,19 +73,53 @@ fun TrendsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            // 成员选择
             item {
                 if (members.isNotEmpty()) {
                     MemberSelector(
                         members = members,
                         selectedMemberId = selectedMemberId,
-                        onSelect = { member -> scope.launch { SelectedMemberHolder.select(member.id, database) } },
+                        onSelect = { member ->
+                            scope.launch { SelectedMemberHolder.select(member.id, viewModel.database) }
+                        },
                         emptyHint = "暂无家庭成员，请先在家庭中添加"
                     )
                 }
             }
 
-            // 记录统计
+            error?.let { msg ->
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = AppShapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = msg,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            TextButton(onClick = { viewModel.clearError() }) {
+                                Text("关闭")
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                val series = remember(records) { buildSeries(records) }
+                TrendSection(
+                    series = series,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -133,9 +155,11 @@ fun TrendsScreen(
                                 )
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                val recentCount = records.count {
-                                    it.onsetTime?.isAfter(LocalDateTime.now().minusDays(30)) ?: false
-                                }
+                                val recentCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    records.count {
+                                        it.onsetTime?.isAfter(LocalDateTime.now().minusDays(30)) ?: false
+                                    }
+                                } else 0
                                 Text(
                                     text = "$recentCount",
                                     style = MaterialTheme.typography.headlineMedium,
@@ -166,7 +190,6 @@ fun TrendsScreen(
                 }
             }
 
-            // 最近记录
             item {
                 Text(
                     text = "最近记录",

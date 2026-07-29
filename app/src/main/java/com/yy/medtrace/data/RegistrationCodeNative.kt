@@ -3,7 +3,6 @@ package com.yy.medtrace.data
 import android.content.Context
 import android.content.SharedPreferences
 import android.provider.Settings
-import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,16 +20,14 @@ class RegistrationCodeNative @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private const val TAG = "RegistrationCodeNative"
         private const val PREFS_NAME = "registration_prefs"
         private const val KEY_REGISTRATION_CODE = "registration_code"
         
         init {
             try {
                 System.loadLibrary("license_verify")
-                Log.d(TAG, "✅ NDK 库加载成功")
             } catch (e: UnsatisfiedLinkError) {
-                Log.e(TAG, "❌ NDK 库加载失败", e)
+                // Native library load failure handled in verifyCode via catch(Throwable)
             }
         }
     }
@@ -53,12 +50,10 @@ class RegistrationCodeNative @Inject constructor(
      * 获取当前设备ID
      */
     fun getDeviceId(): String {
-        val deviceId = Settings.Secure.getString(
+        return Settings.Secure.getString(
             context.contentResolver,
             Settings.Secure.ANDROID_ID
         ) ?: "unknown"
-        Log.d(TAG, "设备ID: $deviceId")
-        return deviceId
     }
 
     /**
@@ -67,21 +62,9 @@ class RegistrationCodeNative @Inject constructor(
     fun verifyCode(code: String): Boolean {
         return try {
             val deviceId = getDeviceId()
-            Log.d(TAG, "输入的注册码: $code")
-            Log.d(TAG, "当前设备ID: $deviceId")
-            
             val result = verifyLicense(code, deviceId)
-            val isValid = result == 1
-            
-            if (isValid) {
-                Log.d(TAG, "✅ 注册码验证成功")
-            } else {
-                Log.w(TAG, "❌ 注册码验证失败")
-            }
-            
-            isValid
-        } catch (e: Exception) {
-            Log.e(TAG, "注册码验证异常", e)
+            result == 1
+        } catch (e: Throwable) {
             false
         }
     }

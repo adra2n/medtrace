@@ -36,11 +36,9 @@ import androidx.activity.compose.BackHandler
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.UserSettings
-import com.yy.medtrace.data.repository.MemberRepository
-import com.yy.medtrace.data.repository.RecordRepository
-import com.yy.medtrace.data.repository.TodoRepository
 import com.yy.medtrace.data.security.BiometricHelper
 import com.yy.medtrace.data.security.PinManager
+import com.yy.medtrace.data.settings.PremiumManager
 import com.yy.medtrace.data.settings.SecuritySettingsStore
 import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.ui.screens.AddMedicalRecordScreen
@@ -54,19 +52,21 @@ import com.yy.medtrace.ui.screens.RemindersScreen
 import com.yy.medtrace.ui.screens.ProfileScreen
 import com.yy.medtrace.ui.screens.TrendsScreen
 import com.yy.medtrace.ui.screens.PremiumScreen
-import com.yy.medtrace.data.settings.PremiumManager
 import com.yy.medtrace.ui.theme.Background
 import com.yy.medtrace.ui.theme.ChiyaoleTheme
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.reminder.ReminderHelper
-import com.yy.medtrace.viewmodel.RemindersViewModel
-import com.yy.medtrace.viewmodel.RemindersViewModelFactory
-import com.yy.medtrace.viewmodel.ProfileViewModel
-import com.yy.medtrace.viewmodel.ProfileViewModelFactory
+import com.yy.medtrace.viewmodel.AddMedicalRecordViewModel
+import com.yy.medtrace.viewmodel.FamilyViewModel
+import com.yy.medtrace.viewmodel.MedicalRecordViewModel
+import com.yy.medtrace.viewmodel.MemberDetailViewModel
+import com.yy.medtrace.viewmodel.TrendsViewModel
+import com.yy.medtrace.viewmodel.SettingsViewModel
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -77,15 +77,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
-    
-    @Inject
-    lateinit var memberRepository: MemberRepository
-    
-    @Inject
-    lateinit var recordRepository: RecordRepository
-    
-    @Inject
-    lateinit var todoRepository: TodoRepository
     
     @Inject
     lateinit var premiumManager: PremiumManager
@@ -131,10 +122,6 @@ class MainActivity : FragmentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainScreen(
-                        database = database,
-                        memberRepository = memberRepository,
-                        recordRepository = recordRepository,
-                        todoRepository = todoRepository,
                         premiumManager = premiumManager,
                         initialRoute = navigateTo
                     )
@@ -215,10 +202,6 @@ fun SettingsAction(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    database: AppDatabase,
-    memberRepository: MemberRepository,
-    recordRepository: RecordRepository,
-    todoRepository: TodoRepository,
     premiumManager: com.yy.medtrace.data.settings.PremiumManager,
     initialRoute: String? = null
 ) {
@@ -228,6 +211,13 @@ fun MainScreen(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = currentRoute in screens.map { it.route }
+
+    // 从数据库加载上次选中的成员（仅首次）
+    val context = LocalContext.current
+    val database = remember { AppDatabase.getDatabase(context.applicationContext) }
+    LaunchedEffect(Unit) {
+        com.yy.medtrace.ui.state.SelectedMemberHolder.initFromDatabase(database)
+    }
 
     val activity = LocalContext.current as? ComponentActivity
     BackHandler(enabled = showBottomBar) {
@@ -395,52 +385,50 @@ fun MainScreen(
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
-                    navController = navController,
-                    memberRepository = memberRepository,
-                    todoRepository = todoRepository,
-                    recordRepository = recordRepository
+                    navController = navController
                 )
             }
             composable(Screen.Family.route) {
-                FamilyScreen(database, navController, recordRepository, premiumManager)
+                val viewModel: FamilyViewModel = hiltViewModel()
+                FamilyScreen(viewModel, navController)
             }
             composable(Screen.Reminders.route) {
-                val viewModel: RemindersViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-                    factory = RemindersViewModelFactory(database)
-                )
-                RemindersScreen(viewModel, navController)
+                RemindersScreen(navController = navController)
             }
             composable(Screen.Profile.route) {
-                val viewModel: ProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-                    factory = ProfileViewModelFactory(database)
-                )
-                ProfileScreen(viewModel, navController, premiumManager)
+                ProfileScreen(navController = navController)
             }
             composable("add_record") {
-                AddMedicalRecordScreen(database, navController, premiumManager = premiumManager)
+                val viewModel: AddMedicalRecordViewModel = hiltViewModel()
+                AddMedicalRecordScreen(viewModel, navController)
             }
             composable(
                 "add_record/{recordId}",
                 arguments = listOf(navArgument("recordId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getString("recordId")?.toLongOrNull() ?: -1L
-                AddMedicalRecordScreen(database, navController, recordId = id, premiumManager = premiumManager)
+                val viewModel: AddMedicalRecordViewModel = hiltViewModel()
+                AddMedicalRecordScreen(viewModel, navController, recordId = id)
             }
             composable("medical_records") {
-                MedicalRecordScreen(database, navController)
+                val viewModel: MedicalRecordViewModel = hiltViewModel()
+                MedicalRecordScreen(viewModel, navController)
             }
             composable("trends") {
-                TrendsScreen(database, navController)
+                val viewModel: TrendsViewModel = hiltViewModel()
+                TrendsScreen(viewModel, navController)
             }
             composable(Screen.Settings.route) {
-                SettingsScreen(database, navController, premiumManager)
+                val viewModel: SettingsViewModel = hiltViewModel()
+                SettingsScreen(viewModel, navController)
             }
             composable(
                 "member_detail/{memberId}",
                 arguments = listOf(navArgument("memberId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getString("memberId")?.toLongOrNull() ?: -1L
-                MemberDetailScreen(database, navController, memberId = id)
+                val viewModel: MemberDetailViewModel = hiltViewModel()
+                MemberDetailScreen(viewModel, navController, memberId = id)
             }
             composable("splash") {
                 com.yy.medtrace.ui.screens.SplashScreen(navController)
@@ -448,7 +436,7 @@ fun MainScreen(
             composable("privacy_consent") {
                 com.yy.medtrace.ui.screens.PrivacyConsentScreen(
                     navController = navController,
-                    onDecline = { }
+                    onDecline = { activity?.finish() }
                 )
             }
             composable("onboarding") {

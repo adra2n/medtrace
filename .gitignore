@@ -50,3 +50,6 @@ scripts/.secret_key
 
 # 自动生成的密钥头文件（不要提交到git）
 app/src/main/cpp/key.h
+
+# License Generator Tool
+tools/license-generator/

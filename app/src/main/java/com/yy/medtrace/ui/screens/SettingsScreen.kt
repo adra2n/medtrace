@@ -30,8 +30,10 @@ import kotlinx.coroutines.Dispatchers
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import com.yy.medtrace.BuildConfig
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.backup.BackupRepository
+import com.yy.medtrace.viewmodel.SettingsViewModel
 import com.yy.medtrace.data.backup.CryptoUtil
 import com.yy.medtrace.data.backup.GistSync
 import com.yy.medtrace.data.backup.buildRecordsCsv
@@ -58,9 +60,8 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    database: AppDatabase,
-    navController: NavController,
-    premiumManager: com.yy.medtrace.data.settings.PremiumManager? = null
+    viewModel: SettingsViewModel = hiltViewModel(),
+    navController: NavController
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -70,12 +71,12 @@ fun SettingsScreen(
     var premiumFeatureName by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        database.userSettingsDao().getUserSettings().collect { userSettings ->
+        viewModel.database.userSettingsDao().getUserSettings().collect { userSettings ->
             settings = userSettings ?: UserSettings()
         }
     }
 
-    val backupRepository = remember { BackupRepository(database) }
+    val backupRepository = remember { BackupRepository(viewModel.database) }
     val syncSettings = remember { SyncSettingsStore(context) }
     val securitySettings = remember { SecuritySettingsStore(context) }
     var githubToken by remember { mutableStateOf("") }
@@ -122,7 +123,7 @@ fun SettingsScreen(
             applySecureScreenFlag(secureScreen)
             biometricAvailable = activity?.let { BiometricHelper.canAuthenticate(it) } ?: false
             pinSet = activity?.let { PinManager.isPinSet(it) } ?: false
-            darkMode = database.userSettingsDao().getUserSettings().first()?.darkMode ?: false
+            darkMode = viewModel.database.userSettingsDao().getUserSettings().first()?.darkMode ?: false
         }
     }
 
@@ -146,7 +147,7 @@ fun SettingsScreen(
             securitySettings.setAutoLockSeconds(autoLockSeconds)
             securitySettings.setSecureScreen(secureScreen)
             applySecureScreenFlag(secureScreen)
-            database.userSettingsDao().insertOrUpdate((settings ?: UserSettings()).copy(darkMode = darkMode))
+            viewModel.database.userSettingsDao().insertOrUpdate((settings ?: UserSettings()).copy(darkMode = darkMode))
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
                 backToPrevious()
@@ -351,7 +352,7 @@ fun SettingsScreen(
                                     onCheckedChange = { isChecked ->
                                         darkMode = isChecked
                                         scope.launch {
-                                            database.userSettingsDao()
+                                            viewModel.database.userSettingsDao()
                                                 .insertOrUpdate((settings ?: UserSettings()).copy(darkMode = isChecked))
                                         }
                                     },
@@ -481,7 +482,7 @@ fun SettingsScreen(
             }
 
             // ☁️ 数据备份与同步（高级功能）
-            val isPremiumActive = premiumManager?.isPremiumActive() ?: false
+            val isPremiumActive = viewModel.premiumManager?.isPremiumActive() ?: false
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = AppShapes.large,
@@ -611,7 +612,7 @@ fun SettingsScreen(
                                 onClick = {
                                     scope.launch {
                                         try {
-                                            val csv = buildRecordsCsv(database)
+                                            val csv = buildRecordsCsv(viewModel.database)
                                             withContext(Dispatchers.Main) {
                                                 context.startActivity(
                                                     Intent.createChooser(

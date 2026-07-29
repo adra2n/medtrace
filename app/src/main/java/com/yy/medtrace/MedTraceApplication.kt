@@ -6,34 +6,37 @@ import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
 import com.yy.medtrace.common.Constants
 import com.yy.medtrace.data.AppDatabase
+import com.yy.medtrace.BuildConfig
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class MedTraceApplication : Application() {
     val database: AppDatabase by lazy { AppDatabase.getDatabase(this) }
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
-        UMConfigure.setLogEnabled(true)
+        UMConfigure.setLogEnabled(BuildConfig.DEBUG)
     }
 
-    /**
-     * 在用户同意隐私政策后调用：完成友盟 SDK 初始化与数据上报。
-     * 暨 preInit（轻量预初始化，不采集数据）+ init（正式初始化）。
-     */
     fun initAnalytics() {
-        UMConfigure.preInit(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL)
-        UMConfigure.submitPolicyGrantResult(this, true)
-        Thread {
+        val app = this
+        UMConfigure.preInit(app, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL)
+        UMConfigure.submitPolicyGrantResult(app, true)
+        appScope.launch {
             UMConfigure.init(
-                this,
+                app,
                 Constants.UMENG_APPKEY,
                 Constants.UMENG_CHANNEL,
                 UMConfigure.DEVICE_TYPE_PHONE,
                 null
             )
             MobclickAgent.setPageCollectionMode(MobclickAgent.PageMode.AUTO)
-        }.start()
+        }
     }
 
     companion object {

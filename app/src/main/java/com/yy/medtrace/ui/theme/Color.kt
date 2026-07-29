@@ -36,6 +36,11 @@ val Border = Color(0xFFD0E8E8)         // 边框颜色（浅青色）
 val Success = Color(0xFF2E9E5B)  // 成功状态（绿）
 val Error = Color(0xFFD64550)    // 错误状态（红）
 val Warning = Color(0xFFFF7D60)  // 警告状态（浅橙）
+val Info = Color(0xFF2196F3)     // 信息状态（蓝）
+val Healthy = Color(0xFF4CAF50)  // 健康/正常（绿）
+val Reminder = Color(0xFFFF9800) // 提醒/待办（橙）
+val NoStatus = Color(0xFF9E9E9E) // 无状态/未设置（灰）
+val Urgent = Color(0xFFFF6B35)   // 紧急/重要（红橙）
 
 // 卡片底色
 val CardSurface = Color(0xFFFFFFFF)     // 卡片：纯白

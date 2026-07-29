@@ -39,11 +39,12 @@ object BiometricHelper {
         val builder = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
+            .setAllowedAuthenticators(AUTHENTICATORS)
         if (BiometricManager.from(activity)
                 .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
             BiometricManager.BIOMETRIC_SUCCESS
         ) {
-            // 有生物识别时提供“使用密码”兜底入口；无生物识别时只允许设备凭据
+            // 有生物识别时提供"使用密码"兜底入口；无生物识别时只允许设备凭据
             builder.setNegativeButtonText(activity.getString(R.string.btn_cancel))
         }
         prompt.authenticate(builder.build())

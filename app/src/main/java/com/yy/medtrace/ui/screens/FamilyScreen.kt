@@ -26,10 +26,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.yy.medtrace.data.AppDatabase
+import androidx.compose.ui.res.stringResource
+import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
-import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.state.SelectedMemberHolder
@@ -41,8 +42,11 @@ import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
 import com.yy.medtrace.ui.theme.memberCardColors
+import com.yy.medtrace.ui.theme.Reminder
+import com.yy.medtrace.ui.theme.NoStatus
+import com.yy.medtrace.ui.theme.Healthy
 import com.yy.medtrace.ui.components.MemberEditDialog
-import kotlinx.coroutines.flow.collectLatest
+import com.yy.medtrace.viewmodel.FamilyViewModel
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
@@ -50,43 +54,21 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FamilyScreen(
-    database: AppDatabase,
-    navController: NavController,
-    recordRepository: RecordRepository,
-    premiumManager: com.yy.medtrace.data.settings.PremiumManager? = null
+    viewModel: FamilyViewModel = hiltViewModel(),
+    navController: NavController
 ) {
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
-    var recordCounts by remember { mutableStateOf<Map<Long, Int>>(emptyMap()) }
-    var recentRecordsMap by remember { mutableStateOf<Map<Long, List<com.yy.medtrace.data.model.MedicalRecord>>>(emptyMap()) }
+    val uiState by viewModel.uiState.collectAsState()
+    val members = uiState.members
+    val recordCounts = uiState.recordCounts
+    val recentRecordsMap = uiState.recentRecordsMap
     var showDialog by remember { mutableStateOf(false) }
     var editingMember by remember { mutableStateOf<FamilyMember?>(null) }
     var pendingDelete by remember { mutableStateOf<FamilyMember?>(null) }
     var expandedMemberId by remember { mutableStateOf<Long?>(null) }
-    var showPremiumDialog by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        database.familyMemberDao().getAllMembers()
-            .collectLatest { list -> members = list }
-    }
-
-    LaunchedEffect(members) {
-        if (members.isEmpty()) {
-            recordCounts = emptyMap()
-            recentRecordsMap = emptyMap()
-            return@LaunchedEffect
-        }
-        val memberIds = members.map { it.id }
-        val countResults = recordRepository.countByMembers(memberIds)
-        recordCounts = countResults.associate { it.patientId to it.count }
-        val recentMap = mutableMapOf<Long, List<com.yy.medtrace.data.model.MedicalRecord>>()
-        members.forEach { member ->
-            recordRepository.getRecentRecordsByMember(member.id, 2).collect { records ->
-                recentMap[member.id] = records
-            }
-        }
-        recentRecordsMap = recentMap
+        viewModel.loadMembers()
     }
 
     val totalMembers = members.size
@@ -95,19 +77,14 @@ fun FamilyScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "家庭管理",
-                subtitle = "家人档案一目了然",
+                title = stringResource(R.string.screen_family_title),
+                subtitle = stringResource(R.string.screen_family_subtitle),
                 actions = {
                     IconButton(onClick = {
-                        // 检查是否可以添加更多成员
-                        if (premiumManager != null && !premiumManager.isPremiumActive() && members.size >= 1) {
-                            showPremiumDialog = true
-                        } else {
-                            editingMember = null
-                            showDialog = true
-                        }
+                        editingMember = null
+                        showDialog = true
                     }) {
-                        Icon(Icons.Default.Add, "新增家庭成员", tint = Primary)
+                        Icon(Icons.Default.Add, stringResource(R.string.screen_family_add_member_content_desc), tint = Primary)
                     }
                 }
             )
@@ -126,15 +103,13 @@ fun FamilyScreen(
             if (members.isEmpty()) {
                 EmptyFamily()
             } else {
-                // 家庭健康概览
                 HealthDashboard(
                     members = members,
                     recentRecordCount = recentRecordCount
                 )
 
-                // 成员卡片列表
                 Text(
-                    "成员列表",
+                    stringResource(R.string.screen_family_member_list),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -155,11 +130,11 @@ fun FamilyScreen(
                         },
                         onDelete = { pendingDelete = member },
                         onAddRecord = {
-                            scope.launch { SelectedMemberHolder.select(member.id, database) }
+                            scope.launch { SelectedMemberHolder.select(member.id, viewModel.database) }
                             navController.navigate("add_record")
                         },
                         onViewRecords = {
-                            scope.launch { SelectedMemberHolder.select(member.id, database) }
+                            scope.launch { SelectedMemberHolder.select(member.id, viewModel.database) }
                             navController.navigate("member_detail/${member.id}")
                         }
                     )
@@ -173,33 +148,9 @@ fun FamilyScreen(
             member = editingMember,
             onDismiss = { showDialog = false },
             onSave = { m ->
-                scope.launch {
-                    if (editingMember == null) database.familyMemberDao().insert(m)
-                    else database.familyMemberDao().update(m)
-                }
+                if (editingMember == null) viewModel.addMember(m)
+                else viewModel.updateMember(m)
                 showDialog = false
-            }
-        )
-    }
-
-    // 高级版提示对话框
-    if (showPremiumDialog) {
-        AlertDialog(
-            onDismissRequest = { showPremiumDialog = false },
-            title = { Text("解锁高级版") },
-            text = { Text("免费版最多支持1位家庭成员。升级高级版可添加更多成员，还有更多功能等你解锁！") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showPremiumDialog = false
-                    navController.navigate("premium")
-                }) {
-                    Text("立即升级")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPremiumDialog = false }) {
-                    Text("稍后再说")
-                }
             }
         )
     }
@@ -207,28 +158,19 @@ fun FamilyScreen(
     pendingDelete?.let { member ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("删除家庭成员") },
-            text = { Text("确定删除「${member.name}」？其就诊记录将归入「未归属」，仍可在记录页查看。") },
+            title = { Text(stringResource(R.string.screen_family_delete_member_title)) },
+            text = { Text(stringResource(R.string.screen_family_delete_member_message, member.name)) },
             confirmButton = {
                 TextButton(onClick = {
-                    scope.launch {
-                        database.medicalRecordDao().reassignToUnknown(member.id)
-                        database.familyMemberDao().deleteById(member.id)
-                        if (com.yy.medtrace.ui.state.SelectedMemberHolder.selectedMemberId.value == member.id) {
-                            val fallback = database.familyMemberDao().getDefaultMember()?.id
-                                ?: database.familyMemberDao().getAllMembersList().firstOrNull()?.id
-                            if (fallback != null) {
-                                com.yy.medtrace.ui.state.SelectedMemberHolder.select(fallback, database)
-                            } else {
-                                com.yy.medtrace.ui.state.SelectedMemberHolder.selectedMemberId.value = null
-                            }
-                        }
+                    viewModel.deleteMember(member.id)
+                    if (SelectedMemberHolder.selectedMemberId.value == member.id) {
+                        scope.launch { SelectedMemberHolder.select(0L, viewModel.database) }
                     }
                     pendingDelete = null
-                }) { Text("删除") }
+                }) { Text(stringResource(R.string.screen_family_delete_button)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("取消") }
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.screen_family_cancel_button)) }
             }
         )
     }
@@ -259,8 +201,8 @@ private fun EmptyFamily() {
         }
         EmptyState(
             icon = Icons.Default.People,
-            title = "还没有家庭成员",
-            hint = "点击右上角按钮，添加你的第一位家人"
+            title = stringResource(R.string.screen_family_empty_title),
+            hint = stringResource(R.string.screen_family_empty_hint)
         )
     }
 }
@@ -293,7 +235,6 @@ private fun MemberCard(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 头部：头像 + 基本信息 + 展开按钮
             Row(verticalAlignment = Alignment.CenterVertically) {
                 MemberAvatar(
                     member = member,
@@ -303,7 +244,6 @@ private fun MemberCard(
                 )
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    // 姓名 + 默认标签
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             member.name,
@@ -319,7 +259,7 @@ private fun MemberCard(
                                 color = cardContent.copy(alpha = 0.18f)
                             ) {
                                 Text(
-                                    "默认",
+                                    stringResource(R.string.screen_family_default_tag),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = cardContent,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -327,11 +267,10 @@ private fun MemberCard(
                             }
                         }
                     }
-                    // 关系 · 年龄（收起状态）
                     if (!isExpanded) {
                         val sub = buildList {
                             if (member.relation.isNotBlank()) add(member.relation)
-                            age?.let { add("${it}岁") }
+                            age?.let { add(stringResource(R.string.screen_family_age_format, it)) }
                         }.joinToString(" · ")
                         if (sub.isNotBlank()) {
                             Text(
@@ -341,13 +280,12 @@ private fun MemberCard(
                             )
                         }
                     }
-                    // 关系 · 年龄 · 性别 · 血型（展开状态）
                     if (isExpanded) {
                         val sub = buildList {
                             if (member.relation.isNotBlank()) add(member.relation)
-                            age?.let { add("${it}岁") }
+                            age?.let { add(stringResource(R.string.screen_family_age_format, it)) }
                             if (member.gender.isNotBlank()) add(member.gender)
-                            if (member.bloodType.isNotBlank()) add("${member.bloodType}型")
+                            if (member.bloodType.isNotBlank()) add(stringResource(R.string.screen_family_blood_type_format, member.bloodType))
                         }.joinToString(" · ")
                         if (sub.isNotBlank()) {
                             Text(
@@ -358,22 +296,20 @@ private fun MemberCard(
                         }
                     }
                 }
-                // 展开/收起按钮
                 IconButton(onClick = onToggleExpand) {
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess
                                      else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "收起" else "展开",
+                        contentDescription = stringResource(if (isExpanded) R.string.screen_family_collapse else R.string.screen_family_expand),
                         tint = cardContent.copy(alpha = 0.6f)
                     )
                 }
             }
 
-            // 健康标签（收起状态）
             if (!isExpanded) {
                 val healthTags = buildList {
                     member.allergy.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                        .forEach { add("过敏: $it") }
+                        .forEach { add(stringResource(R.string.screen_family_allergy_tag_format, it)) }
                     member.chronic.split(",").map { it.trim() }.filter { it.isNotBlank() }
                         .forEach { add(it) }
                 }
@@ -403,14 +339,12 @@ private fun MemberCard(
                 }
             }
 
-            // 展开状态的内容
             if (isExpanded) {
-                // 健康详情表格
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (member.allergy.isNotBlank()) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             Text(
-                                "过敏",
+                                stringResource(R.string.screen_family_allergy_label),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = cardContent,
@@ -426,7 +360,7 @@ private fun MemberCard(
                     if (member.chronic.isNotBlank()) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             Text(
-                                "慢性病",
+                                stringResource(R.string.screen_family_chronic_label),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = cardContent,
@@ -442,7 +376,7 @@ private fun MemberCard(
                     if (member.medicationNote.isNotBlank()) {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             Text(
-                                "用药",
+                                stringResource(R.string.screen_family_medication_label),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = cardContent,
@@ -457,11 +391,10 @@ private fun MemberCard(
                     }
                 }
 
-                // 最近就诊记录
                 if (recentRecords.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            "最近就诊",
+                            stringResource(R.string.screen_family_recent_visits),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = cardContent
@@ -478,40 +411,38 @@ private fun MemberCard(
                     }
                 }
 
-                // 统计信息 + 操作按钮（一行）
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "记录 $recordCount",
+                        stringResource(R.string.screen_family_record_count_format, recordCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = cardContent.copy(alpha = 0.7f)
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         IconButton(
                             onClick = onEdit,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = "编辑", modifier = Modifier.size(16.dp), tint = cardContent)
+                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.screen_family_edit_content_desc), modifier = Modifier.size(16.dp), tint = cardContent)
                         }
                         IconButton(
                             onClick = onAddRecord,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "添加记录", modifier = Modifier.size(16.dp), tint = cardContent)
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.screen_family_add_record_content_desc), modifier = Modifier.size(16.dp), tint = cardContent)
                         }
                         IconButton(
                             onClick = onViewRecords,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(Icons.Default.FavoriteBorder, contentDescription = "查看病历", modifier = Modifier.size(16.dp), tint = cardContent)
+                            Icon(Icons.Default.FavoriteBorder, contentDescription = stringResource(R.string.screen_family_view_records_content_desc), modifier = Modifier.size(16.dp), tint = cardContent)
                         }
                     }
                 }
 
-                // 删除按钮
                 TextButton(
                     onClick = onDelete,
                     modifier = Modifier.fillMaxWidth(),
@@ -519,7 +450,7 @@ private fun MemberCard(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("删除成员", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.screen_family_delete_member_button), style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -542,7 +473,7 @@ private fun HealthDashboard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "家庭健康概览",
+                stringResource(R.string.screen_family_health_overview),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
@@ -554,29 +485,29 @@ private fun HealthDashboard(
                 StatCard(
                     icon = "👥",
                     value = "${members.size}",
-                    label = "成员",
+                    label = stringResource(R.string.screen_family_stat_members),
                     color = Primary,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     icon = "🏥",
                     value = "$chronicCount",
-                    label = "慢性病",
-                    color = Color(0xFFFF9800),
+                    label = stringResource(R.string.screen_family_stat_chronic),
+                    color = Reminder,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     icon = "⚠️",
                     value = "$allergyCount",
-                    label = "过敏",
-                    color = if (allergyCount > 0) MaterialTheme.colorScheme.error else Color(0xFF9E9E9E),
+                    label = stringResource(R.string.screen_family_stat_allergy),
+                    color = if (allergyCount > 0) MaterialTheme.colorScheme.error else NoStatus,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(
                     icon = "📋",
                     value = "$recentRecordCount",
-                    label = "本月记录",
-                    color = Color(0xFF4CAF50),
+                    label = stringResource(R.string.screen_family_stat_monthly_records),
+                    color = Healthy,
                     modifier = Modifier.weight(1f)
                 )
             }

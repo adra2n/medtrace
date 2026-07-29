@@ -19,12 +19,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.util.copyAvatarToInternal
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -66,9 +69,17 @@ fun MemberEditDialog(
         }
     }
 
-    val avatarBitmap = remember(avatarPath) {
-        if (avatarPath.isNotBlank()) {
-            BitmapFactory.decodeFile(avatarPath)?.asImageBitmap()
+    var avatarBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(avatarPath) {
+        avatarBitmap = if (avatarPath.isNotBlank()) {
+            withContext(Dispatchers.IO) {
+                try {
+                    BitmapFactory.decodeFile(avatarPath)?.asImageBitmap()
+                } catch (_: Exception) {
+                    null
+                }
+            }
         } else null
     }
 
@@ -104,16 +115,14 @@ fun MemberEditDialog(
                                 .clickable { galleryLauncher.launch("image/*") },
                             contentAlignment = Alignment.Center
                         ) {
-                            if (avatarBitmap != null) {
+                            avatarBitmap?.let { bmp ->
                                 Image(
-                                    bitmap = avatarBitmap,
+                                    bitmap = bmp,
                                     contentDescription = "头像",
                                     modifier = Modifier.fillMaxSize().clip(CircleShape),
                                     contentScale = ContentScale.Crop
                                 )
-                            } else {
-                                Icon(Icons.Filled.Person, "选择头像", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
-                            }
+                            } ?: Icon(Icons.Filled.Person, "选择头像", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
                         }
                         Text("点击选择头像", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }

@@ -23,12 +23,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import android.widget.Toast
-import com.yy.medtrace.data.AppDatabase
+import com.yy.medtrace.R
 import com.yy.medtrace.data.llm.AnalysisResult
 import com.yy.medtrace.data.llm.AnalysisUseCase
 import com.yy.medtrace.data.llm.Metric
@@ -47,6 +49,7 @@ import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.components.MemberSelector
 import com.yy.medtrace.ui.components.SectionCard
+import com.yy.medtrace.viewmodel.AddMedicalRecordViewModel
 import kotlinx.serialization.json.Json
 import com.yy.medtrace.util.bitmapToBase64
 import com.yy.medtrace.util.uriToBitmap
@@ -67,11 +70,11 @@ private fun encodeMetrics(metrics: List<Metric>): String =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMedicalRecordScreen(
-    database: AppDatabase,
+    viewModel: AddMedicalRecordViewModel = hiltViewModel(),
     navController: NavController,
-    recordId: Long = -1L,
-    premiumManager: com.yy.medtrace.data.settings.PremiumManager? = null
+    recordId: Long = -1L
 ) {
+    val database = viewModel.database
     var selectedMemberId by remember { mutableStateOf<Long?>(null) }
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
     var diagnosis by remember { mutableStateOf("") }
@@ -123,21 +126,21 @@ fun AddMedicalRecordScreen(
     fun runAnalysis() {
         analysisError = null
         if (images.isEmpty() && noteText.isBlank()) {
-            analysisError = "请先拍照 / 从相册选择图片，或粘贴文本"
+            analysisError = context.getString(R.string.screen_add_record_error_no_image_or_text)
             return
         }
         analysisJob?.cancel()
         analyzing = true
-        analysisProgress = "正在准备数据..."
+            analysisProgress = context.getString(R.string.screen_add_record_progress_preparing_data)
         analysisJob = scope.launch(Dispatchers.IO) {
             try {
-                analysisProgress = "正在转换图片..."
+                analysisProgress = context.getString(R.string.screen_add_record_progress_converting_images)
                 val imgs = images.map { bitmapToBase64(it) }
-                analysisProgress = "正在调用 AI 识别..."
+                analysisProgress = context.getString(R.string.screen_add_record_progress_calling_ai)
                 analysisResult = analysisUseCase.analyze(noteText, imgs)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) return@launch
-                analysisError = e.message ?: "识别失败"
+                analysisError = e.message ?: context.getString(R.string.screen_add_record_error_recognition_failed)
             } finally {
                 analyzing = false
                 analysisProgress = ""
@@ -168,7 +171,7 @@ fun AddMedicalRecordScreen(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) cameraLauncher.launch(photoUri)
-        else Toast.makeText(context, "需要相机权限才能拍照", Toast.LENGTH_SHORT).show()
+        else Toast.makeText(context, context.getString(R.string.screen_add_record_error_camera_permission), Toast.LENGTH_SHORT).show()
     }
 
     fun launchCamera() {
@@ -190,7 +193,7 @@ fun AddMedicalRecordScreen(
                 val extra = listOf(
                     r.followUp,
                     r.items.joinToString("；") { it.name + if (it.note.isNotBlank()) "（${it.note}）" else "" },
-                    r.source?.let { "来源：$it" }
+                    r.source?.let { context.getString(R.string.screen_add_record_label_source, it) }
                 ).filter { !it.isNullOrBlank() }.joinToString("\n")
                 notes = extra
             }
@@ -200,16 +203,16 @@ fun AddMedicalRecordScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = if (existingId != null) "编辑就诊记录" else "添加就诊记录",
-                subtitle = "智能识别，快速记录",
+                title = if (existingId != null) stringResource(R.string.screen_add_record_title_edit) else stringResource(R.string.screen_add_record_title_add),
+                subtitle = stringResource(R.string.screen_add_record_subtitle),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.screen_add_record_icon_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { navController.navigate("home") }) {
-                        Icon(Icons.Default.Home, "返回主页")
+                        Icon(Icons.Default.Home, stringResource(R.string.screen_add_record_icon_home))
                     }
                 }
             )
@@ -232,17 +235,17 @@ fun AddMedicalRecordScreen(
             }
 
             // 家庭成员选择
-            SectionCard(title = "选择家庭成员") {
+            SectionCard(title = stringResource(R.string.screen_add_record_section_family_member)) {
                 MemberSelector(
                     members = members,
                     selectedMemberId = selectedMemberId,
                     onSelect = { selectedMemberId = it.id },
-                    emptyHint = "暂无成员，请先在家庭页面添加"
+                    emptyHint = stringResource(R.string.screen_add_record_empty_members)
                 )
             }
 
             // AI 智能识别区（需要配置 AI 才能使用）
-            SectionCard(title = "AI 智能识别") {
+            SectionCard(title = stringResource(R.string.screen_add_record_section_ai_recognition)) {
                 // 检查是否已配置 AI
                 val llmSettings = remember { com.yy.medtrace.data.settings.LlmSettingsStore(context) }
                 var isAiConfigured by remember { mutableStateOf(false) }
@@ -270,18 +273,18 @@ fun AddMedicalRecordScreen(
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    "需要配置 AI 才能使用此功能",
+                                    stringResource(R.string.screen_add_record_ai_config_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    "请在设置 → AI 配置中添加 API Key",
+                                    stringResource(R.string.screen_add_record_ai_config_instruction),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             TextButton(onClick = { navController.navigate(Screen.Settings.route) }) {
-                                Text("去设置")
+                                Text(stringResource(R.string.screen_add_record_btn_go_settings))
                             }
                         }
                     }
@@ -292,16 +295,16 @@ fun AddMedicalRecordScreen(
                             onClick = { launchCamera() },
                             enabled = !analyzing,
                             modifier = Modifier.weight(1f)
-                        ) { Text("拍照识别") }
+                        ) { Text(stringResource(R.string.screen_add_record_btn_take_photo)) }
                         Button(
                             onClick = { galleryLauncher.launch("image/*") },
                             enabled = !analyzing,
                             modifier = Modifier.weight(1f)
-                        ) { Text("相册选择") }
+                        ) { Text(stringResource(R.string.screen_add_record_btn_select_gallery)) }
                     }
 
                     if (images.isNotEmpty()) {
-                        Text("已添加 ${images.size} 张图片", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.screen_add_record_images_added, images.size), style = MaterialTheme.typography.bodyMedium)
                     }
 
                     if (analyzing) {
@@ -321,7 +324,7 @@ fun AddMedicalRecordScreen(
                                 )
                                 Column {
                                     Text(
-                                        "AI 识别中...",
+                                        stringResource(R.string.screen_add_record_ai_analyzing),
                                         color = Primary,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
@@ -338,13 +341,13 @@ fun AddMedicalRecordScreen(
                     }
 
                     analysisError?.let {
-                        Text("识别失败：$it", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.screen_add_record_error_recognition_with_detail, it), color = MaterialTheme.colorScheme.error)
                     }
 
                     OutlinedTextField(
                         value = noteText,
                         onValueChange = { noteText = it },
-                        label = { Text("粘贴文本（可选，如病历文字）") },
+                        label = { Text(stringResource(R.string.screen_add_record_label_paste_text)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = false,
                         maxLines = 3
@@ -355,7 +358,7 @@ fun AddMedicalRecordScreen(
                             onClick = { runAnalysis() },
                             enabled = !analyzing,
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("分析文本") }
+                        ) { Text(stringResource(R.string.screen_add_record_btn_analyze_text)) }
                     }
 
                     // 免责声明
@@ -373,7 +376,7 @@ fun AddMedicalRecordScreen(
                                 style = MaterialTheme.typography.labelSmall
                             )
                             Text(
-                                text = "识别结果仅供参考，请以实际病历为准",
+                                text = stringResource(R.string.screen_add_record_disclaimer),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -383,17 +386,17 @@ fun AddMedicalRecordScreen(
             }
 
             // 基本信息
-            SectionCard(title = "基本信息") {
+            SectionCard(title = stringResource(R.string.screen_add_record_section_basic_info)) {
                 OutlinedTextField(
                     value = diagnosis,
                     onValueChange = { diagnosis = it },
-                    label = { Text("就诊类型") },
+                    label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_type)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = hospital,
                     onValueChange = { hospital = it },
-                    label = { Text("就诊医院（可选）") },
+                    label = { Text(stringResource(R.string.screen_add_record_label_hospital)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedButton(
@@ -422,14 +425,14 @@ fun AddMedicalRecordScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.DateRange, "选择日期时间")
+                    Icon(Icons.Default.DateRange, stringResource(R.string.screen_add_record_icon_select_datetime))
                     Spacer(Modifier.width(8.dp))
-                    Text("就诊时间：${onsetTime.format(dateTimeFormatter)}")
+                    Text(stringResource(R.string.screen_add_record_label_visit_time, onsetTime.format(dateTimeFormatter)))
                 }
             }
 
             // 用药记录
-            SectionCard(title = "用药记录") {
+            SectionCard(title = stringResource(R.string.screen_add_record_section_medication)) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     medItems.forEachIndexed { index, item ->
                         Card(
@@ -450,21 +453,21 @@ fun AddMedicalRecordScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("药品 ${index + 1}", style = MaterialTheme.typography.titleSmall)
+                                    Text(stringResource(R.string.screen_add_record_label_medication_number, index + 1), style = MaterialTheme.typography.titleSmall)
                                     OutlinedButton(
                                         onClick = { medItems = medItems.filterIndexed { i, _ -> i != index } },
                                         modifier = Modifier.height(32.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                                     ) {
-                                        Icon(Icons.Default.Delete, "删除", modifier = Modifier.size(16.dp))
+                                        Icon(Icons.Default.Delete, stringResource(R.string.screen_add_record_icon_delete), modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("删除")
+                                        Text(stringResource(R.string.screen_add_record_icon_delete))
                                     }
                                 }
                                 OutlinedTextField(
                                     value = item.name,
                                     onValueChange = { medItems = medItems.updateAt(index) { copy(name = it) } },
-                                    label = { Text("药品名称") },
+                                    label = { Text(stringResource(R.string.screen_add_record_label_medication_name)) },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Row(
@@ -474,20 +477,20 @@ fun AddMedicalRecordScreen(
                                     OutlinedTextField(
                                         value = item.dose,
                                         onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
-                                        label = { Text("剂量") },
+                                        label = { Text(stringResource(R.string.screen_add_record_label_dosage)) },
                                         modifier = Modifier.weight(1f)
                                     )
                                     OutlinedTextField(
                                         value = item.freq,
                                         onValueChange = { medItems = medItems.updateAt(index) { copy(freq = it) } },
-                                        label = { Text("频次") },
+                                        label = { Text(stringResource(R.string.screen_add_record_label_frequency)) },
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
                                 OutlinedTextField(
                                     value = item.duration,
                                     onValueChange = { medItems = medItems.updateAt(index) { copy(duration = it) } },
-                                    label = { Text("疗程（可选）") },
+                                    label = { Text(stringResource(R.string.screen_add_record_label_duration)) },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -497,17 +500,17 @@ fun AddMedicalRecordScreen(
                         onClick = { medItems = medItems + MedicationItem() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("添加药品")
+                        Text(stringResource(R.string.screen_add_record_btn_add_medication))
                     }
                 }
             }
 
             // 备注
-            SectionCard(title = "备注") {
+            SectionCard(title = stringResource(R.string.screen_add_record_section_notes)) {
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("备注（可选）") },
+                    label = { Text(stringResource(R.string.screen_add_record_label_notes)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = false,
                     maxLines = 3
@@ -523,17 +526,17 @@ fun AddMedicalRecordScreen(
                     onClick = { navController.popBackStack() },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("取消")
+                    Text(stringResource(R.string.screen_add_record_btn_cancel))
                 }
                 Button(
                     onClick = {
                         val selectedMember = members.firstOrNull { it.id == selectedMemberId }
                         if (selectedMemberId == null || selectedMember == null) {
-                            error = "请选择所属家庭成员"
+                            error = context.getString(R.string.screen_add_record_error_select_member)
                             return@Button
                         }
                         if (diagnosis.isBlank() || medItems.isEmpty()) {
-                            error = "请填写就诊类型与至少一项药品"
+                            error = context.getString(R.string.screen_add_record_error_fill_required)
                             return@Button
                         }
 
@@ -570,13 +573,13 @@ fun AddMedicalRecordScreen(
                                     android.util.Log.d("AddRecord", "inserted id=$id, total=$count")
                                 }
                                 SelectedMemberHolder.select(selectedMember.id, database)
-                                Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.screen_add_record_toast_save_success), Toast.LENGTH_SHORT).show()
                                 navController.navigate("medical_records") {
                                     popUpTo("medical_records") { inclusive = true }
                                     launchSingleTop = true
                                 }
                             } catch (e: Exception) {
-                                error = e.message ?: "保存失败"
+                                error = e.message ?: context.getString(R.string.screen_add_record_error_save_failed)
                                 e.printStackTrace()
                             }
                         }
@@ -584,24 +587,10 @@ fun AddMedicalRecordScreen(
                     modifier = Modifier.weight(1f),
                     enabled = canSave
                 ) {
-                    Text("保存")
+                    Text(stringResource(R.string.screen_add_record_btn_save))
                 }
             }
         }
     }
 }
 
-@Composable
-private fun FeatureTag(text: String) {
-    Surface(
-        shape = AppShapes.small,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}

@@ -11,21 +11,30 @@ class BackupRepository(private val database: AppDatabase) {
     suspend fun exportAll(): BackupData = withContext(Dispatchers.IO) {
         val members = database.familyMemberDao().getAllMembersList()
         val records = database.medicalRecordDao().getAllRecordsList()
+        val todos = database.healthTodoDao().getAllList()
         val settings = database.userSettingsDao().getUserSettings().firstOrNull()
+        val schemaVersion = database.openHelper.readableDatabase.version
         BackupData(
+            schemaVersion = schemaVersion,
             members = members,
             records = records,
+            todos = todos,
             settings = settings
         )
     }
 
     suspend fun importAll(data: BackupData) = withContext(Dispatchers.IO) {
+        val currentSchema = database.openHelper.readableDatabase.version
+        if (data.schemaVersion != 0 && data.schemaVersion != currentSchema) {
+            android.util.Log.w("BackupRepo", "Schema mismatch: backup v${data.schemaVersion}, current v$currentSchema")
+        }
         database.withTransaction {
-            // 成员保留原始 id，使医疗记录的 patientId 外键引用在恢复后仍有效
             database.familyMemberDao().clear()
             database.medicalRecordDao().clear()
+            database.healthTodoDao().clear()
             database.familyMemberDao().insertAll(data.members)
             database.medicalRecordDao().insertAll(data.records)
+            database.healthTodoDao().insertAll(data.todos)
             data.settings?.let { database.userSettingsDao().insertOrUpdate(it) }
         }
     }

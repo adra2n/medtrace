@@ -1,7 +1,6 @@
 package com.yy.medtrace.data.settings
 
 import android.content.Context
-import android.content.SharedPreferences
 import com.yy.medtrace.data.RegistrationCodeNative
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -16,10 +15,6 @@ class PremiumManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val registrationCodeNative: RegistrationCodeNative
 ) {
-    private val prefs: SharedPreferences = context.getSharedPreferences(
-        "premium_prefs", Context.MODE_PRIVATE
-    )
-
     companion object {
         // 功能限制
         const val FREE_MEMBER_LIMIT = 2

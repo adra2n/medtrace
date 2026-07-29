@@ -1,5 +1,6 @@
 package com.yy.medtrace.data.repository
 
+import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.dao.HealthTodoDao
 import com.yy.medtrace.data.model.HealthTodo
 import io.mockk.*
@@ -14,6 +15,9 @@ import java.time.LocalDate
 class TodoRepositoryTest {
     
     @MockK
+    private lateinit var database: AppDatabase
+    
+    @MockK
     private lateinit var healthTodoDao: HealthTodoDao
     
     private lateinit var repository: TodoRepository
@@ -21,7 +25,7 @@ class TodoRepositoryTest {
     @Before
     fun setup() {
         MockKAnnotations.init(this)
-        repository = TodoRepositoryImpl(healthTodoDao)
+        repository = TodoRepositoryImpl(database, healthTodoDao)
     }
     
     @Test

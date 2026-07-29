@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.navigation.Screen
@@ -36,13 +37,12 @@ import com.yy.medtrace.viewmodel.ProfileViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel,
-    navController: NavController,
-    premiumManager: com.yy.medtrace.data.settings.PremiumManager? = null
+    viewModel: ProfileViewModel = hiltViewModel(),
+    navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val isPremiumActive = remember { premiumManager?.isPremiumActive() ?: false }
+    val isPremiumActive = remember { viewModel.premiumManager.isPremiumActive() }
     val appVersion = remember {
         try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
@@ -329,20 +329,6 @@ private fun StatItem(count: String, label: String) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-@Composable
-private fun ProfileMenuGroup(content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            content()
-        }
     }
 }
 

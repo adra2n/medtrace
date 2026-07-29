@@ -3,16 +3,20 @@ package com.yy.medtrace.viewmodel
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.yy.medtrace.data.AppDatabase
+import com.yy.medtrace.data.settings.PremiumManager
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
+@HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
-class SettingsViewModel(
-    private val database: AppDatabase
+class SettingsViewModel @Inject constructor(
+    val database: AppDatabase,
+    val premiumManager: PremiumManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -39,15 +43,3 @@ data class SettingsUiState(
     val isDarkMode: Boolean = false,
     val isBackupEnabled: Boolean = false
 )
-
-class SettingsViewModelFactory(
-    private val database: AppDatabase
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return SettingsViewModel(database) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
-    }
-}

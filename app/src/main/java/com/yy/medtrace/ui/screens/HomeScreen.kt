@@ -44,13 +44,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.yy.medtrace.R
 import androidx.navigation.NavController
-import com.yy.medtrace.data.repository.MemberRepository
-import com.yy.medtrace.data.repository.RecordRepository
-import com.yy.medtrace.data.repository.TodoRepository
-import com.yy.medtrace.viewmodel.HomeViewModelFactory
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.data.model.MedicalRecord
@@ -65,6 +63,11 @@ import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
 import com.yy.medtrace.ui.theme.memberCardColors
 import com.yy.medtrace.ui.theme.caption
+import com.yy.medtrace.ui.theme.Info
+import com.yy.medtrace.ui.theme.Healthy
+import com.yy.medtrace.ui.theme.Reminder
+import com.yy.medtrace.ui.theme.NoStatus
+import com.yy.medtrace.ui.theme.Urgent
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.components.MemberEditDialog
 import com.yy.medtrace.viewmodel.HomeViewModel
@@ -79,10 +82,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HomeScreen(
     navController: NavController,
-    memberRepository: MemberRepository,
-    todoRepository: TodoRepository,
-    recordRepository: RecordRepository,
-    viewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory(memberRepository, todoRepository, recordRepository))
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddTodoDialog by remember { mutableStateOf(false) }
@@ -120,7 +120,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
             item {
-                SectionTitle("我的家人")
+                SectionTitle(stringResource(R.string.screen_home_my_family))
                 Spacer(Modifier.height(12.dp))
                 val familyListState = rememberLazyListState()
                 Box {
@@ -168,8 +168,8 @@ fun HomeScreen(
                                             color = content,
                                             fontWeight = FontWeight.SemiBold
                                         )
-                                        Text(
-                                            age?.let { "${member.relation} · ${it}岁" } ?: member.relation,
+                                            Text(
+                                            stringResource(R.string.screen_home_member_info, member.relation, age ?: 0),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = content.copy(alpha = 0.8f),
                                             maxLines = 1
@@ -204,7 +204,7 @@ fun HomeScreen(
                                             style = MaterialTheme.typography.labelSmall
                                         )
                                         Text(
-                                            "${memberTodoCount}项待办",
+                                            stringResource(R.string.screen_home_todo_count, memberTodoCount),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = content.copy(alpha = 0.7f)
                                         )
@@ -232,7 +232,7 @@ fun HomeScreen(
 
             item {
                 val pendingCount = uiState.todos.count { !it.done }
-                SectionTitle("今日提醒 (${pendingCount}项待办)")
+                SectionTitle(stringResource(R.string.screen_home_today_reminders, pendingCount))
                 Spacer(Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -265,7 +265,7 @@ fun HomeScreen(
                             }
                             if (uiState.todos.size > 5) {
                                 Text(
-                                    "查看全部 ${uiState.pendingCount} 项待办",
+                                    stringResource(R.string.screen_home_view_all, uiState.pendingCount),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Primary,
                                     modifier = Modifier
@@ -281,7 +281,7 @@ fun HomeScreen(
 
             if (uiState.recentRecords.isNotEmpty()) {
                 item {
-                    SectionTitle("最近记录")
+                    SectionTitle(stringResource(R.string.screen_home_recent_records))
                     Spacer(Modifier.height(8.dp))
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -309,7 +309,7 @@ fun HomeScreen(
 
             item {
                 // 快捷功能标题
-                SectionTitle("快捷功能")
+                SectionTitle(stringResource(R.string.screen_home_quick_functions))
                 Spacer(Modifier.height(12.dp))
                 
                 // 2x2 功能网格
@@ -326,17 +326,17 @@ fun HomeScreen(
                         FunctionTile(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.CameraAlt,
-                            title = "就诊记录",
-                            desc = "AI扫描或手动录入",
-                            color = Color(0xFF2196F3),
+                            title = stringResource(R.string.screen_home_visit_record),
+                            desc = stringResource(R.string.screen_home_visit_record_desc),
+                            color = Info,
                             onClick = { navController.navigate("add_record") }
                         )
                         FunctionTile(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.MedicalInformation,
-                            title = "病历档案",
-                            desc = "病史与用药归档",
-                            color = Color(0xFF4CAF50),
+                            title = stringResource(R.string.screen_home_medical_archive),
+                            desc = stringResource(R.string.screen_home_medical_archive_desc),
+                            color = Healthy,
                             onClick = { navController.navigate("medical_records") }
                         )
                     }
@@ -347,17 +347,17 @@ fun HomeScreen(
                         FunctionTile(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.InsertChart,
-                            title = "数据统计",
-                            desc = "长期指标追踪",
-                            color = Color(0xFFFF9800),
+                            title = stringResource(R.string.screen_home_data_statistics),
+                            desc = stringResource(R.string.screen_home_data_statistics_desc),
+                            color = Reminder,
                             onClick = { navController.navigate("trends") }
                         )
                         FunctionTile(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.Settings,
-                            title = "功能设置",
-                            desc = "隐私、备份与偏好",
-                            color = Color(0xFF9E9E9E),
+                            title = stringResource(R.string.screen_home_settings),
+                            desc = stringResource(R.string.screen_home_settings_desc),
+                            color = NoStatus,
                             onClick = { navController.navigate(Screen.Settings.route) }
                         )
                     }
@@ -398,34 +398,10 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun QuickTodoChip(
-    text: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = modifier
-            .height(44.dp)
-            .clickable { onClick() },
-        shape = AppShapes.medium,
-        color = Primary,
-        shadowElevation = SoftElevation
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-            Text(text, style = MaterialTheme.typography.labelLarge, color = Color.White)
-        }
-    }
-}
-
 private fun buildTag(member: FamilyMember): String {
     return when {
         member.chronic.isNotBlank() -> member.chronic
-        member.allergy.isNotBlank() -> "过敏：${member.allergy}"
+        member.allergy.isNotBlank() -> stringResource(R.string.screen_home_member_allergy, member.allergy)
         member.medicationNote.isNotBlank() -> member.medicationNote
         else -> ""
     }
@@ -459,9 +435,9 @@ private fun TodayTodoItem(
     
     // 类别图标
     val categoryIcon = when (todo?.category) {
-        "用药" -> "💊"
-        "复查" -> "🏥"
-        "检查" -> "🔬"
+        stringResource(R.string.screen_home_category_medication) -> "💊"
+        stringResource(R.string.screen_home_category_review) -> "🏥"
+        stringResource(R.string.screen_home_category_checkup) -> "🔬"
         else -> "📋"
     }
     
@@ -481,7 +457,7 @@ private fun TodayTodoItem(
                 Icon(
                     Icons.Default.Check,
                     contentDescription = null,
-                    tint = Color(0xFF4CAF50),
+                    tint = Healthy,
                     modifier = Modifier
                         .size(24.dp)
                         .align(Alignment.Center)
@@ -516,7 +492,7 @@ private fun TodayTodoItem(
             if (todo != null) {
                 val today = java.time.LocalDate.now()
                 when (todo.category) {
-                    "用药" -> {
+                    stringResource(R.string.screen_home_category_medication) -> {
                         if (streak > 0) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -525,20 +501,20 @@ private fun TodayTodoItem(
                                 Icon(
                                     Icons.Default.LocalFireDepartment,
                                     contentDescription = null,
-                                    tint = Color(0xFFFF6B35),
+                                    tint = Urgent,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(Modifier.width(2.dp))
                                 Text(
-                                    "连续 $streak 天",
+                                    stringResource(R.string.screen_home_streak_days, streak),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFFFF6B35)
+                                    color = Urgent
                                 )
                             }
                         }
                     }
-                    "复查", "检查" -> {
-                        val label = if (todo.category == "复查") "复查" else "体检"
+                    stringResource(R.string.screen_home_category_review), stringResource(R.string.screen_home_category_checkup) -> {
+                        val label = if (todo.category == stringResource(R.string.screen_home_category_review)) stringResource(R.string.screen_home_review_label) else stringResource(R.string.screen_home_checkup_label)
                         // 查找未来日期的待办
                         val futureTodo = allTodos.filter {
                             it.category == todo.category && !it.done && it.dueDate.isAfter(today)
@@ -560,9 +536,9 @@ private fun TodayTodoItem(
                             Spacer(Modifier.width(2.dp))
                             Text(
                                 when {
-                                    daysUntil < 0 -> "$label 已逾期${-daysUntil}天"
-                                    daysUntil == 0L -> "$label 今天"
-                                    daysUntil <= 7 -> "$label ${daysUntil}天后"
+                                    daysUntil < 0 -> stringResource(R.string.screen_home_overdue, label, -daysUntil.toInt())
+                                    daysUntil == 0L -> stringResource(R.string.screen_home_today, label)
+                                    daysUntil <= 7 -> stringResource(R.string.screen_home_days_later, label, daysUntil.toInt())
                                     else -> "$label ${displayDate.format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"))}"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
@@ -588,7 +564,7 @@ private fun TodayTodoItem(
                                     trackColor = Primary.copy(alpha = 0.12f)
                                 )
                                 Text(
-                                    "${todo.durationDays}天疗程",
+                                    stringResource(R.string.screen_home_treatment_days, todo.durationDays),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -682,13 +658,14 @@ private fun RecentRecordItem(
     }
 }
 
+@Composable
 private fun getTimeAgo(dateTime: java.time.LocalDateTime): String {
     val now = java.time.LocalDateTime.now()
     val minutes = java.time.Duration.between(dateTime, now).toMinutes()
     return when {
-        minutes < 60 -> "${minutes}分钟前"
-        minutes < 1440 -> "${minutes / 60}小时前"
-        minutes < 10080 -> "${minutes / 1440}天前"
+        minutes < 60 -> stringResource(R.string.screen_home_minutes_ago, minutes.toInt())
+        minutes < 1440 -> stringResource(R.string.screen_home_hours_ago, (minutes / 60).toInt())
+        minutes < 10080 -> stringResource(R.string.screen_home_days_ago, (minutes / 1440).toInt())
         else -> dateTime.format(java.time.format.DateTimeFormatter.ofPattern("M月d日"))
     }
 }
@@ -697,7 +674,7 @@ private fun getTimeAgo(dateTime: java.time.LocalDateTime): String {
 @Composable
 internal fun AddTodoDialog(
     members: List<FamilyMember>,
-    initialCategory: String = "其他",
+    initialCategory: String = stringResource(R.string.screen_home_category_other),
     onDismiss: () -> Unit,
     onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int, category: String) -> Unit
 ) {
@@ -712,7 +689,7 @@ internal fun AddTodoDialog(
     var repeatInterval by remember { mutableIntStateOf(1) }
     var showRepeatDialog by remember { mutableStateOf(false) }
 
-    val categories = listOf("用药" to "💊", "复查" to "🏥", "检查" to "🔬", "其他" to "📋")
+    val categories = listOf(stringResource(R.string.screen_home_category_medication) to "💊", stringResource(R.string.screen_home_category_review) to "🏥", stringResource(R.string.screen_home_category_checkup) to "🔬", stringResource(R.string.screen_home_category_other) to "📋")
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -728,10 +705,10 @@ internal fun AddTodoDialog(
                         }
                         showDatePicker = false
                     }
-                ) { Text("确定") }
+                ) { Text(stringResource(R.string.screen_home_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.screen_home_cancel)) }
             }
         ) { DatePicker(state = datePickerState) }
     }
@@ -751,7 +728,7 @@ internal fun AddTodoDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加待办提醒") },
+        title = { Text(stringResource(R.string.screen_home_add_todo)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -760,13 +737,13 @@ internal fun AddTodoDialog(
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("待办内容") },
-                    placeholder = { Text("如：晚8点服用降脂药") },
+                    label = { Text(stringResource(R.string.screen_home_todo_content)) },
+                    placeholder = { Text(stringResource(R.string.screen_home_todo_content_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 // 提醒类别
-                Text("提醒类别", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.screen_home_reminder_category), style = MaterialTheme.typography.labelMedium)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -813,12 +790,12 @@ internal fun AddTodoDialog(
                     onExpandedChange = { memberExpanded = !memberExpanded }
                 ) {
                     OutlinedTextField(
-                        value = selectedMember?.let { "${it.name}（${it.relation.ifBlank { "成员" }}）" } ?: "",
+                        value = selectedMember?.let { stringResource(R.string.screen_home_member_format, it.name, it.relation.ifBlank { stringResource(R.string.screen_home_member_default) }) } ?: "",
                         onValueChange = {},
                         readOnly = true,
                         enabled = false,
-                        label = { Text("关联成员") },
-                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, "选择成员", tint = Primary) },
+                        label = { Text(stringResource(R.string.screen_home_related_member)) },
+                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_member), tint = Primary) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             disabledTextColor = MaterialTheme.colorScheme.onSurface,
@@ -834,19 +811,19 @@ internal fun AddTodoDialog(
                     ) {
                         members.forEach { m ->
                             DropdownMenuItem(
-                                text = { Text("${m.name}（${m.relation.ifBlank { "成员" }}）") },
+                                text = { Text(stringResource(R.string.screen_home_member_format, m.name, m.relation.ifBlank { stringResource(R.string.screen_home_member_default) })) },
                                 onClick = { selectedMemberId = m.id; memberExpanded = false }
                             )
                         }
                     }
                 }
-                val dateLabel = if (dueDate == LocalDate.now()) "今天" else dueDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+                val dateLabel = if (dueDate == LocalDate.now()) stringResource(R.string.screen_home_today_label) else dueDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 OutlinedTextField(
                     value = dateLabel,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("计划日期") },
-                    trailingIcon = { Icon(Icons.Default.DateRange, "选择日期", tint = Primary) },
+                    label = { Text(stringResource(R.string.screen_home_planned_date)) },
+                    trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_home_select_date), tint = Primary) },
                     modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
                     colors = OutlinedTextFieldDefaults.colors(
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
@@ -856,13 +833,13 @@ internal fun AddTodoDialog(
                     ),
                     enabled = false
                 )
-                val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(repeatType, repeatInterval) ?: "不重复"
+                val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(repeatType, repeatInterval) ?: stringResource(R.string.screen_home_no_repeat)
                 OutlinedTextField(
                     value = repeatLabel,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("重复") },
-                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, "选择重复", tint = Primary) },
+                    label = { Text(stringResource(R.string.screen_home_repeat)) },
+                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_repeat), tint = Primary) },
                     modifier = Modifier.fillMaxWidth().clickable { showRepeatDialog = true },
                     colors = OutlinedTextFieldDefaults.colors(
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
@@ -881,10 +858,10 @@ internal fun AddTodoDialog(
                     val m = selectedMember ?: return@Button
                     onSave(m.id, m.name, content.trim(), dueDate, repeatType, repeatInterval, category)
                 }
-            ) { Text("保存") }
+            ) { Text(stringResource(R.string.screen_home_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.screen_home_cancel)) }
         }
     )
 }
@@ -900,11 +877,11 @@ private fun RepeatPickerDialog(
     var selectedType by remember { mutableStateOf(if (currentType == "none") "day" else currentType) }
     var interval by remember { mutableIntStateOf(if (currentInterval < 1) 1 else currentInterval) }
 
-    val units = listOf("day" to "天", "week" to "周", "month" to "月", "year" to "年")
+    val units = listOf("day" to stringResource(R.string.screen_home_unit_day), "week" to stringResource(R.string.screen_home_unit_week), "month" to stringResource(R.string.screen_home_unit_month), "year" to stringResource(R.string.screen_home_unit_year))
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("设置重复") },
+        title = { Text(stringResource(R.string.screen_home_set_repeat)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Row(
@@ -914,7 +891,7 @@ private fun RepeatPickerDialog(
                     FilterChip(
                         selected = !repeatEnabled,
                         onClick = { repeatEnabled = false },
-                        label = { Text("不重复") },
+                        label = { Text(stringResource(R.string.screen_home_no_repeat)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Primary,
                             selectedLabelColor = Color.White
@@ -924,7 +901,7 @@ private fun RepeatPickerDialog(
                     FilterChip(
                         selected = repeatEnabled,
                         onClick = { repeatEnabled = true },
-                        label = { Text("重复") },
+                        label = { Text(stringResource(R.string.screen_home_repeat_enabled)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Primary,
                             selectedLabelColor = Color.White
@@ -955,13 +932,13 @@ private fun RepeatPickerDialog(
                         horizontalArrangement = Arrangement.Center,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("每")
+                        Text(stringResource(R.string.screen_home_interval_label))
                         Spacer(Modifier.width(8.dp))
                         IconButton(
                             onClick = { if (interval > 1) interval-- },
                             enabled = interval > 1
                         ) {
-                            Icon(Icons.Default.Remove, "减少", tint = Primary)
+                            Icon(Icons.Default.Remove, stringResource(R.string.screen_home_decrease), tint = Primary)
                         }
                         Text(
                             text = "$interval",
@@ -972,7 +949,7 @@ private fun RepeatPickerDialog(
                         IconButton(
                             onClick = { if (interval < 99) interval++ }
                         ) {
-                            Icon(Icons.Default.Add, "增加", tint = Primary)
+                            Icon(Icons.Default.Add, stringResource(R.string.screen_home_increase), tint = Primary)
                         }
                         Spacer(Modifier.width(4.dp))
                         Text(
@@ -987,10 +964,10 @@ private fun RepeatPickerDialog(
             Button(onClick = {
                 val type = if (repeatEnabled) selectedType else "none"
                 onConfirm(type, interval)
-            }) { Text("确定") }
+            }) { Text(stringResource(R.string.screen_home_confirm)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.screen_home_cancel)) }
         }
     )
 }
@@ -1032,64 +1009,6 @@ private fun FunctionTile(
             }
             Spacer(Modifier.weight(1f))
             Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-private fun FamilyHealthOverview(
-    members: List<FamilyMember>,
-    todos: List<HealthTodo>
-) {
-    val today = LocalDate.now()
-    val todayTodos = todos.filter { it.dueDate == today }
-    val todayTotal = todayTodos.size
-    val todayCompleted = todayTodos.count { it.done }
-    val todayPending = todayTodos.count { !it.done }
-    val todayOverdue = todayTodos.count { !it.done && it.dueDate.isBefore(today) }
-    val progress = if (todayTotal > 0) todayCompleted.toFloat() / todayTotal else 0f
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                TodayStatItem(
-                    label = "今日待办",
-                    value = "$todayTotal",
-                    color = Primary
-                )
-                TodayStatItem(
-                    label = "已完成",
-                    value = "$todayCompleted",
-                    color = Color(0xFF4CAF50)
-                )
-                TodayStatItem(
-                    label = "逾期",
-                    value = "$todayOverdue",
-                    color = if (todayOverdue > 0) MaterialTheme.colorScheme.error else Color(0xFF9E9E9E)
-                )
-            }
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = if (progress >= 0.8f) Color(0xFF4CAF50) else Primary,
-                trackColor = Primary.copy(alpha = 0.12f)
-            )
         }
     }
 }

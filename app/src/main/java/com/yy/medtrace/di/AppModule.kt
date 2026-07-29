@@ -62,8 +62,8 @@ object AppModule {
     
     @Provides
     @Singleton
-    fun provideTodoRepository(healthTodoDao: HealthTodoDao): TodoRepository {
-        return TodoRepositoryImpl(healthTodoDao)
+    fun provideTodoRepository(database: AppDatabase, healthTodoDao: HealthTodoDao): TodoRepository {
+        return TodoRepositoryImpl(database, healthTodoDao)
     }
     
     @Provides

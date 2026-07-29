@@ -1,11 +1,16 @@
 package com.yy.medtrace.data.repository
 
+import androidx.room.withTransaction
+import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.dao.HealthTodoDao
 import com.yy.medtrace.data.model.HealthTodo
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
-class TodoRepositoryImpl(private val healthTodoDao: HealthTodoDao) : TodoRepository {
+class TodoRepositoryImpl(
+    private val database: AppDatabase,
+    private val healthTodoDao: HealthTodoDao
+) : TodoRepository {
     
     override fun getByDate(date: LocalDate): Flow<List<HealthTodo>> {
         return healthTodoDao.getByDate(date)
@@ -40,16 +45,20 @@ class TodoRepositoryImpl(private val healthTodoDao: HealthTodoDao) : TodoReposit
     }
     
     override suspend fun toggleTodoDone(id: Long, done: Boolean) {
-        val todo = healthTodoDao.getById(id) ?: return
-        val today = LocalDate.now().toString()
-        val newCompletedDates = if (done) {
-            if (todo.completedDates.isBlank()) today
-            else "${todo.completedDates},$today"
-        } else {
-            todo.completedDates.split(",").filter { it.trim() != today }.joinToString(",")
+        database.withTransaction {
+            val todo = healthTodoDao.getById(id) ?: return@withTransaction
+            val today = LocalDate.now().toString()
+            val existingDates = todo.completedDates.split(",")
+                .map { it.trim() }.filter { it.isNotBlank() }
+            val newCompletedDates = if (done) {
+                if (today !in existingDates) (existingDates + today).joinToString(",")
+                else existingDates.joinToString(",")
+            } else {
+                existingDates.filter { it != today }.joinToString(",")
+            }
+            healthTodoDao.updateCompletedDates(id, newCompletedDates)
+            healthTodoDao.setDone(id, done)
         }
-        healthTodoDao.updateCompletedDates(id, newCompletedDates)
-        healthTodoDao.setDone(id, done)
     }
     
     override suspend fun getById(id: Long): HealthTodo? {

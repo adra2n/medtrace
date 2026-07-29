@@ -3,7 +3,6 @@ package com.yy.medtrace.viewmodel
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yy.medtrace.common.Result
 import com.yy.medtrace.common.asResultWithoutLoading
@@ -13,6 +12,7 @@ import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.data.repository.MemberRepository
 import com.yy.medtrace.data.repository.RecordRepository
 import com.yy.medtrace.data.repository.TodoRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,9 +20,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
 
+@HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
-class HomeViewModel(
+class HomeViewModel @Inject constructor(
     private val memberRepository: MemberRepository,
     private val todoRepository: TodoRepository,
     private val recordRepository: RecordRepository
@@ -165,17 +167,3 @@ data class HomeUiState(
         today.format(DateTimeFormatter.ofPattern("M月d日")) + " · " + week
     }
 )
-
-class HomeViewModelFactory(
-    private val memberRepository: MemberRepository,
-    private val todoRepository: TodoRepository,
-    private val recordRepository: RecordRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(memberRepository, todoRepository, recordRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
-    }
-}

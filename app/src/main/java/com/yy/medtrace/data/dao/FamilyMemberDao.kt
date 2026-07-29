@@ -21,7 +21,7 @@ interface FamilyMemberDao {
     @Insert
     suspend fun insert(member: FamilyMember): Long
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(members: List<FamilyMember>)
 
     @Update

@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Brush
 import com.yy.medtrace.ui.theme.AppShapes
+import com.yy.medtrace.ui.theme.Success
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -62,15 +63,16 @@ fun parseRange(range: String): Pair<Double, Double>? {
 
 // 血压类指标（如 "120/80"）拆成收缩压 / 舒张压两条独立序列，各自带参考范围。
 private fun expandMetric(m: Metric): List<Metric> {
-    val parts = m.value.split("/").mapNotNull { parseNumeric(it) }
-    val isBp = parts.size == 2 ||
+    val rawParts = m.value.split("/").map { it.trim() }
+    val numericParts = rawParts.mapNotNull { parseNumeric(it) }
+    val isBp = numericParts.size == 2 ||
         m.name.contains("压") && m.value.contains("/")
-    if (!isBp || parts.size != 2) return listOf(m)
+    if (!isBp || numericParts.size != 2) return listOf(m)
     val ranges = m.range.split("/").map { it.trim() }
     val (sysRange, diaRange) = if (ranges.size == 2) ranges[0] to ranges[1] else "" to ""
     return listOf(
-        Metric("${m.name}·收缩压", m.value, m.unit, sysRange, m.abnormal),
-        Metric("${m.name}·舒张压", m.value, m.unit, diaRange, m.abnormal)
+        Metric("${m.name}·收缩压", rawParts[0], m.unit, sysRange, m.abnormal),
+        Metric("${m.name}·舒张压", rawParts[1], m.unit, diaRange, m.abnormal)
     )
 }
 
@@ -210,7 +212,7 @@ fun TrendLineChart(series: MetricSeries, dayFmt: DateTimeFormatter) {
             val yTop = y(range.second).coerceIn(pad, h - pad)
             val yBottom = y(range.first).coerceIn(pad, h - pad)
             drawRect(
-                color = androidx.compose.ui.graphics.Color(0xFF2E9E5B).copy(alpha = 0.16f),
+                color = Success.copy(alpha = 0.16f),
                 topLeft = Offset(pad, yTop),
                 size = androidx.compose.ui.geometry.Size(innerW, (yBottom - yTop).coerceAtLeast(0f))
             )

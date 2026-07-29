@@ -3,22 +3,26 @@ package com.yy.medtrace.viewmodel
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yy.medtrace.common.Result
 import com.yy.medtrace.common.asResultWithoutLoading
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
+import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.repository.MemberRepository
 import com.yy.medtrace.data.repository.RecordRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
-class TrendsViewModel(
+class TrendsViewModel @Inject constructor(
+    val database: AppDatabase,
     private val memberRepository: MemberRepository,
     private val recordRepository: RecordRepository
 ) : ViewModel() {
@@ -76,16 +80,3 @@ data class TrendsUiState(
     val error: String? = null,
     val isLoading: Boolean = false
 )
-
-class TrendsViewModelFactory(
-    private val memberRepository: MemberRepository,
-    private val recordRepository: RecordRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(TrendsViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return TrendsViewModel(memberRepository, recordRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
-    }
-}

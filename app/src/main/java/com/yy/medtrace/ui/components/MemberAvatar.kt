@@ -1,5 +1,6 @@
 package com.yy.medtrace.ui.components
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -46,7 +47,13 @@ fun MemberAvatar(
             isLoading = true
             withContext(Dispatchers.IO) {
                 try {
-                    val decodedBitmap = BitmapFactory.decodeFile(member.avatarPath)
+                    val options = BitmapFactory.Options().apply {
+                        inJustDecodeBounds = true
+                    }
+                    BitmapFactory.decodeFile(member.avatarPath, options)
+                    options.inSampleSize = calculateInSampleSize(options, 128, 128)
+                    options.inJustDecodeBounds = false
+                    val decodedBitmap = BitmapFactory.decodeFile(member.avatarPath, options)
                     bitmap = decodedBitmap?.asImageBitmap()
                 } catch (e: Exception) {
                     bitmap = null
@@ -75,12 +82,14 @@ fun MemberAvatar(
                 modifier = Modifier.size(size * 0.6f)
             )
         } else if (bitmap != null) {
-            Image(
-                bitmap = bitmap!!,
-                contentDescription = member.name,
-                modifier = Modifier.size(size),
-                contentScale = ContentScale.Crop
-            )
+            bitmap?.let {
+                Image(
+                    bitmap = it,
+                    contentDescription = member.name,
+                    modifier = Modifier.size(size),
+                    contentScale = ContentScale.Crop
+                )
+            }
         } else {
             val initial = member.name.firstOrNull()?.toString() ?: "?"
             Box(
@@ -95,4 +104,17 @@ fun MemberAvatar(
             }
         }
     }
+}
+
+private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+    val (height, width) = options.outHeight to options.outWidth
+    var inSampleSize = 1
+    if (height > reqHeight || width > reqWidth) {
+        val halfHeight = height / 2
+        val halfWidth = width / 2
+        while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+            inSampleSize *= 2
+        }
+    }
+    return inSampleSize
 }

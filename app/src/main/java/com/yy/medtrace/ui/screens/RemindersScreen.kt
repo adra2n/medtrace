@@ -25,20 +25,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.yy.medtrace.R
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.ui.components.EmptyState
-import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.components.SectionCard
+import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
+import com.yy.medtrace.ui.theme.Reminder
 import com.yy.medtrace.viewmodel.MonthlyStats
 import com.yy.medtrace.viewmodel.RemindersViewModel
 import java.time.LocalDate
@@ -47,10 +52,11 @@ import java.time.format.DateTimeFormatter
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun RemindersScreen(
-    viewModel: RemindersViewModel,
+    viewModel: RemindersViewModel = hiltViewModel(),
     navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     var showAddDialog by remember { mutableStateOf(false) }
     var editingTodo by remember { mutableStateOf<HealthTodo?>(null) }
     var expandedTypes by remember { mutableStateOf(setOf<String>()) }
@@ -75,16 +81,16 @@ fun RemindersScreen(
         "其他" to "📋"
     )
 
-    var selectedCategory by remember { mutableStateOf("其他") }
+    var selectedCategory by remember { mutableStateOf(context.getString(R.string.screen_reminders_category_other)) }
 
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "提醒管理",
-                subtitle = "查看和管理所有提醒",
+                title = stringResource(R.string.screen_reminders_title),
+                subtitle = stringResource(R.string.screen_reminders_subtitle),
                 actions = {
                     IconButton(onClick = { showAddDialog = true }) {
-                        Icon(Icons.Default.Add, "添加提醒", tint = Primary)
+                        Icon(Icons.Default.Add, stringResource(R.string.screen_reminders_add_reminder), tint = Primary)
                     }
                 }
             )
@@ -212,11 +218,11 @@ private fun EmptyReminders(onAdd: () -> Unit) {
         }
         EmptyState(
             icon = Icons.Default.DateRange,
-            title = "暂无提醒",
-            hint = "点击右上角添加用药、复查等提醒",
+            title = stringResource(R.string.screen_reminders_empty_title),
+            hint = stringResource(R.string.screen_reminders_empty_hint),
             action = {
                 Button(onClick = onAdd) {
-                    Text("添加提醒")
+                    Text(stringResource(R.string.screen_reminders_add_reminder))
                 }
             }
         )
@@ -233,7 +239,7 @@ private fun MonthlyStatsCard(stats: MonthlyStats) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "本月统计",
+                stringResource(R.string.screen_reminders_monthly_stats),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
@@ -251,7 +257,7 @@ private fun MonthlyStatsCard(stats: MonthlyStats) {
                         fontWeight = FontWeight.Bold,
                         color = Primary
                     )
-                    Text("完成率", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.screen_reminders_completion_rate), style = MaterialTheme.typography.labelSmall)
                 }
 
                 // 连续天数
@@ -260,9 +266,9 @@ private fun MonthlyStatsCard(stats: MonthlyStats) {
                         "${stats.streak}",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFF9800)
+                        color = Reminder
                     )
-                    Text("连续天数", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.screen_reminders_streak_days), style = MaterialTheme.typography.labelSmall)
                 }
             }
 
@@ -283,7 +289,7 @@ private fun MonthlyStatsCard(stats: MonthlyStats) {
 
             // 统计详情
             Text(
-                "总计 ${stats.total}项 · 完成 ${stats.completed}项 · 逾期 ${stats.overdue}项",
+                stringResource(R.string.screen_reminders_stats_detail, stats.total, stats.completed, stats.overdue),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -331,7 +337,7 @@ private fun ReminderTypeGroup(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        "${todos.size}项 · ${pendingCount}待办",
+                        stringResource(R.string.screen_reminders_pending_count, todos.size, pendingCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -428,123 +434,24 @@ private fun ReminderItem(
             }
         }
         // 编辑按钮
-        IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+        IconButton(onClick = onEdit, modifier = Modifier.size(48.dp)) {
             Icon(
                 Icons.Default.Edit,
-                contentDescription = "编辑",
+                contentDescription = stringResource(R.string.screen_reminders_edit),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )
         }
         // 删除按钮
-        IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+        IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
             Icon(
                 Icons.Default.Delete,
-                contentDescription = "删除",
+                contentDescription = stringResource(R.string.screen_reminders_delete),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )
         }
     }
-}
-
-@Composable
-private fun RepeatEditDialog(
-    todo: HealthTodo,
-    onDismiss: () -> Unit,
-    onConfirm: (type: String, interval: Int) -> Unit
-) {
-    var repeatEnabled by remember { mutableStateOf(todo.repeatType != "none") }
-    var selectedType by remember { mutableStateOf(if (todo.repeatType == "none") "day" else todo.repeatType) }
-    var interval by remember { mutableIntStateOf(if (todo.repeatInterval < 1) 1 else todo.repeatInterval) }
-
-    val units = listOf("day" to "天", "week" to "周", "month" to "月", "year" to "年")
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("修改重复设置") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(
-                    text = todo.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    FilterChip(
-                        selected = !repeatEnabled,
-                        onClick = { repeatEnabled = false },
-                        label = { Text("不重复") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Primary,
-                            selectedLabelColor = Color.White
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = repeatEnabled,
-                        onClick = { repeatEnabled = true },
-                        label = { Text("重复") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Primary,
-                            selectedLabelColor = Color.White
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                if (repeatEnabled) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        units.forEach { (type, label) ->
-                            FilterChip(
-                                selected = selectedType == type,
-                                onClick = { selectedType = type },
-                                label = { Text(label) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Primary,
-                                    selectedLabelColor = Color.White
-                                ),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("每")
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "$interval",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = units.firstOrNull { it.first == selectedType }?.second ?: "",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                val type = if (repeatEnabled) selectedType else "none"
-                onConfirm(type, interval)
-            }) { Text("确定") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
-        }
-    )
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -563,8 +470,18 @@ private fun EditTodoDialog(
     var interval by remember { mutableIntStateOf(if (todo.repeatInterval < 1) 1 else todo.repeatInterval) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    val categories = listOf("用药" to "💊", "复查" to "🏥", "检查" to "🔬", "其他" to "📋")
-    val units = listOf("day" to "天", "week" to "周", "month" to "月", "year" to "年")
+    val categories = listOf(
+        stringResource(R.string.screen_reminders_category_medication) to "💊",
+        stringResource(R.string.screen_reminders_category_followup) to "🏥",
+        stringResource(R.string.screen_reminders_category_examination) to "🔬",
+        stringResource(R.string.screen_reminders_category_other) to "📋"
+    )
+    val units = listOf(
+        "day" to stringResource(R.string.screen_reminders_unit_day),
+        "week" to stringResource(R.string.screen_reminders_unit_week),
+        "month" to stringResource(R.string.screen_reminders_unit_month),
+        "year" to stringResource(R.string.screen_reminders_unit_year)
+    )
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -580,24 +497,24 @@ private fun EditTodoDialog(
                         }
                         showDatePicker = false
                     }
-                ) { Text("确定") }
+                ) { Text(stringResource(R.string.screen_reminders_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.screen_reminders_cancel)) }
             }
         ) { DatePicker(state = datePickerState) }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("编辑提醒") },
+        title = { Text(stringResource(R.string.screen_reminders_edit_reminder)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // 提醒类别
-                Text("提醒类别", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.screen_reminders_category_label), style = MaterialTheme.typography.labelMedium)
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -644,19 +561,19 @@ private fun EditTodoDialog(
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("提醒内容") },
+                    label = { Text(stringResource(R.string.screen_reminders_content_label)) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 // 日期
-                Text("提醒日期", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.screen_reminders_date_label), style = MaterialTheme.typography.labelMedium)
                 val dateLabel = dueDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
                 OutlinedTextField(
                     value = dateLabel,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("计划日期") },
-                    trailingIcon = { Icon(Icons.Default.DateRange, "选择日期", tint = Primary) },
+                    label = { Text(stringResource(R.string.screen_reminders_planned_date)) },
+                    trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_reminders_select_date), tint = Primary) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showDatePicker = true },
@@ -670,7 +587,7 @@ private fun EditTodoDialog(
                 )
 
                 // 重复设置
-                Text("重复", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.screen_reminders_repeat), style = MaterialTheme.typography.labelMedium)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -678,7 +595,7 @@ private fun EditTodoDialog(
                     FilterChip(
                         selected = !repeatEnabled,
                         onClick = { repeatEnabled = false },
-                        label = { Text("不重复") },
+                        label = { Text(stringResource(R.string.screen_reminders_no_repeat)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Primary,
                             selectedLabelColor = Color.White
@@ -688,7 +605,7 @@ private fun EditTodoDialog(
                     FilterChip(
                         selected = repeatEnabled,
                         onClick = { repeatEnabled = true },
-                        label = { Text("重复") },
+                        label = { Text(stringResource(R.string.screen_reminders_repeat)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Primary,
                             selectedLabelColor = Color.White
@@ -719,7 +636,7 @@ private fun EditTodoDialog(
                         horizontalArrangement = Arrangement.Center,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("每")
+                        Text(stringResource(R.string.screen_reminders_every))
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = "$interval",
@@ -743,43 +660,44 @@ private fun EditTodoDialog(
                     onUpdate(content, category, dueDate, repeatType, interval)
                 },
                 enabled = content.isNotBlank()
-            ) { Text("保存") }
+            ) { Text(stringResource(R.string.screen_reminders_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.screen_reminders_cancel)) }
         }
     )
 }
 
 @Composable
 private fun QuickAddSection(onAdd: (String) -> Unit) {
-    SectionCard(title = "⚡ 快速添加") {
+    val context = LocalContext.current
+    SectionCard(title = stringResource(R.string.screen_reminders_quick_add)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             QuickAddChip(
                 icon = "💊",
-                label = "用药",
-                onClick = { onAdd("用药") },
+                label = stringResource(R.string.screen_reminders_category_medication),
+                onClick = { onAdd(context.getString(R.string.screen_reminders_category_medication)) },
                 modifier = Modifier.weight(1f)
             )
             QuickAddChip(
                 icon = "🏥",
-                label = "复查",
-                onClick = { onAdd("复查") },
+                label = stringResource(R.string.screen_reminders_category_followup),
+                onClick = { onAdd(context.getString(R.string.screen_reminders_category_followup)) },
                 modifier = Modifier.weight(1f)
             )
             QuickAddChip(
                 icon = "🔬",
-                label = "检查",
-                onClick = { onAdd("检查") },
+                label = stringResource(R.string.screen_reminders_category_examination),
+                onClick = { onAdd(context.getString(R.string.screen_reminders_category_examination)) },
                 modifier = Modifier.weight(1f)
             )
             QuickAddChip(
                 icon = "📋",
-                label = "其他",
-                onClick = { onAdd("其他") },
+                label = stringResource(R.string.screen_reminders_category_other),
+                onClick = { onAdd(context.getString(R.string.screen_reminders_category_other)) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -825,29 +743,29 @@ private fun WeeklyPlanSection(todos: List<HealthTodo>) {
         !it.done && it.dueDate in today..weekEnd 
     }.sortedBy { it.dueDate }
 
-    SectionCard(title = "📅 本周计划") {
+    SectionCard(title = stringResource(R.string.screen_reminders_weekly_plan)) {
         if (weeklyTodos.isEmpty()) {
             Text(
-                "本周暂无待办",
+                stringResource(R.string.screen_reminders_no_pending),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         } else {
             weeklyTodos.take(5).forEach { todo ->
                 val dayLabel = when (todo.dueDate) {
-                    today -> "今天"
-                    today.plusDays(1) -> "明天"
-                    today.plusDays(2) -> "后天"
+                    today -> stringResource(R.string.screen_reminders_today)
+                    today.plusDays(1) -> stringResource(R.string.screen_reminders_tomorrow)
+                    today.plusDays(2) -> stringResource(R.string.screen_reminders_day_after_tomorrow)
                     else -> {
                         val dayOfWeek = todo.dueDate.dayOfWeek
                         when (dayOfWeek) {
-                            java.time.DayOfWeek.MONDAY -> "周一"
-                            java.time.DayOfWeek.TUESDAY -> "周二"
-                            java.time.DayOfWeek.WEDNESDAY -> "周三"
-                            java.time.DayOfWeek.THURSDAY -> "周四"
-                            java.time.DayOfWeek.FRIDAY -> "周五"
-                            java.time.DayOfWeek.SATURDAY -> "周六"
-                            java.time.DayOfWeek.SUNDAY -> "周日"
+                            java.time.DayOfWeek.MONDAY -> stringResource(R.string.screen_reminders_monday)
+                            java.time.DayOfWeek.TUESDAY -> stringResource(R.string.screen_reminders_tuesday)
+                            java.time.DayOfWeek.WEDNESDAY -> stringResource(R.string.screen_reminders_wednesday)
+                            java.time.DayOfWeek.THURSDAY -> stringResource(R.string.screen_reminders_thursday)
+                            java.time.DayOfWeek.FRIDAY -> stringResource(R.string.screen_reminders_friday)
+                            java.time.DayOfWeek.SATURDAY -> stringResource(R.string.screen_reminders_saturday)
+                            java.time.DayOfWeek.SUNDAY -> stringResource(R.string.screen_reminders_sunday)
                             else -> todo.dueDate.format(DateTimeFormatter.ofPattern("MM-dd"))
                         }
                     }
@@ -881,7 +799,7 @@ private fun WeeklyPlanSection(todos: List<HealthTodo>) {
             }
             if (weeklyTodos.size > 5) {
                 Text(
-                    "还有 ${weeklyTodos.size - 5} 项...",
+                    stringResource(R.string.screen_reminders_more_items, weeklyTodos.size - 5),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)

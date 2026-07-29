@@ -23,8 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.EmptyState
@@ -34,6 +34,7 @@ import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
+import com.yy.medtrace.viewmodel.MedicalRecordViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
@@ -44,9 +45,10 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedicalRecordScreen(
-    database: AppDatabase,
+    viewModel: MedicalRecordViewModel = hiltViewModel(),
     navController: NavController
 ) {
+    val database = viewModel.database
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
@@ -83,8 +85,8 @@ fun MedicalRecordScreen(
                 members = list + com.yy.medtrace.ui.state.UNKNOWN_MEMBER
                 if (SelectedMemberHolder.selectedMemberId.value == null) {
                     val latest = database.medicalRecordDao().getLatestRecord()
-                    SelectedMemberHolder.selectedMemberId.value =
-                        latest?.patientId ?: list.first().id
+                    val fallbackId = latest?.patientId ?: list.first().id
+                    scope.launch { SelectedMemberHolder.select(fallbackId, database) }
                 }
             }
     }

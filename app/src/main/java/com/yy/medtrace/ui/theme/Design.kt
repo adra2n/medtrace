@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.PrimaryLight
+import com.yy.medtrace.ui.theme.TextPrimary
+import com.yy.medtrace.ui.theme.TextSecondary
 
 // 卡片形状（圆角更大）
 val CardShape = RoundedCornerShape(20.dp)
@@ -71,14 +73,14 @@ fun GradientTopBar(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2E3A46)
+                    color = TextPrimary
                 )
                 subtitle?.let {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF5F6B7A)
+                        color = TextSecondary
                     )
                 }
             }
@@ -96,7 +98,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         text = text,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Bold,
-        color = Color(0xFF2ECDC6), // 青绿色
+        color = Primary, // 青绿色
         modifier = modifier
     )
 }

@@ -28,6 +28,9 @@ interface HealthTodoDao {
     @Insert
     suspend fun insert(todo: HealthTodo): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(todos: List<HealthTodo>)
+
     @Update
     suspend fun update(todo: HealthTodo)
 
@@ -39,4 +42,10 @@ interface HealthTodoDao {
 
     @Delete
     suspend fun delete(todo: HealthTodo)
+
+    @Query("DELETE FROM health_todos")
+    suspend fun clear()
+
+    @Query("SELECT * FROM health_todos")
+    suspend fun getAllList(): List<HealthTodo>
 }

@@ -3,21 +3,29 @@ package com.yy.medtrace.viewmodel
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yy.medtrace.common.Result
 import com.yy.medtrace.common.asResultWithoutLoading
 import com.yy.medtrace.data.model.FamilyMember
+import com.yy.medtrace.data.model.MedicalRecord
+import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.repository.MemberRepository
+import com.yy.medtrace.data.repository.RecordRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
-class FamilyViewModel(
-    private val memberRepository: MemberRepository
+class FamilyViewModel @Inject constructor(
+    val database: AppDatabase,
+    private val memberRepository: MemberRepository,
+    private val recordRepository: RecordRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FamilyUiState())
@@ -30,7 +38,10 @@ class FamilyViewModel(
                 .asResultWithoutLoading()
                 .collect { result ->
                     when (result) {
-                        is Result.Success -> _uiState.update { it.copy(members = result.data, isLoading = false) }
+                        is Result.Success -> {
+                            _uiState.update { it.copy(members = result.data, isLoading = false) }
+                            loadRecordCounts(result.data)
+                        }
                         is Result.Error -> _uiState.update { it.copy(error = result.message, isLoading = false) }
                         is Result.Loading -> {}
                     }
@@ -38,14 +49,29 @@ class FamilyViewModel(
         }
     }
 
-    fun addMember(member: com.yy.medtrace.data.model.FamilyMember) {
+    private suspend fun loadRecordCounts(members: List<FamilyMember>) {
+        if (members.isEmpty()) {
+            _uiState.update { it.copy(recordCounts = emptyMap(), recentRecordsMap = emptyMap()) }
+            return
+        }
+        val memberIds = members.map { it.id }
+        val countResults = recordRepository.countByMembers(memberIds)
+        val recordCounts = countResults.associate { it.patientId to it.count }
+        val recentMap = mutableMapOf<Long, List<MedicalRecord>>()
+        members.forEach { member ->
+            recentMap[member.id] = recordRepository.getRecentRecordsByMember(member.id, 2).first()
+        }
+        _uiState.update { it.copy(recordCounts = recordCounts, recentRecordsMap = recentMap) }
+    }
+
+    fun addMember(member: FamilyMember) {
         viewModelScope.launch {
             memberRepository.insert(member)
             loadMembers()
         }
     }
 
-    fun updateMember(member: com.yy.medtrace.data.model.FamilyMember) {
+    fun updateMember(member: FamilyMember) {
         viewModelScope.launch {
             memberRepository.update(member)
             loadMembers()
@@ -54,6 +80,7 @@ class FamilyViewModel(
 
     fun deleteMember(memberId: Long) {
         viewModelScope.launch {
+            recordRepository.reassignToUnknown(memberId)
             memberRepository.deleteById(memberId)
             loadMembers()
         }
@@ -65,19 +92,9 @@ class FamilyViewModel(
 }
 
 data class FamilyUiState(
-    val members: List<com.yy.medtrace.data.model.FamilyMember> = emptyList(),
+    val members: List<FamilyMember> = emptyList(),
+    val recordCounts: Map<Long, Int> = emptyMap(),
+    val recentRecordsMap: Map<Long, List<MedicalRecord>> = emptyMap(),
     val error: String? = null,
     val isLoading: Boolean = false
 )
-
-class FamilyViewModelFactory(
-    private val memberRepository: MemberRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(FamilyViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return FamilyViewModel(memberRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
-    }
-}

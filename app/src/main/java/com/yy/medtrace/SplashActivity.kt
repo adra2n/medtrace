@@ -1,32 +1,32 @@
 package com.yy.medtrace
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
 import com.umeng.analytics.MobclickAgent
 import com.umeng.commonsdk.UMConfigure
 import com.yy.medtrace.common.Constants
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.data.settings.PrivacyConsentStore
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 
 @SuppressLint("CustomSplashScreen")
-class SplashActivity : Activity() {
+class SplashActivity : ComponentActivity() {
 
     private var splashContainer: FrameLayout? = null
     private var fallbackLayout: LinearLayout? = null
     private var skipTextView: TextView? = null
     private var countDownTimer: CountDownTimer? = null
+    private var navigated = false
 
     companion object {
-        private const val TAG = "SplashActivity"
         private const val SKIP_DELAY = 3000L
         private const val COUNT_DOWN_INTERVAL = 1000L
     }
@@ -43,23 +43,17 @@ class SplashActivity : Activity() {
             navigateToNext()
         }
 
-        // 检查隐私协议状态
-        val privacyGranted = runBlocking {
-            runCatching {
+        lifecycleScope.launch {
+            val privacyGranted = runCatching {
                 PrivacyConsentStore(this@SplashActivity).isGranted()
             }.getOrDefault(false)
-        }
 
-        Log.d(TAG, "privacyGranted: $privacyGranted")
-
-        if (privacyGranted) {
-            // 已同意隐私协议，初始化统计 SDK 并显示启动页
-            initAnalytics()
-            showSplash()
-        } else {
-            // 未同意隐私协议，直接跳转
-            Log.d(TAG, "隐私协议未同意，跳转到隐私协议页面")
-            navigateToNext()
+            if (privacyGranted) {
+                initAnalytics()
+                showSplash()
+            } else {
+                navigateToNext()
+            }
         }
     }
 
@@ -71,11 +65,8 @@ class SplashActivity : Activity() {
     }
 
     private fun showSplash() {
-        // 显示兜底布局（App图标）
         fallbackLayout?.visibility = View.VISIBLE
         splashContainer?.visibility = View.GONE
-
-        // 启动倒计时
         startCountDown()
     }
 
@@ -95,34 +86,34 @@ class SplashActivity : Activity() {
     }
 
     private fun navigateToNext() {
+        if (navigated) return
+        navigated = true
         countDownTimer?.cancel()
-        val privacyGranted = runBlocking {
-            runCatching {
+        lifecycleScope.launch {
+            val privacyGranted = runCatching {
                 PrivacyConsentStore(this@SplashActivity).isGranted()
             }.getOrDefault(false)
-        }
 
-        val nextIntent = if (privacyGranted) {
-            val onboardingDone = runBlocking {
-                runCatching {
+            val nextIntent = if (privacyGranted) {
+                val onboardingDone = runCatching {
                     OnboardingStore(this@SplashActivity).isDone()
                 }.getOrDefault(false)
-            }
-            if (onboardingDone) {
-                Intent(this, MainActivity::class.java)
+                if (onboardingDone) {
+                    Intent(this@SplashActivity, MainActivity::class.java)
+                } else {
+                    Intent(this@SplashActivity, MainActivity::class.java).apply {
+                        putExtra("navigate_to", "onboarding")
+                    }
+                }
             } else {
-                Intent(this, MainActivity::class.java).apply {
-                    putExtra("navigate_to", "onboarding")
+                Intent(this@SplashActivity, MainActivity::class.java).apply {
+                    putExtra("navigate_to", "privacy_consent")
                 }
             }
-        } else {
-            Intent(this, MainActivity::class.java).apply {
-                putExtra("navigate_to", "privacy_consent")
-            }
-        }
 
-        startActivity(nextIntent)
-        finish()
+            startActivity(nextIntent)
+            finish()
+        }
     }
 
     override fun onDestroy() {

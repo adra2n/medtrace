@@ -11,6 +11,25 @@ object PinManager {
     private const val KEY_LENGTH = 256
     private const val SALT_LENGTH = 16
     private const val PIN_LENGTH = 6
+    private const val MAX_ATTEMPTS = 5
+    private const val LOCKOUT_DURATION_MS = 30_000L
+
+    @Volatile
+    private var failedAttempts = 0
+    @Volatile
+    private var lockoutUntil = 0L
+
+    fun isLocked(): Boolean = System.currentTimeMillis() < lockoutUntil
+
+    fun getLockoutRemainingSeconds(): Int {
+        val remaining = (lockoutUntil - System.currentTimeMillis()) / 1000
+        return remaining.coerceAtLeast(0).toInt()
+    }
+
+    fun resetAttempts() {
+        failedAttempts = 0
+        lockoutUntil = 0L
+    }
 
     fun isPinSet(context: Context): Boolean =
         !SecurePrefs.get(context).getString(SecurePrefs.PIN_HASH, null).isNullOrBlank()
@@ -24,16 +43,28 @@ object PinManager {
         val value = Base64.encodeToString(salt, Base64.NO_WRAP) + ":" +
             Base64.encodeToString(hash, Base64.NO_WRAP)
         SecurePrefs.get(context).edit().putString(SecurePrefs.PIN_HASH, value).apply()
+        resetAttempts()
     }
 
     fun verify(context: Context, pin: String): Boolean {
+        if (isLocked()) return false
         val stored = SecurePrefs.get(context).getString(SecurePrefs.PIN_HASH, null) ?: return false
         val parts = stored.split(":")
         if (parts.size != 2) return false
         val salt = Base64.decode(parts[0], Base64.NO_WRAP)
         val expected = Base64.decode(parts[1], Base64.NO_WRAP)
         val actual = derive(pin, salt)
-        return constantTimeEquals(expected, actual)
+        val match = constantTimeEquals(expected, actual)
+        if (match) {
+            resetAttempts()
+        } else {
+            failedAttempts++
+            if (failedAttempts >= MAX_ATTEMPTS) {
+                lockoutUntil = System.currentTimeMillis() + LOCKOUT_DURATION_MS
+                failedAttempts = 0
+            }
+        }
+        return match
     }
 
     fun clearPin(context: Context) {

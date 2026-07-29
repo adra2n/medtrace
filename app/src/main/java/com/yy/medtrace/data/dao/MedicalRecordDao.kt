@@ -86,7 +86,7 @@ interface MedicalRecordDao {
     @Delete
     suspend fun delete(record: MedicalRecord)
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<MedicalRecord>)
 
     @Query("DELETE FROM medical_records")

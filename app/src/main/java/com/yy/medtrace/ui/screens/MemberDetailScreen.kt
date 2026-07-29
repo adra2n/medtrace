@@ -18,8 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.EmptyRecords
@@ -35,6 +35,7 @@ import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
 import com.yy.medtrace.ui.theme.memberCardColors
+import com.yy.medtrace.viewmodel.MemberDetailViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
@@ -49,11 +50,12 @@ private enum class DetailTab(val label: String) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MemberDetailScreen(
-    database: AppDatabase,
+    viewModel: MemberDetailViewModel = hiltViewModel(),
     navController: NavController,
     memberId: Long,
     initialTab: String? = null
 ) {
+    val database = viewModel.database
     var member by remember { mutableStateOf<FamilyMember?>(null) }
     var records by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
     var selectedTab by remember {

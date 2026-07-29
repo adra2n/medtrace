@@ -18,10 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.content.Intent
-import android.provider.Settings
-import android.net.Uri
+import com.yy.medtrace.data.security.PinManager
 import com.yy.medtrace.ui.theme.Primary
+import kotlinx.coroutines.delay
 
 private const val PIN_LENGTH = 6
 
@@ -37,8 +36,22 @@ fun LockScreen(
     var pin by remember { mutableStateOf("") }
     var error by remember { mutableStateOf(false) }
     var showForgot by remember { mutableStateOf(false) }
+    var lockoutSeconds by remember { mutableStateOf(0) }
+
+    LaunchedEffect(lockoutSeconds) {
+        if (lockoutSeconds > 0) {
+            delay(1000)
+            if (PinManager.isLocked()) {
+                lockoutSeconds = PinManager.getLockoutRemainingSeconds()
+            } else {
+                lockoutSeconds = 0
+                error = false
+            }
+        }
+    }
 
     fun onDigit(d: String) {
+        if (lockoutSeconds > 0) return
         if (pin.length < PIN_LENGTH) {
             pin += d
             error = false
@@ -46,6 +59,9 @@ fun LockScreen(
                 if (!onPinEntered(pin)) {
                     error = true
                     pin = ""
+                    if (PinManager.isLocked()) {
+                        lockoutSeconds = PinManager.getLockoutRemainingSeconds()
+                    }
                 } else {
                     pin = ""
                 }
@@ -95,10 +111,19 @@ fun LockScreen(
                 }
             }
 
-            if (error) {
+            if (error && lockoutSeconds == 0) {
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "PIN 错误，请重试",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            if (lockoutSeconds > 0) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "PIN 已锁定，请 ${lockoutSeconds}s 后重试",
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )
