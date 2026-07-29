@@ -308,29 +308,9 @@ fun HomeScreen(
             }
 
             item {
-                // 欢迎标题
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "快捷功能",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    TextButton(onClick = { navController.navigate(Screen.Settings.route) }) {
-                        Text(
-                            "查看全部",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Primary
-                        )
-                    }
-                }
-                Spacer(Modifier.height(4.dp))
+                // 快捷功能标题
+                SectionTitle("快捷功能")
+                Spacer(Modifier.height(12.dp))
                 
                 // 2x2 功能网格
                 Column(
