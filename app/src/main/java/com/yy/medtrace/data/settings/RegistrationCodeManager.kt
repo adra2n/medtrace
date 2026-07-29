@@ -29,13 +29,13 @@ class RegistrationCodeManager @Inject constructor(
         // RSA 公钥 (嵌入App)
         // 由 keygen.py 生成，对应的私钥用于生成注册码
         private const val PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqTmn4KGafoUg+ZoVxh9f
-5Rd7Yb2l0UI8Cy0CRKghsF2i24xxm6Cl6tnJaAOLDmPlRi45N9JyA7UYAMeE1jNF
-1MZPwB1cQ757CGa1pFRe0F8mB1L5Hi957YkODd65JfStPrpMrZbJhk36HyasRY6M
-/e1PiLg9e0cPkGUHk5HnmvYYMb1PIoGz0CormHM+e3YzZMacjZ3fSJZCfN3Fx697
-gd9GNjKmmfr383VHSCUEtXvWFIPDLR/yHbT2PXBCoCrx7+9rrJq5eXHrCDQ+r1mI
-Z/H9cyNZxExfJ2EAyaqQoXfDVmohuSp/kRRC5hXO935FqyuLpq73R1HuOA7TC0vL
-SQIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsjoEL8YOrJQsL52TrtUG
+gI/gmanc06HaoXZRdH/uGKzioUpSmaY+m+O16Ro+kFparHLqixvzloAAydVYolNy
+mO9GsUBhfThc4Y+86Mo5i1mpZgmBCTCjEdOZx9O1RAqXx+iA6PnxTaX/D/SaSPWA
+WG5z+bJnaDxwG5bsEt2jEyJ4tHG/N8+q/3TYRxN6YKrMp+enky8f/zL53NrRwdya
+ehWyJjcoE3w4lt9Szsd5+INTRhBHkYrsINvQH1iN7L1tKDiUGAdjO4KnqXFz7PmJ
+TsxDyulg6IZsOk1Kfa75BqaPq62HNMYeaR87XP0m7cJ6eaEMjS+kkc1i4e+zHL26
+jwIDAQAB
 -----END PUBLIC KEY-----"""
     }
 
@@ -47,10 +47,12 @@ SQIDAQAB
      * 获取当前设备ID
      */
     fun getDeviceId(): String {
-        return Settings.Secure.getString(
+        val deviceId = Settings.Secure.getString(
             context.contentResolver,
             Settings.Secure.ANDROID_ID
         ) ?: "unknown"
+        Log.d(TAG, "设备ID: $deviceId")
+        return deviceId
     }
 
     /**
@@ -59,28 +61,33 @@ SQIDAQAB
     fun verifyCode(code: String): Boolean {
         return try {
             // 清理输入
-            val cleanCode = code.trim().uppercase()
+            val cleanCode = code.trim().replace("-", "")
+            Log.d(TAG, "输入的注册码: $code")
+            Log.d(TAG, "清理后: $cleanCode")
             
             // 解析公钥
             val publicKey = parsePublicKey(PUBLIC_KEY)
             
             // Base64 解码
             val decoded = Base64.decode(cleanCode, Base64.DEFAULT)
+            Log.d(TAG, "Base64解码后字节数: ${decoded.size}")
             
             // RSA 解密
             val cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
             cipher.init(Cipher.DECRYPT_MODE, publicKey)
             val decryptedBytes = cipher.doFinal(decoded)
             val decrypted = String(decryptedBytes, Charsets.UTF_8)
+            Log.d(TAG, "解密结果: $decrypted")
             
             // 验证设备ID
             val deviceId = getDeviceId()
+            Log.d(TAG, "当前设备ID: $deviceId")
             val isValid = decrypted == deviceId
             
             if (isValid) {
-                Log.d(TAG, "注册码验证成功")
+                Log.d(TAG, "✅ 注册码验证成功")
             } else {
-                Log.w(TAG, "注册码验证失败: 设备ID不匹配")
+                Log.w(TAG, "❌ 注册码验证失败: 设备ID不匹配")
             }
             
             isValid

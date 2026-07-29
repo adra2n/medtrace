@@ -8,6 +8,7 @@ import base64
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Hash import SHA256
+from Crypto.Random import get_random_bytes
 
 def load_private_key(key_path="keys/private_key.pem"):
     """加载私钥"""
@@ -17,8 +18,9 @@ def load_private_key(key_path="keys/private_key.pem"):
 def generate_code(device_id: str, private_key) -> str:
     """
     用私钥加密设备ID，生成注册码
+    使用 SHA-256 作为哈希算法
     """
-    # 创建加密器 (OAEP padding)
+    # 创建加密器 - 使用 SHA-256，MGF1 默认使用 SHA-256
     cipher = PKCS1_OAEP.new(private_key, hashAlgo=SHA256)
     
     # 加密设备ID
