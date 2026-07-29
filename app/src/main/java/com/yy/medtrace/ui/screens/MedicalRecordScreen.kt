@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -56,8 +57,14 @@ fun MedicalRecordScreen(
     var fromDate by remember { mutableStateOf<LocalDate?>(null) }
     var toDate by remember { mutableStateOf<LocalDate?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
-    var datePickerTarget by remember { mutableStateOf<DateTarget>(DateTarget.From) }
+    var datePickerTarget by remember { mutableStateOf(DateTarget.From) }
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
+    
+    // 分页状态
+    val pageSize = 20
+    var currentPage by remember { mutableIntStateOf(0) }
+    var hasMore by remember { mutableStateOf(true) }
+    var isLoadingMore by remember { mutableStateOf(false) }
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val dayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -87,21 +94,63 @@ fun MedicalRecordScreen(
             val kw = keyword.trim().takeIf { it.isNotEmpty() }
             val from = fromDate?.atStartOfDay() ?: LocalDateTime.of(1970, 1, 1, 0, 0)
             val to = toDate?.atTime(23, 59, 59) ?: LocalDateTime.of(9999, 12, 31, 23, 59, 59)
-            val flow = if (id == 0L) {
-                database.medicalRecordDao().getUnknownRecords()
-            } else {
-                database.medicalRecordDao()
-                    .searchByMember(id, kw, "%${kw ?: ""}%", from, to)
+            
+            // 重置分页
+            currentPage = 0
+            hasMore = true
+            records = emptyList()
+            
+            // 加载第一页
+            try {
+                val result = database.medicalRecordDao().searchByMemberPaged(
+                    patientId = id,
+                    keyword = kw,
+                    likePattern = "%${kw ?: ""}%",
+                    from = from,
+                    to = to,
+                    limit = pageSize,
+                    offset = 0
+                )
+                records = result
+                hasMore = result.size == pageSize
+                currentPage = 1
+            } catch (e: Exception) {
+                error = e.message
+                e.printStackTrace()
             }
-            flow
-                .catch { e ->
-                    error = e.message
-                    e.printStackTrace()
-                }
-                .collectLatest {
-                    records = it
-                }
         } ?: run { records = emptyList() }
+    }
+    
+    // 加载更多
+    fun loadMore() {
+        if (isLoadingMore || !hasMore) return
+        isLoadingMore = true
+        
+        scope.launch {
+            try {
+                val id = selectedMemberId ?: return@launch
+                val kw = keyword.trim().takeIf { it.isNotEmpty() }
+                val from = fromDate?.atStartOfDay() ?: LocalDateTime.of(1970, 1, 1, 0, 0)
+                val to = toDate?.atTime(23, 59, 59) ?: LocalDateTime.of(9999, 12, 31, 23, 59, 59)
+                
+                val result = database.medicalRecordDao().searchByMemberPaged(
+                    patientId = id,
+                    keyword = kw,
+                    likePattern = "%${kw ?: ""}%",
+                    from = from,
+                    to = to,
+                    limit = pageSize,
+                    offset = currentPage * pageSize
+                )
+                records = records + result
+                hasMore = result.size == pageSize
+                currentPage++
+            } catch (e: Exception) {
+                error = e.message
+            } finally {
+                isLoadingMore = false
+            }
+        }
     }
 
     Scaffold(
@@ -362,6 +411,26 @@ fun MedicalRecordScreen(
                         onEdit = { navController.navigate("add_record/${record.id}") },
                         onDelete = { pendingDelete = record }
                     )
+                }
+                
+                // 加载更多
+                if (hasMore) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isLoadingMore) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            } else {
+                                OutlinedButton(onClick = { loadMore() }) {
+                                    Text("加载更多")
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

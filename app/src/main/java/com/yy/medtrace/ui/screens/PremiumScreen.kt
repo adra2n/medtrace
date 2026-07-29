@@ -255,6 +255,15 @@ fun PremiumScreen(
                         Text("立即购买 ${PaymentManager.PRODUCT_PRICE_DISPLAY}", fontSize = 16.sp)
                     }
                 }
+                
+                // 恢复购买按钮
+                OutlinedButton(
+                    onClick = { paymentManager.restorePurchase() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = payState !is PayState.Loading
+                ) {
+                    Text("恢复购买")
+                }
             }
 
             // 说明

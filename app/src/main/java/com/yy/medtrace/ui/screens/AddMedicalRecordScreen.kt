@@ -89,6 +89,7 @@ fun AddMedicalRecordScreen(
     var analyzing by remember { mutableStateOf(false) }
     var analysisError by remember { mutableStateOf<String?>(null) }
     var analysisJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var analysisProgress by remember { mutableStateOf("") }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -127,15 +128,19 @@ fun AddMedicalRecordScreen(
         }
         analysisJob?.cancel()
         analyzing = true
+        analysisProgress = "正在准备数据..."
         analysisJob = scope.launch(Dispatchers.IO) {
             try {
+                analysisProgress = "正在转换图片..."
                 val imgs = images.map { bitmapToBase64(it) }
+                analysisProgress = "正在调用 AI 识别..."
                 analysisResult = analysisUseCase.analyze(noteText, imgs)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) return@launch
                 analysisError = e.message ?: "识别失败"
             } finally {
                 analyzing = false
+                analysisProgress = ""
             }
         }
     }
@@ -300,12 +305,35 @@ fun AddMedicalRecordScreen(
                     }
 
                     if (analyzing) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Surface(
+                            shape = AppShapes.small,
+                            color = Primary.copy(alpha = 0.1f)
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Primary)
-                            Text("AI 识别中…", color = Primary)
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Primary
+                                )
+                                Column {
+                                    Text(
+                                        "AI 识别中...",
+                                        color = Primary,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    if (analysisProgress.isNotBlank()) {
+                                        Text(
+                                            analysisProgress,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 

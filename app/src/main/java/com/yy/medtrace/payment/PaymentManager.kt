@@ -143,6 +143,21 @@ class PaymentManager @Inject constructor(
     }
 
     /**
+     * 恢复购买
+     * 检查本地是否已有购买记录
+     */
+    fun restorePurchase() {
+        _payState.value = PayState.Loading
+        
+        if (premiumManager.isPremiumActive()) {
+            val orderId = premiumManager.getOrderId() ?: "restored"
+            _payState.value = PayState.Success(orderId)
+        } else {
+            _payState.value = PayState.Error("未找到购买记录。如已购买请联系 $CONTACT_EMAIL")
+        }
+    }
+
+    /**
      * 重置状态
      */
     fun resetState() {
