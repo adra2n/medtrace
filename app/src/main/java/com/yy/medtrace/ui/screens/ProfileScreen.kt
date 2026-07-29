@@ -1,6 +1,7 @@
 package com.yy.medtrace.ui.screens
 
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,6 +50,8 @@ fun ProfileScreen(
             ""
         }
     }
+    
+    var showHelpDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
@@ -212,7 +215,7 @@ fun ProfileScreen(
                         icon = Icons.Default.Help,
                         title = "帮助中心",
                         subtitle = "使用说明与常见问题",
-                        onClick = { }
+                        onClick = { showHelpDialog = true }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
                     ProfileMenuItem(
@@ -232,7 +235,16 @@ fun ProfileScreen(
                         icon = Icons.Default.RateReview,
                         title = "给我们评分",
                         subtitle = "去应用商店评分",
-                        onClick = { }
+                        onClick = { 
+                            try {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                    data = android.net.Uri.parse("market://details?id=${context.packageName}")
+                                }
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "无法打开应用商店", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     )
                 }
             }
@@ -296,6 +308,10 @@ fun ProfileScreen(
                 )
             }
         }
+    }
+    
+    if (showHelpDialog) {
+        HelpDialog(onDismiss = { showHelpDialog = false })
     }
 }
 
@@ -375,6 +391,75 @@ private fun ProfileMenuItem(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@Composable
+private fun HelpDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                Icons.Default.Help,
+                contentDescription = null,
+                tint = Primary
+            )
+        },
+        title = {
+            Text(
+                "帮助中心",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                HelpItem(
+                    title = "如何添加家庭成员？",
+                    content = "点击首页右上角「+」按钮，选择「添加家庭成员」，填写基本信息即可。"
+                )
+                HelpItem(
+                    title = "如何添加就诊记录？",
+                    content = "点击首页「就诊记录」卡片，可选择拍照识别或手动录入。"
+                )
+                HelpItem(
+                    title = "AI智能识别如何使用？",
+                    content = "在设置 → AI配置中添加API Key，即可使用拍照识别功能。"
+                )
+                HelpItem(
+                    title = "数据如何备份？",
+                    content = "在设置 → 数据备份与同步中配置GitHub Token，即可备份数据。"
+                )
+                HelpItem(
+                    title = "如何联系客服？",
+                    content = "通过意见反馈发送邮件至 cljkle@163.com，我们会在24小时内回复。"
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("知道了", color = Primary)
+            }
+        }
+    )
+}
+
+@Composable
+private fun HelpItem(title: String, content: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            content,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
