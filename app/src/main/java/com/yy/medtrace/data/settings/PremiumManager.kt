@@ -22,7 +22,7 @@ class PremiumManager @Inject constructor(
 
     companion object {
         // 功能限制
-        const val FREE_MEMBER_LIMIT = 1
+        const val FREE_MEMBER_LIMIT = 2
         const val FREE_AI_DAILY_LIMIT = 3
     }
 
