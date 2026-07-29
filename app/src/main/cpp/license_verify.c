@@ -13,6 +13,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+// 包含自动生成的密钥头文件
+#include "key.h"
+
 // ============== SHA-256 实现 ==============
 
 typedef struct {
@@ -145,15 +148,7 @@ static void hmac_sha256(const uint8_t *key, size_t key_len,
 }
 
 // ============== 密钥和验证逻辑 ==============
-
-// 32字节密钥（与 Python 脚本一致！）
-// 此密钥编译后存储在 .so 文件中
-static const unsigned char SECRET_KEY[32] = {
-    0x8A, 0x5F, 0xFC, 0xC6, 0xE5, 0x6F, 0xBF, 0x0D,
-    0x72, 0x0B, 0x19, 0x14, 0xEC, 0x92, 0x0D, 0xE9,
-    0x02, 0x3F, 0xF9, 0x2D, 0x8C, 0xF5, 0x15, 0xE7,
-    0x95, 0x83, 0x8D, 0x46, 0x04, 0xEE, 0xAB, 0xB2
-};
+// 密钥从 key.h 文件包含（由 generate_key_header.py 自动生成）
 
 /**
  * 验证注册码
@@ -171,11 +166,21 @@ Java_com_yy_medtrace_data_RegistrationCodeNative_verifyLicense(
     
     // 获取输入参数
     const char *code = (*env)->GetStringUTFChars(env, input_code, NULL);
-    const char *device_id = (*env)->GetStringUTFChars(env, android_id, NULL);
+    const char *device_id_raw = (*env)->GetStringUTFChars(env, android_id, NULL);
     
-    if (code == NULL || device_id == NULL) {
+    if (code == NULL || device_id_raw == NULL) {
         return 0;
     }
+    
+    // 设备ID转大写（与Python端保持一致）
+    char device_id[64];
+    int id_len = strlen(device_id_raw);
+    if (id_len >= 64) id_len = 63;
+    for (int i = 0; i < id_len; i++) {
+        char c = device_id_raw[i];
+        device_id[i] = (c >= 'a' && c <= 'z') ? c - 32 : c;
+    }
+    device_id[id_len] = '\0';
     
     // 清理输入：移除横杠，转大写
     char clean_code[64];
@@ -192,7 +197,7 @@ Java_com_yy_medtrace_data_RegistrationCodeNative_verifyLicense(
     // 验证长度（24字符 = 12字节）
     if (code_idx != 24) {
         (*env)->ReleaseStringUTFChars(env, input_code, code);
-        (*env)->ReleaseStringUTFChars(env, android_id, device_id);
+        (*env)->ReleaseStringUTFChars(env, android_id, device_id_raw);
         return 0;
     }
     
@@ -219,7 +224,7 @@ Java_com_yy_medtrace_data_RegistrationCodeNative_verifyLicense(
     
     // 释放内存
     (*env)->ReleaseStringUTFChars(env, input_code, code);
-    (*env)->ReleaseStringUTFChars(env, android_id, device_id);
+    (*env)->ReleaseStringUTFChars(env, android_id, device_id_raw);
     
     return result;
 }
@@ -233,7 +238,17 @@ Java_com_yy_medtrace_data_RegistrationCodeNative_getDeviceHash(
     jobject thiz,
     jstring android_id) {
     
-    const char *device_id = (*env)->GetStringUTFChars(env, android_id, NULL);
+    const char *device_id_raw = (*env)->GetStringUTFChars(env, android_id, NULL);
+    
+    // 设备ID转大写
+    char device_id[64];
+    int id_len = strlen(device_id_raw);
+    if (id_len >= 64) id_len = 63;
+    for (int i = 0; i < id_len; i++) {
+        char c = device_id_raw[i];
+        device_id[i] = (c >= 'a' && c <= 'z') ? c - 32 : c;
+    }
+    device_id[id_len] = '\0';
     
     unsigned char hash[32];
     hmac_sha256(SECRET_KEY, sizeof(SECRET_KEY),
@@ -246,7 +261,7 @@ Java_com_yy_medtrace_data_RegistrationCodeNative_getDeviceHash(
     }
     hex[32] = '\0';
     
-    (*env)->ReleaseStringUTFChars(env, android_id, device_id);
+    (*env)->ReleaseStringUTFChars(env, android_id, device_id_raw);
     
     return (*env)->NewStringUTF(env, hex);
 }
