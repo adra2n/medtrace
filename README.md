@@ -23,7 +23,7 @@
 
 - 语言：Kotlin
 - UI：Jetpack Compose (Material 3)，Compose BOM 2024.04.01
-- 架构：手动管理（各 screen 直接持有 `AppDatabase` + `NavController`，无 Hilt / ViewModel 框架）
+- 架构：MVVM（Hilt 依赖注入 + ViewModel + Repository 模式）
 - 持久化：Room + SQLite（SQLCipher 非默认；加密层在备份导出与偏好设置）
 - 安全：`androidx.biometric` 1.2.0-alpha05、`androidx.security:security-crypto` 1.1.0-alpha06（MasterKey + Tink）
 - 异步：Kotlin 协程
@@ -62,7 +62,7 @@ adb -s <device-id> install -r -g app/build/outputs/apk/release/app-release.apk
 
 ## 下载
 
-签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.6.0**（`MedTrace/MedTrace-v3.6.0.apk`，见发布仓库 [adra2n/product](https://github.com/adra2n/product)）。
+签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.8.1**（`v3.8.1.apk`）。
 
 安装到已连接设备：
 
@@ -79,21 +79,34 @@ app/src/main/java/com/yy/medtrace/
 │   ├── dao/          Room DAO
 │   ├── backup/       BackupRepository / CryptoUtil / GistSync / BackupData
 │   ├── security/     PinManager / SecurePrefs / BiometricHelper
-│   ├── settings/     SyncSettingsStore / SecuritySettingsStore / LlmSettingsStore
+│   ├── settings/     PremiumManager / SyncSettingsStore / SecuritySettingsStore / LlmSettingsStore
+│   ├── repository/   RecordRepository / MemberRepository / TodoRepository
 │   ├── llm/          LlmApi / AnalysisUseCase（AI 病历分析）
 │   ├── converter/    Room 类型转换器（LocalDate / LocalDateTime / 列表等）
 │   └── AppDatabase.kt
+├── viewmodel/        9个ViewModel（@HiltViewModel + @Inject）
 ├── ui/
-│   ├── screens/      Home / Family / MedicalRecord / AddMedicalRecord / Settings / Lock / About / Splash
-│   ├── components/  复用 Compose 组件
-│   ├── theme/       主题与配色
-│   └── state/       界面状态
-├── worker/          后台任务（如通知）
-├── MainActivity.kt  导航与中央应用锁门控
-└── ChiyaoleApplication.kt
+│   ├── screens/      Home / Family / MedicalRecord / AddMedicalRecord / Settings / Lock / Trends / Profile / Reminders / Premium
+│   ├── components/   复用 Compose 组件（MemberAvatar / TrendChart / SectionCard ...）
+│   ├── theme/        主题与配色（Color / Theme / Design）
+│   └── state/        界面状态（SelectedMemberHolder）
+├── di/               Hilt 依赖注入（AppModule）
+├── reminder/         提醒通知（ReminderReceiver / ReminderHelper）
+├── navigation/       导航路由（Screen / NavGraph）
+├── MainActivity.kt   导航与中央应用锁门控
+└── MedTraceApplication.kt
 ```
 
 ## 版本里程碑
+
+- **v3.8.1**（versionCode 30，2026-07-29）
+  - 安全修复：移除注册码/设备ID日志泄露、友盟SDK日志改为DEBUG控制、PIN暴力破解保护（5次错误锁定30秒）。
+  - 架构重构：9个ViewModel全部迁移到@HiltViewModel+@Inject，删除9个手写Factory，9个Screen全部使用hiltViewModel()。
+  - 数据修复：BackupRepository纳入HealthTodo、insertAll改为REPLACE策略、toggleTodoDone原子操作。
+  - 性能优化：MemberEditDialog Bitmap解码移到IO线程、MemberAvatar添加inSampleSize降采样。
+  - UI优化：颜色集中到Color.kt（5个语义色）、触摸目标修正至≥48dp、179条字符串提取到strings.xml。
+  - 备份兼容：BackupData添加schemaVersion、CryptoUtil加密输出版本标记。
+  - 修复VIP状态显示Bug（ProfileViewModel注入PremiumManager）。
 
 - **v3.7.0**（versionCode 28，2026-07-25）
   - UI 大改版：医疗记录页面重新设计（统计概览、分层卡片、成员选择优化）。
