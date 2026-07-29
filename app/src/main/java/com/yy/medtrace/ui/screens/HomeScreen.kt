@@ -308,50 +308,79 @@ fun HomeScreen(
             }
 
             item {
-                SectionTitle("快捷功能")
-                Spacer(Modifier.height(12.dp))
+                // 欢迎标题
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    FunctionTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.CameraAlt,
-                        title = "就诊记录",
-                        desc = "AI扫描或手动录入",
-                        color = Color(0xFF2196F3),
-                        onClick = { navController.navigate("add_record") }
+                    Text(
+                        text = "快捷功能",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold
                     )
-                    FunctionTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.MedicalInformation,
-                        title = "病历档案",
-                        desc = "病史与用药归档",
-                        color = Color(0xFF4CAF50),
-                        onClick = { navController.navigate("medical_records") }
-                    )
+                    TextButton(onClick = { navController.navigate(Screen.Settings.route) }) {
+                        Text(
+                            "查看全部",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Primary
+                        )
+                    }
                 }
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Spacer(Modifier.height(4.dp))
+                
+                // 2x2 功能网格
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    FunctionTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.InsertChart,
-                        title = "数据统计",
-                        desc = "长期指标追踪",
-                        color = Color(0xFFFF9800),
-                        onClick = { navController.navigate("trends") }
-                    )
-                    FunctionTile(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Default.Settings,
-                        title = "功能设置",
-                        desc = "隐私、备份与偏好",
-                        color = Color(0xFF9E9E9E),
-                        onClick = { navController.navigate(Screen.Settings.route) }
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        FunctionTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.CameraAlt,
+                            title = "就诊记录",
+                            desc = "AI扫描或手动录入",
+                            color = Color(0xFF2196F3),
+                            onClick = { navController.navigate("add_record") }
+                        )
+                        FunctionTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.MedicalInformation,
+                            title = "病历档案",
+                            desc = "病史与用药归档",
+                            color = Color(0xFF4CAF50),
+                            onClick = { navController.navigate("medical_records") }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        FunctionTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.InsertChart,
+                            title = "数据统计",
+                            desc = "长期指标追踪",
+                            color = Color(0xFFFF9800),
+                            onClick = { navController.navigate("trends") }
+                        )
+                        FunctionTile(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.Settings,
+                            title = "功能设置",
+                            desc = "隐私、备份与偏好",
+                            color = Color(0xFF9E9E9E),
+                            onClick = { navController.navigate(Screen.Settings.route) }
+                        )
+                    }
                 }
             }
         }
@@ -996,7 +1025,7 @@ private fun FunctionTile(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier.clickable { onClick() }.height(88.dp),
+        modifier = modifier.clickable { onClick() }.height(100.dp),
         shape = AppShapes.large,
         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
@@ -1004,7 +1033,7 @@ private fun FunctionTile(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1012,17 +1041,17 @@ private fun FunctionTile(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(34.dp)
+                        .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(color.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, title, tint = color, modifier = Modifier.size(18.dp))
+                    Icon(icon, title, tint = color, modifier = Modifier.size(20.dp))
                 }
                 Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             }
             Spacer(Modifier.weight(1f))
-            Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.caption)
+            Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
