@@ -36,6 +36,15 @@ android {
         // 启用 R8 完全模式
         ndk {
             debugSymbolLevel = "FULL"
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+        
+        // NDK CMake
+        externalNativeBuild {
+            cmake {
+                cppFlags += ""
+                arguments += "-DANDROID_STL=c++_shared"
+            }
         }
     }
 
@@ -124,6 +133,14 @@ android {
                 "META-INF/ASL2.0",
                 "META-INF/*.kotlin_module"
             )
+        }
+    }
+    
+    // NDK CMake
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
         }
     }
 }

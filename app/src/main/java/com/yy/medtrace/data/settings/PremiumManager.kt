@@ -2,6 +2,7 @@ package com.yy.medtrace.data.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.yy.medtrace.data.RegistrationCodeNative
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,7 +14,7 @@ import javax.inject.Singleton
 @Singleton
 class PremiumManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val registrationCodeManager: RegistrationCodeManager
+    private val registrationCodeNative: RegistrationCodeNative
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences(
         "premium_prefs", Context.MODE_PRIVATE
@@ -30,7 +31,7 @@ class PremiumManager @Inject constructor(
      * 每次都会通过注册码重新验证
      */
     fun isPremiumActive(): Boolean {
-        return registrationCodeManager.isVipActive()
+        return registrationCodeNative.isVipActive()
     }
 
     /**
@@ -38,9 +39,9 @@ class PremiumManager @Inject constructor(
      * @return true 如果注册码有效
      */
     fun activateVip(code: String): Boolean {
-        val isValid = registrationCodeManager.verifyCode(code)
+        val isValid = registrationCodeNative.verifyCode(code)
         if (isValid) {
-            registrationCodeManager.saveCode(code)
+            registrationCodeNative.saveCode(code)
         }
         return isValid
     }
@@ -49,14 +50,14 @@ class PremiumManager @Inject constructor(
      * 获取设备ID（供用户联系开发者时提供）
      */
     fun getDeviceId(): String {
-        return registrationCodeManager.getDeviceId()
+        return registrationCodeNative.getDeviceId()
     }
 
     /**
      * 清除VIP状态（用于测试）
      */
     fun clearVip() {
-        registrationCodeManager.clearCode()
+        registrationCodeNative.clearCode()
     }
 
     /**

@@ -44,3 +44,6 @@ google-services.json
 # Gradle wrapper
 !gradle/wrapper/gradle-wrapper.jar
 ui.md
+
+# 密钥文件（不要提交到git）
+scripts/.secret_key
