@@ -54,7 +54,6 @@ import com.yy.medtrace.ui.screens.RemindersScreen
 import com.yy.medtrace.ui.screens.ProfileScreen
 import com.yy.medtrace.ui.screens.TrendsScreen
 import com.yy.medtrace.ui.screens.PremiumScreen
-import com.yy.medtrace.payment.PaymentManager
 import com.yy.medtrace.data.settings.PremiumManager
 import com.yy.medtrace.ui.theme.Background
 import com.yy.medtrace.ui.theme.ChiyaoleTheme
@@ -90,9 +89,6 @@ class MainActivity : FragmentActivity() {
     
     @Inject
     lateinit var premiumManager: PremiumManager
-    
-    @Inject
-    lateinit var paymentManager: PaymentManager
     
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -140,7 +136,6 @@ class MainActivity : FragmentActivity() {
                         recordRepository = recordRepository,
                         todoRepository = todoRepository,
                         premiumManager = premiumManager,
-                        paymentManager = paymentManager,
                         initialRoute = navigateTo
                     )
                 }
@@ -225,7 +220,6 @@ fun MainScreen(
     recordRepository: RecordRepository,
     todoRepository: TodoRepository,
     premiumManager: com.yy.medtrace.data.settings.PremiumManager,
-    paymentManager: com.yy.medtrace.payment.PaymentManager,
     initialRoute: String? = null
 ) {
     val navController = rememberNavController()
