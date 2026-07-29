@@ -43,6 +43,7 @@ import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.dashedBorder
+import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.components.MemberSelector
 import com.yy.medtrace.ui.components.SectionCard
@@ -235,12 +236,52 @@ fun AddMedicalRecordScreen(
                 )
             }
 
-            // AI 智能识别区
-            val isPremiumActive = premiumManager?.isPremiumActive() ?: false
-            
-            if (isPremiumActive) {
-                // VIP用户：显示完整功能（与基本信息卡片样式一致）
-                SectionCard(title = "AI 智能识别") {
+            // AI 智能识别区（需要配置 AI 才能使用）
+            SectionCard(title = "AI 智能识别") {
+                // 检查是否已配置 AI
+                val llmSettings = remember { com.yy.medtrace.data.settings.LlmSettingsStore(context) }
+                var isAiConfigured by remember { mutableStateOf(false) }
+                
+                LaunchedEffect(Unit) {
+                    isAiConfigured = runCatching {
+                        llmSettings.getApiKey()?.isNotBlank() == true
+                    }.getOrDefault(false)
+                }
+                
+                if (!isAiConfigured) {
+                    // 未配置 AI：显示配置提示
+                    Surface(
+                        shape = AppShapes.small,
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "💡",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "需要配置 AI 才能使用此功能",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    "请在设置 → AI 配置中添加 API Key",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            TextButton(onClick = { navController.navigate(Screen.Settings.route) }) {
+                                Text("去设置")
+                            }
+                        }
+                    }
+                } else {
+                    // 已配置 AI：显示完整功能
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = { launchCamera() },
@@ -308,44 +349,6 @@ fun AddMedicalRecordScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
-                    }
-                }
-            } else {
-                // 非VIP用户：显示锁定状态（与基本信息卡片样式一致）
-                SectionCard(title = "AI 智能识别") {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Default.Lock,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                )
-                            }
-                        }
-                        Text(
-                            "解锁后可使用：拍照识别、文本分析、自动提取",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Button(
-                            onClick = { navController.navigate("premium") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("立即升级 ¥9.90 解锁")
                         }
                     }
                 }
