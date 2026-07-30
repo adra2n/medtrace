@@ -14,6 +14,7 @@ import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.HealthTodo
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlinx.coroutines.flow.firstOrNull
 
 object ReminderHelper {
     private const val CHANNEL_ID = "health_todo_reminder"
@@ -142,10 +143,14 @@ object ReminderHelper {
         val pending = database.healthTodoDao().getPendingByDate(today)
             .filter { it.notifiedDate != todayStr }
         if (pending.isEmpty()) return
+        // 读取用户通知设置
+        val userSettings = database.userSettingsDao().getUserSettings().firstOrNull()
+        val enableSound = userSettings?.enableNotificationSound ?: true
+        val enableVibration = userSettings?.enableVibration ?: true
         // 按内容关键词区分类型，用于通知文案
         val medCount = pending.count { it.content.contains(Regex("服药|用药|吃|药")) }
         val checkupCount = pending.count { it.content.contains(Regex("复查|体检|检查|复诊")) }
-        showNotification(context, pending.size, medCount, checkupCount)
+        showNotification(context, pending.size, medCount, checkupCount, enableSound, enableVibration)
         database.healthTodoDao().markNotified(pending.map { it.id }, todayStr)
     }
 
@@ -153,7 +158,9 @@ object ReminderHelper {
         context: Context,
         count: Int,
         medCount: Int = 0,
-        checkupCount: Int = 0
+        checkupCount: Int = 0,
+        enableSound: Boolean = true,
+        enableVibration: Boolean = true
     ) {
         ensureChannel(context)
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -177,13 +184,17 @@ object ReminderHelper {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
+            .apply {
+                if (!enableSound) setSilent(true)
+                if (!enableVibration) setVibrate(null)
+            }
             .build()
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, notification)
     }
 
     // 显示单个待办的精确时间提醒通知
-    fun showTodoNotification(context: Context, todo: HealthTodo) {
+    fun showTodoNotification(context: Context, todo: HealthTodo, enableSound: Boolean = true, enableVibration: Boolean = true) {
         ensureChannel(context)
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -211,6 +222,10 @@ object ReminderHelper {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
+            .apply {
+                if (!enableSound) setSilent(true)
+                if (!enableVibration) setVibrate(null)
+            }
             .build()
         
         // 使用 todo.id 作为 notificationId，确保每个待办有独立通知

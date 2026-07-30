@@ -93,6 +93,7 @@ fun AddMedicalRecordScreen(
     var analysisJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var analysisProgress by remember { mutableStateOf("") }
     var showConsent by remember { mutableStateOf(false) }
+    var attachmentPath by remember { mutableStateOf("") }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -119,6 +120,7 @@ fun AddMedicalRecordScreen(
                 notes = r.notes
                 onsetTime = r.onsetTime
                 existingMetricsJson = r.metricsJson
+                attachmentPath = r.attachmentPath
             }
         }
     }
@@ -148,10 +150,25 @@ fun AddMedicalRecordScreen(
         }
     }
 
+    fun saveAttachment(uri: Uri): String {
+        val dir = File(context.filesDir, "attachments")
+        if (!dir.exists()) dir.mkdirs()
+        val file = File(dir, "record_${System.currentTimeMillis()}.jpg")
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            file.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        return file.absolutePath
+    }
+
     fun handleImage(uri: Uri) {
         scope.launch(Dispatchers.IO) {
             uriToBitmap(context, uri)?.let { bmp ->
                 images = images + bmp
+                if (attachmentPath.isBlank()) {
+                    attachmentPath = saveAttachment(uri)
+                }
                 showConsent = true
             }
         }
@@ -265,7 +282,8 @@ fun AddMedicalRecordScreen(
                                 frequency = frequency,
                                 dosage = dosage,
                                 notes = notes,
-                                metricsJson = metricsJson
+                                metricsJson = metricsJson,
+                                attachmentPath = attachmentPath
                             )
 
                             scope.launch {

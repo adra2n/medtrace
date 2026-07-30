@@ -19,7 +19,9 @@ data class MedicalRecord(
     val dosage: String,       // 用药剂量，如"每次一片"
     val notes: String = "",
     @ColumnInfo(name = "metrics_json")
-    val metricsJson: String = ""  // AI 解析的检查指标 JSON（Metric 列表），用于健康趋势
+    val metricsJson: String = "",  // AI 解析的检查指标 JSON（Metric 列表），用于健康趋势
+    @ColumnInfo(name = "attachmentPath")
+    val attachmentPath: String = ""  // 附件图片本地路径
 )
 
 data class CountResult(

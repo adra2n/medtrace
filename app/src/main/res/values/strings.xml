@@ -306,6 +306,19 @@
     <string name="settings_error_pin_mismatch">两次输入不一致</string>
     <string name="settings_btn_next_step">下一步</string>
     <string name="settings_btn_confirm">确定</string>
+    <string name="settings_section_notification">通知设置</string>
+    <string name="settings_label_notification_sound">提醒声音</string>
+    <string name="settings_label_notification_vibration">提醒震动</string>
+    <string name="settings_btn_export_excel">导出 Excel</string>
+    <string name="settings_chooser_export_excel">导出就诊记录 Excel</string>
+    <string name="settings_toast_excel_export_failed">Excel 导出失败：%1$s</string>
+    <string name="settings_sort_by_time">按时间</string>
+    <string name="settings_sort_by_hospital">按医院</string>
+    <string name="settings_sort_by_diagnosis">按诊断</string>
+    <string name="trends_time_range_30days">30天</string>
+    <string name="trends_time_range_90days">90天</string>
+    <string name="trends_time_range_1year">1年</string>
+    <string name="trends_time_range_all">全部</string>
 
     <!-- ProfileScreen -->
     <string name="profile_title">我的</string>

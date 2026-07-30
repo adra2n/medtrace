@@ -38,4 +38,30 @@ class BackupRepository(private val database: AppDatabase) {
             data.settings?.let { database.userSettingsDao().insertOrUpdate(it) }
         }
     }
+
+    suspend fun exportExcel(): String = withContext(Dispatchers.IO) {
+        val records = database.medicalRecordDao().getAllRecordsList()
+
+        buildString {
+            // BOM for Excel UTF-8 recognition
+            append('\uFEFF')
+            // Header row
+            appendLine("\u5c31\u8bca\u7c7b\u578b,\u5c31\u8bca\u533b\u9662,\u5c31\u8bca\u65f6\u95f4,\u5bb6\u5ead\u6210\u5458,\u8bca\u65ad,\u5f00\u5177\u836f\u54c1,\u5907\u6ce8")
+            for (record in records) {
+                val medNames = record.medItems.joinToString("+") { it.name }
+                val line = listOf(
+                    record.diagnosis,
+                    record.hospital,
+                    record.onsetTime?.toString()?.replace("T", " ") ?: "",
+                    record.patientName,
+                    record.diagnosis,
+                    medNames,
+                    record.notes
+                ).joinToString(",") { field ->
+                    "\"${field.replace("\"", "\"\"")}\""
+                }
+                appendLine(line)
+            }
+        }
+    }
 }

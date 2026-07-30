@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -45,6 +46,16 @@ fun TrendsScreen(
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
     val dateFormatter = DateTimeFormatter.ofPattern("MM-dd HH:mm")
     val scope = rememberCoroutineScope()
+    var timeRange by remember { mutableIntStateOf(365) }
+
+    val filteredRecords = remember(records, timeRange) {
+        if (timeRange == 0) records
+        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            records.filter {
+                it.onsetTime?.isAfter(LocalDateTime.now().minusDays(timeRange.toLong())) ?: false
+            }
+        } else records
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadMembers()
@@ -87,6 +98,26 @@ fun TrendsScreen(
                 }
             }
 
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        30 to stringResource(R.string.trends_time_range_30days),
+                        90 to stringResource(R.string.trends_time_range_90days),
+                        365 to stringResource(R.string.trends_time_range_1year),
+                        0 to stringResource(R.string.trends_time_range_all)
+                    ).forEach { (days, label) ->
+                        FilterChip(
+                            selected = timeRange == days,
+                            onClick = { timeRange = days },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+            }
+
             error?.let { msg ->
                 item {
                     Card(
@@ -114,7 +145,7 @@ fun TrendsScreen(
             }
 
             item {
-                val series = remember(records) { buildSeries(records) }
+                val series = remember(filteredRecords) { buildSeries(filteredRecords) }
                 TrendSection(
                     series = series,
                     modifier = Modifier.fillMaxWidth()
@@ -144,7 +175,7 @@ fun TrendsScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "${records.size}",
+                                    text = "${filteredRecords.size}",
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -163,7 +194,7 @@ fun TrendsScreen(
                             )
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 val recentCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                    records.count {
+                                    filteredRecords.count {
                                         it.onsetTime?.isAfter(LocalDateTime.now().minusDays(30)) ?: false
                                     }
                                 } else 0
@@ -187,7 +218,7 @@ fun TrendsScreen(
                             )
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "${records.sumOf { it.medItems.size }}",
+                                    text = "${filteredRecords.sumOf { it.medItems.size }}",
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
@@ -211,7 +242,7 @@ fun TrendsScreen(
                 )
             }
 
-            if (records.isEmpty()) {
+            if (filteredRecords.isEmpty()) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -234,7 +265,7 @@ fun TrendsScreen(
                     }
                 }
             } else {
-                items(records.take(10), key = { it.id }) { record ->
+                items(filteredRecords.take(10), key = { it.id }) { record ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = AppShapes.large,

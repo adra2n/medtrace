@@ -56,6 +56,7 @@ fun MedicalRecordScreen(
     var datePickerTarget by remember { mutableStateOf(DateTarget.From) }
     var showFilter by remember { mutableStateOf(false) }
     var showMemberMenu by remember { mutableStateOf(false) }
+    var sortOrder by remember { mutableStateOf("time") }
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
     
     // 分页状态
@@ -340,6 +341,29 @@ fun MedicalRecordScreen(
                 }
             }
 
+            // 排序选项
+            if (uiState.records.isNotEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val sortOptions = listOf(
+                            "time" to stringResource(R.string.settings_sort_by_time),
+                            "hospital" to stringResource(R.string.settings_sort_by_hospital),
+                            "diagnosis" to stringResource(R.string.settings_sort_by_diagnosis)
+                        )
+                        sortOptions.forEach { (key, label) ->
+                            FilterChip(
+                                selected = sortOrder == key,
+                                onClick = { sortOrder = key },
+                                label = { Text(label) }
+                            )
+                        }
+                    }
+                }
+            }
+
             // 记录列表
             if (uiState.error != null) {
                 item {
@@ -366,7 +390,12 @@ fun MedicalRecordScreen(
                     )
                 }
             } else {
-                items(uiState.records) { record ->
+                val sortedRecords = when (sortOrder) {
+                    "hospital" -> uiState.records.sortedBy { it.hospital.ifBlank { "zzz" } }
+                    "diagnosis" -> uiState.records.sortedBy { it.diagnosis.ifBlank { "zzz" } }
+                    else -> uiState.records.sortedByDescending { it.onsetTime }
+                }
+                items(sortedRecords) { record ->
                     MedicalRecordCard(
                         record = record,
                         dateFormatter = dateFormatter,

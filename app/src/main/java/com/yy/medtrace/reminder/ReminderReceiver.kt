@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class ReminderReceiver : BroadcastReceiver() {
@@ -36,7 +37,10 @@ class ReminderReceiver : BroadcastReceiver() {
                         // 查询待办详情并显示通知
                         val todo = database.healthTodoDao().getById(todoId)
                         if (todo != null && !todo.done) {
-                            ReminderHelper.showTodoNotification(context, todo)
+                            val userSettings = database.userSettingsDao().getUserSettings().firstOrNull()
+                            val enableSound = userSettings?.enableNotificationSound ?: true
+                            val enableVibration = userSettings?.enableVibration ?: true
+                            ReminderHelper.showTodoNotification(context, todo, enableSound, enableVibration)
                         }
                     }
                     

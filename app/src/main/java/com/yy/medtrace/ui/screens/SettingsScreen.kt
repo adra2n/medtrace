@@ -105,8 +105,11 @@ fun SettingsScreen(
     var pinSet by remember { mutableStateOf(false) }
     var showPinDialog by remember { mutableStateOf(false) }
     var darkMode by remember { mutableStateOf(false) }
+    var notificationSound by remember { mutableStateOf(true) }
+    var notificationVibration by remember { mutableStateOf(true) }
 
     var appearanceExpanded by remember { mutableStateOf(true) }
+    var notificationExpanded by remember { mutableStateOf(false) }
     var securityExpanded by remember { mutableStateOf(false) }
     var backupExpanded by remember { mutableStateOf(false) }
     var aiExpanded by remember { mutableStateOf(false) }
@@ -135,7 +138,10 @@ fun SettingsScreen(
             applySecureScreenFlag(secureScreen)
             biometricAvailable = activity?.let { BiometricHelper.canAuthenticate(it) } ?: false
             pinSet = activity?.let { PinManager.isPinSet(it) } ?: false
-            darkMode = viewModel.database.userSettingsDao().getUserSettings().first()?.darkMode ?: false
+            val userSettings = viewModel.database.userSettingsDao().getUserSettings().first()
+            darkMode = userSettings?.darkMode ?: false
+            notificationSound = userSettings?.enableNotificationSound ?: true
+            notificationVibration = userSettings?.enableVibration ?: true
         }
     }
 
@@ -159,7 +165,13 @@ fun SettingsScreen(
             securitySettings.setAutoLockSeconds(autoLockSeconds)
             securitySettings.setSecureScreen(secureScreen)
             applySecureScreenFlag(secureScreen)
-            viewModel.database.userSettingsDao().insertOrUpdate((settings ?: UserSettings()).copy(darkMode = darkMode))
+            viewModel.database.userSettingsDao().insertOrUpdate(
+                (settings ?: UserSettings()).copy(
+                    darkMode = darkMode,
+                    enableNotificationSound = notificationSound,
+                    enableVibration = notificationVibration
+                )
+            )
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, context.getString(R.string.settings_toast_saved), Toast.LENGTH_SHORT).show()
                 backToPrevious()
@@ -433,6 +445,79 @@ fun SettingsScreen(
                             )
                         }
                     }
+                }
+            }
+
+            // 🔔 通知设置
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { notificationExpanded = !notificationExpanded }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            stringResource(R.string.settings_section_notification),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            if (notificationExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    AnimatedVisibility(visible = notificationExpanded) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            SettingsRow(
+                                label = stringResource(R.string.settings_label_notification_sound),
+                                trailing = {
+                                    Switch(
+                                        checked = notificationSound,
+                                        onCheckedChange = { isChecked ->
+                                            notificationSound = isChecked
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
+                            )
+                            SettingsRow(
+                                label = stringResource(R.string.settings_label_notification_vibration),
+                                trailing = {
+                                    Switch(
+                                        checked = notificationVibration,
+                                        onCheckedChange = { isChecked ->
+                                            notificationVibration = isChecked
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
                 }
             }
 
@@ -720,6 +805,38 @@ fun SettingsScreen(
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 ) { Text(stringResource(R.string.settings_btn_export_csv)) }
+                                OutlinedButton(
+                                    onClick = {
+                                        scope.launch {
+                                            try {
+                                                val excelContent = backupRepository.exportExcel()
+                                                withContext(Dispatchers.Main) {
+                                                    val time = java.time.LocalDateTime.now()
+                                                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                                                    val fileName = "medtrace_export_$time.xls"
+                                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                                        type = "application/vnd.ms-excel"
+                                                        putExtra(Intent.EXTRA_STREAM, java.io.File.createTempFile("medtrace_", ".xls", context.cacheDir).apply {
+                                                            writeText(excelContent)
+                                                        }.let { androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", it) })
+                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                    }
+                                                    context.startActivity(
+                                                        Intent.createChooser(
+                                                            intent,
+                                                            context.getString(R.string.settings_chooser_export_excel)
+                                                        )
+                                                    )
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    Toast.makeText(context, context.getString(R.string.settings_toast_excel_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text(stringResource(R.string.settings_btn_export_excel)) }
                             }
                         } else {
                             Column(
