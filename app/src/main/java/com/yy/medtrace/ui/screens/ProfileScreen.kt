@@ -29,7 +29,6 @@ import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.theme.GradientTopBar
-import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.memberCardColors
@@ -106,14 +105,14 @@ fun ProfileScreen(
                                 modifier = Modifier
                                     .size(56.dp)
                                     .clip(CircleShape)
-                                    .background(Primary.copy(alpha = 0.12f)),
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     Icons.Default.Person,
                                     contentDescription = null,
                                     modifier = Modifier.size(28.dp),
-                                    tint = Primary
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -143,7 +142,7 @@ fun ProfileScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = Primary),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                     onClick = { navController.navigate("premium") }
                 ) {
@@ -156,14 +155,14 @@ fun ProfileScreen(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = Color.White.copy(alpha = 0.2f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
                             modifier = Modifier.size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     Icons.Default.Star,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -172,19 +171,19 @@ fun ProfileScreen(
                             Text(
                                 stringResource(R.string.profile_premium_title),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 stringResource(R.string.profile_premium_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.8f)
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                             )
                         }
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.8f)
+                            tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                         )
                     }
                 }
@@ -324,7 +323,7 @@ private fun StatItem(count: String, label: String) {
             count,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = Primary
+            color = MaterialTheme.colorScheme.primary
         )
         Text(
             label,
@@ -353,13 +352,13 @@ private fun ProfileMenuItem(
             modifier = Modifier
                 .size(40.dp)
                 .clip(MaterialTheme.shapes.medium)
-                .background(Primary.copy(alpha = 0.10f)),
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 icon,
                 contentDescription = null,
-                tint = Primary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -391,7 +390,7 @@ private fun HelpDialog(onDismiss: () -> Unit) {
             Icon(
                 Icons.Default.Help,
                 contentDescription = null,
-                tint = Primary
+                tint = MaterialTheme.colorScheme.primary
             )
         },
         title = {
@@ -429,7 +428,7 @@ private fun HelpDialog(onDismiss: () -> Unit) {
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.profile_btn_got_it), color = Primary)
+                Text(stringResource(R.string.profile_btn_got_it), color = MaterialTheme.colorScheme.primary)
             }
         }
     )

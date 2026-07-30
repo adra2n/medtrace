@@ -13,10 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.ui.theme.PrimaryGradient
@@ -64,20 +62,20 @@ fun OnboardingScreen(navController: NavController) {
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = { finish() }) { Text("跳过", color = Color.White) }
+                TextButton(onClick = { finish() }) { Text("跳过", color = MaterialTheme.colorScheme.onPrimary) }
             }
 
             Spacer(Modifier.weight(1f))
 
             val current = pages[page]
             Icon(imageVector = current.icon, contentDescription = null,
-                tint = Color.White, modifier = Modifier.size(96.dp))
+                tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(96.dp))
             Spacer(Modifier.height(24.dp))
-            Text(text = current.title, color = Color.White, fontSize = 26.sp,
-                fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text(text = current.title, color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
             Spacer(Modifier.height(12.dp))
-            Text(text = current.desc, color = Color.White.copy(alpha = 0.9f),
-                fontSize = 16.sp, textAlign = TextAlign.Center,
+            Text(text = current.desc, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 32.dp))
 
             Spacer(Modifier.weight(1f))
@@ -86,7 +84,7 @@ fun OnboardingScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 pages.indices.forEach { i ->
                     Box(modifier = Modifier.size(if (i == page) 24.dp else 8.dp, 8.dp)
-                        .background(if (i == page) Color.White else Color.White.copy(alpha = 0.4f), CircleShape))
+                        .background(if (i == page) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f), CircleShape))
                 }
             }
 

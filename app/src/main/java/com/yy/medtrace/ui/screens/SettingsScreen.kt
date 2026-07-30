@@ -52,7 +52,6 @@ import com.yy.medtrace.data.security.PinManager
 import androidx.fragment.app.FragmentActivity
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
-import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import kotlinx.coroutines.launch
@@ -350,8 +349,8 @@ fun SettingsScreen(
                         onClick = { saveAll() },
                         shape = AppShapes.medium,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Primary
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp)
                     ) {
@@ -392,10 +391,7 @@ fun SettingsScreen(
                                         }
                                     },
                                     colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = Primary,
-                                        uncheckedThumbColor = Color.White,
-                                        uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary
                                     )
                                 )
                             }
@@ -441,10 +437,7 @@ fun SettingsScreen(
                                         }
                                     },
                                     colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = Primary,
-                                        uncheckedThumbColor = Color.White,
-                                        uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary
                                     )
                                 )
                             }
@@ -484,10 +477,7 @@ fun SettingsScreen(
                                         secureScreen = checked
                                     },
                                     colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = Primary,
-                                        uncheckedThumbColor = Color.White,
-                                        uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary
                                     )
                                 )
                             }

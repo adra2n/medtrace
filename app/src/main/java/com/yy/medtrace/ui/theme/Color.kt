@@ -1,5 +1,6 @@
 package com.yy.medtrace.ui.theme
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 // 主色调：青绿色（统一设计风格）
@@ -52,30 +53,65 @@ val SurfaceDark = Color(0xFF161B22)     // 深色模式表面
 val SurfaceVariantDark = Color(0xFF21262D) // 深色模式变体表面
 val OnSurfaceDark = Color(0xFFC9D1D9)   // 深色模式文本
 
+// 家庭成员卡片配色
+data class MemberCardColorSet(
+    val bg: Color,
+    val content: Color
+)
+
 // 家庭成员卡片配色映射
-object MemberColors {
-    val SelfBg = Color(0xFFE8F8F8)
-    val SelfContent = Color(0xFF2ECDC6)
-    val ChildBg = Color(0xFFD6F0D8)
-    val ChildContent = Color(0xFF2E7D32)
-    val FemaleBg = Color(0xFFF8DCEA)
-    val FemaleContent = Color(0xFFB03A6E)
-    val ElderMaleBg = Color(0xFFE2E2E2)
-    val ElderMaleContent = Color(0xFF444444)
+@Composable
+fun memberCardColorSets(): Map<String, MemberCardColorSet> {
+    val isDark = LocalIsDark.current
+    return mapOf(
+        "self" to MemberCardColorSet(
+            bg = if (isDark) Primary.copy(alpha = 0.15f) else Color(0xFFE8F8F8),
+            content = Color(0xFF2ECDC6)
+        ),
+        "child" to MemberCardColorSet(
+            bg = if (isDark) Healthy.copy(alpha = 0.15f) else Color(0xFFD6F0D8),
+            content = Color(0xFF2E7D32)
+        ),
+        "female" to MemberCardColorSet(
+            bg = if (isDark) Color(0xFFB03A6E).copy(alpha = 0.15f) else Color(0xFFF8DCEA),
+            content = Color(0xFFB03A6E)
+        ),
+        "elderMale" to MemberCardColorSet(
+            bg = if (isDark) Color(0xFF9E9E9E).copy(alpha = 0.15f) else Color(0xFFE2E2E2),
+            content = Color(0xFF444444)
+        )
+    )
 }
 
 // 健康标签颜色
-object HealthTagColors {
-    val AllergyBg = Color(0xFFFFEBEE)
-    val AllergyContent = Color(0xFFD32F2F)
-    val ChronicBg = Color(0xFFFFF3E0)
-    val ChronicContent = Color(0xFFF57C00)
-    val MedicationBg = Color(0xFFE8F8F8)
-    val MedicationContent = Color(0xFF2ECDC6)
-    val DefaultBg = Color(0xFFF5F5F5)
-    val DefaultContent = Color(0xFF757575)
+data class HealthTagColorSet(
+    val bg: Color,
+    val content: Color
+)
+
+@Composable
+fun healthTagColorSets(): Map<String, HealthTagColorSet> {
+    val isDark = LocalIsDark.current
+    return mapOf(
+        "allergy" to HealthTagColorSet(
+            bg = if (isDark) Color(0xFFD32F2F).copy(alpha = 0.15f) else Color(0xFFFFEBEE),
+            content = Color(0xFFD32F2F)
+        ),
+        "chronic" to HealthTagColorSet(
+            bg = if (isDark) Color(0xFFF57C00).copy(alpha = 0.15f) else Color(0xFFFFF3E0),
+            content = Color(0xFFF57C00)
+        ),
+        "medication" to HealthTagColorSet(
+            bg = if (isDark) Primary.copy(alpha = 0.15f) else Color(0xFFE8F8F8),
+            content = Color(0xFF2ECDC6)
+        ),
+        "default" to HealthTagColorSet(
+            bg = if (isDark) Color(0xFF757575).copy(alpha = 0.15f) else Color(0xFFF5F5F5),
+            content = Color(0xFF757575)
+        )
+    )
 }
 
 // 语义扩展
 val androidx.compose.material3.ColorScheme.caption
-    get() = TextDisabled
+    @Composable get() = if (LocalIsDark.current) Color(0xFF8B949E) else TextDisabled

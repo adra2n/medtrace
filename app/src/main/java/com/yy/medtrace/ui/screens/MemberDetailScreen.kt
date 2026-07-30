@@ -34,7 +34,6 @@ import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
-import com.yy.medtrace.ui.theme.memberCardColors
 import com.yy.medtrace.viewmodel.MemberDetailViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
@@ -188,14 +187,14 @@ fun MemberDetailScreen(
                         items(metricPoints, key = { "${it.name}-${it.time}" }) { point ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = AppShapes.medium,
+                                shape = AppShapes.large,
                                 colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
                                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
                             ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(14.dp),
+                                        .padding(16.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {

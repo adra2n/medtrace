@@ -20,6 +20,7 @@ import com.yy.medtrace.data.llm.Metric
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.theme.AppShapes
+import com.yy.medtrace.ui.theme.SoftElevation
 import kotlinx.serialization.json.Json
 
 private fun parseMetrics(records: List<MedicalRecord>): List<Metric> {

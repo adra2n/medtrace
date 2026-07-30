@@ -15,13 +15,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.yy.medtrace.R
 import com.yy.medtrace.data.security.PinManager
-import com.yy.medtrace.ui.theme.Primary
 import kotlinx.coroutines.delay
 
 private const val PIN_LENGTH = 6
@@ -89,7 +86,7 @@ fun LockScreen(
             Icon(
                 imageVector = Icons.Filled.Fingerprint,
                 contentDescription = stringResource(R.string.lock_app_name),
-                tint = Primary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(64.dp)
             )
             Spacer(Modifier.height(12.dp))
@@ -105,7 +102,7 @@ fun LockScreen(
                             .size(14.dp)
                             .clip(CircleShape)
                             .background(
-                                if (filled) Primary
+                                if (filled) MaterialTheme.colorScheme.primary
                                 else if (error) MaterialTheme.colorScheme.error
                                 else MaterialTheme.colorScheme.outline
                             )
@@ -202,8 +199,7 @@ private fun Keypad(
                             }
                             else -> Text(
                                 key,
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Medium,
+                                style = MaterialTheme.typography.titleLarge,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -222,7 +218,7 @@ private fun Keypad(
                 Icon(
                     Icons.Filled.Fingerprint,
                     contentDescription = stringResource(R.string.lock_cd_biometric),
-                    tint = Primary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(40.dp)
                 )
             }

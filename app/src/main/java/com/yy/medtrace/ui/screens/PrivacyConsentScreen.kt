@@ -11,11 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.yy.medtrace.MedTraceApplication
 import com.yy.medtrace.data.settings.OnboardingStore
@@ -55,8 +53,7 @@ fun PrivacyConsentScreen(
             Spacer(Modifier.height(16.dp))
             Text(
                 text = "隐私政策与用户协议",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(16.dp))
@@ -67,23 +64,21 @@ fun PrivacyConsentScreen(
             ) {
                 Text(
                     text = "欢迎使用医迹。我们非常重视您的个人信息和隐私保护。在继续使用前，请阅读并同意以下说明：",
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 22.sp
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = "· 我们仅收集用于改进产品体验的匿名统计数据（如启动次数、页面访问），不包含您的任何健康记录。\n" +
                         "· 统计数据由第三方分析服务（友盟）处理，您可随时在系统设置中清除应用数据以停止收集。\n" +
                         "· 您的健康档案仅存储于本机设备，不会上传至任何服务器。",
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 22.sp
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "友盟隐私政策",
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Primary,
                     textDecoration = TextDecoration.Underline,
                     modifier = Modifier.clickable {
@@ -93,9 +88,8 @@ fun PrivacyConsentScreen(
                 Spacer(Modifier.height(12.dp))
                 Text(
                     text = "点击「同意」，即表示您理解并同意上述隐私处理方式。",
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 22.sp
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -105,19 +99,19 @@ fun PrivacyConsentScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary)
             ) {
-                Text("同意并继续", fontSize = 16.sp)
+                Text("同意并继续", style = MaterialTheme.typography.bodyLarge)
             }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 onClick = { onDecline() },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("不同意", fontSize = 16.sp)
+                Text("不同意", style = MaterialTheme.typography.bodyLarge)
             }
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "若选择「不同意」，应用将无法启动。",
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()

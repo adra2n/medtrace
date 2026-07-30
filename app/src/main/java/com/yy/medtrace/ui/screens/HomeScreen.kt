@@ -56,8 +56,6 @@ import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.EmptyHomeState
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
-import com.yy.medtrace.ui.theme.MemberColors
-import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
@@ -97,13 +95,13 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Primary.copy(alpha = 0.15f)),
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Filled.Favorite,
                             contentDescription = null,
-                            tint = Primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -115,13 +113,13 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
             item {
                 SectionTitle(stringResource(R.string.screen_home_my_family))
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 val familyListState = rememberLazyListState()
                 Box {
                     LazyRow(
@@ -144,7 +142,7 @@ fun HomeScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(14.dp),
+                                    .padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Row(
@@ -243,7 +241,7 @@ fun HomeScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (uiState.todos.isEmpty()) {
@@ -267,7 +265,7 @@ fun HomeScreen(
                                 Text(
                                     stringResource(R.string.screen_home_view_all, uiState.pendingCount),
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Primary,
+                                    color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { navController.navigate(Screen.Reminders.route) }
@@ -292,7 +290,7 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(14.dp),
+                                .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             uiState.recentRecords.forEach { record ->
@@ -310,13 +308,12 @@ fun HomeScreen(
             item {
                 // 快捷功能标题
                 SectionTitle(stringResource(R.string.screen_home_quick_functions))
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 
                 // 2x2 功能网格
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Row(
@@ -451,7 +448,7 @@ private fun TodayTodoItem(
             Checkbox(
                 checked = done,
                 onCheckedChange = { onToggle() },
-                colors = CheckboxDefaults.colors(checkedColor = Primary)
+                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
             )
             if (showCelebration) {
                 Icon(
@@ -530,19 +527,19 @@ private fun TodayTodoItem(
                             Icon(
                                 Icons.Default.DateRange,
                                 contentDescription = null,
-                                tint = if (daysUntil < 0) MaterialTheme.colorScheme.error else Primary,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(Modifier.width(2.dp))
-                            Text(
-                                when {
-                                    daysUntil < 0 -> stringResource(R.string.screen_home_overdue, label, -daysUntil.toInt())
-                                    daysUntil == 0L -> stringResource(R.string.screen_home_today, label)
-                                    daysUntil <= 7 -> stringResource(R.string.screen_home_days_later, label, daysUntil.toInt())
-                                    else -> "$label ${displayDate.format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"))}"
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (daysUntil < 0) MaterialTheme.colorScheme.error else Primary
+                            tint = if (daysUntil < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(Modifier.width(2.dp))
+                        Text(
+                            when {
+                                daysUntil < 0 -> stringResource(R.string.screen_home_overdue, label, -daysUntil.toInt())
+                                daysUntil == 0L -> stringResource(R.string.screen_home_today, label)
+                                daysUntil <= 7 -> stringResource(R.string.screen_home_days_later, label, daysUntil.toInt())
+                                else -> "$label ${displayDate.format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"))}"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (daysUntil < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -560,8 +557,8 @@ private fun TodayTodoItem(
                                         .weight(1f)
                                         .height(6.dp)
                                         .clip(RoundedCornerShape(3.dp)),
-                                    color = Primary,
-                                    trackColor = Primary.copy(alpha = 0.12f)
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                 )
                                 Text(
                                     stringResource(R.string.screen_home_treatment_days, todo.durationDays),
@@ -759,8 +756,8 @@ internal fun AddTodoDialog(
                                 onClick = { category = type },
                                 label = { Text("$icon$type") },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Primary,
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 modifier = Modifier.weight(1f)
                             )
@@ -777,8 +774,8 @@ internal fun AddTodoDialog(
                                 onClick = { category = type },
                                 label = { Text("$icon$type") },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Primary,
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 modifier = Modifier.weight(1f)
                             )
@@ -795,12 +792,12 @@ internal fun AddTodoDialog(
                         readOnly = true,
                         enabled = false,
                         label = { Text(stringResource(R.string.screen_home_related_member)) },
-                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_member), tint = Primary) },
+                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_member), tint = MaterialTheme.colorScheme.primary) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             disabledTextColor = MaterialTheme.colorScheme.onSurface,
                             disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledTrailingIconColor = Primary,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
                             disabledBorderColor = MaterialTheme.colorScheme.outline
                         )
                     )
@@ -823,12 +820,12 @@ internal fun AddTodoDialog(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.screen_home_planned_date)) },
-                    trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_home_select_date), tint = Primary) },
+                    trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_home_select_date), tint = MaterialTheme.colorScheme.primary) },
                     modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
                     colors = OutlinedTextFieldDefaults.colors(
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
                         disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledTrailingIconColor = Primary,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
                         disabledBorderColor = MaterialTheme.colorScheme.outline
                     ),
                     enabled = false
@@ -839,12 +836,12 @@ internal fun AddTodoDialog(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.screen_home_repeat)) },
-                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_repeat), tint = Primary) },
+                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_repeat), tint = MaterialTheme.colorScheme.primary) },
                     modifier = Modifier.fillMaxWidth().clickable { showRepeatDialog = true },
                     colors = OutlinedTextFieldDefaults.colors(
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
                         disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledTrailingIconColor = Primary,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
                         disabledBorderColor = MaterialTheme.colorScheme.outline
                     ),
                     enabled = false
@@ -893,8 +890,8 @@ private fun RepeatPickerDialog(
                         onClick = { repeatEnabled = false },
                         label = { Text(stringResource(R.string.screen_home_no_repeat)) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Primary,
-                            selectedLabelColor = Color.White
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier.weight(1f)
                     )
@@ -903,8 +900,8 @@ private fun RepeatPickerDialog(
                         onClick = { repeatEnabled = true },
                         label = { Text(stringResource(R.string.screen_home_repeat_enabled)) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Primary,
-                            selectedLabelColor = Color.White
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier.weight(1f)
                     )
@@ -920,8 +917,8 @@ private fun RepeatPickerDialog(
                                 onClick = { selectedType = type },
                                 label = { Text(label) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Primary,
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 modifier = Modifier.weight(1f)
                             )
@@ -938,7 +935,7 @@ private fun RepeatPickerDialog(
                             onClick = { if (interval > 1) interval-- },
                             enabled = interval > 1
                         ) {
-                            Icon(Icons.Default.Remove, stringResource(R.string.screen_home_decrease), tint = Primary)
+                            Icon(Icons.Default.Remove, stringResource(R.string.screen_home_decrease), tint = MaterialTheme.colorScheme.primary)
                         }
                         Text(
                             text = "$interval",
@@ -949,7 +946,7 @@ private fun RepeatPickerDialog(
                         IconButton(
                             onClick = { if (interval < 99) interval++ }
                         ) {
-                            Icon(Icons.Default.Add, stringResource(R.string.screen_home_increase), tint = Primary)
+                            Icon(Icons.Default.Add, stringResource(R.string.screen_home_increase), tint = MaterialTheme.colorScheme.primary)
                         }
                         Spacer(Modifier.width(4.dp))
                         Text(
@@ -978,7 +975,7 @@ private fun FunctionTile(
     icon: ImageVector,
     title: String,
     desc: String,
-    color: Color = Primary,
+    color: Color = MaterialTheme.colorScheme.primary,
     onClick: () -> Unit
 ) {
     Card(

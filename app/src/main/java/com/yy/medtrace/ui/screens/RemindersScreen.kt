@@ -40,7 +40,6 @@ import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.SectionCard
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
-import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.Reminder
@@ -90,7 +89,7 @@ fun RemindersScreen(
                 subtitle = stringResource(R.string.screen_reminders_subtitle),
                 actions = {
                     IconButton(onClick = { showAddDialog = true }) {
-                        Icon(Icons.Default.Add, stringResource(R.string.screen_reminders_add_reminder), tint = Primary)
+                        Icon(Icons.Default.Add, stringResource(R.string.screen_reminders_add_reminder), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             )
@@ -101,7 +100,7 @@ fun RemindersScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 12.dp)
         ) {
             // 月度统计
@@ -209,7 +208,7 @@ private fun EmptyReminders(onAdd: () -> Unit) {
     ) {
         Surface(
             shape = AppShapes.large,
-            color = Primary.copy(alpha = 0.12f),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
             modifier = Modifier.size(80.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -252,7 +251,7 @@ private fun MonthlyStatsCard(stats: MonthlyStats) {
                         "${(stats.completionRate * 100).toInt()}%",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = Primary
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Text(stringResource(R.string.screen_reminders_completion_rate), style = MaterialTheme.typography.labelSmall)
                 }
@@ -278,8 +277,8 @@ private fun MonthlyStatsCard(stats: MonthlyStats) {
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(4.dp)),
-                color = Primary,
-                trackColor = Primary.copy(alpha = 0.12f)
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
             )
 
             Spacer(Modifier.height(8.dp))
@@ -318,7 +317,7 @@ private fun ReminderTypeGroup(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onToggleExpand() }
-                .padding(12.dp)
+                .padding(16.dp)
         ) {
             // 头部
             Row(
@@ -383,7 +382,7 @@ private fun ReminderItem(
         Checkbox(
             checked = todo.done,
             onCheckedChange = { onToggle() },
-            colors = CheckboxDefaults.colors(checkedColor = Primary)
+            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -413,12 +412,12 @@ private fun ReminderItem(
                 if (repeatLabel != null) {
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = Primary.copy(alpha = 0.12f)
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                     ) {
                         Text(
                             repeatLabel,
                             style = MaterialTheme.typography.labelSmall,
-                            color = Primary,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -527,8 +526,8 @@ private fun EditTodoDialog(
                                 onClick = { category = type },
                                 label = { Text("$icon$type") },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Primary,
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 modifier = Modifier.weight(1f)
                             )
@@ -545,8 +544,8 @@ private fun EditTodoDialog(
                                 onClick = { category = type },
                                 label = { Text("$icon$type") },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Primary,
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 modifier = Modifier.weight(1f)
                             )
@@ -570,14 +569,14 @@ private fun EditTodoDialog(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.screen_reminders_planned_date)) },
-                    trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_reminders_select_date), tint = Primary) },
+                    trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_reminders_select_date), tint = MaterialTheme.colorScheme.primary) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showDatePicker = true },
                     colors = OutlinedTextFieldDefaults.colors(
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
                         disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledTrailingIconColor = Primary,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
                         disabledBorderColor = MaterialTheme.colorScheme.outline
                     ),
                     enabled = false
@@ -594,8 +593,8 @@ private fun EditTodoDialog(
                         onClick = { repeatEnabled = false },
                         label = { Text(stringResource(R.string.screen_reminders_no_repeat)) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Primary,
-                            selectedLabelColor = Color.White
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier.weight(1f)
                     )
@@ -604,8 +603,8 @@ private fun EditTodoDialog(
                         onClick = { repeatEnabled = true },
                         label = { Text(stringResource(R.string.screen_reminders_repeat)) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Primary,
-                            selectedLabelColor = Color.White
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                         ),
                         modifier = Modifier.weight(1f)
                     )
@@ -621,8 +620,8 @@ private fun EditTodoDialog(
                                 onClick = { selectedType = type },
                                 label = { Text(label) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Primary,
-                                    selectedLabelColor = Color.White
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                 ),
                                 modifier = Modifier.weight(1f)
                             )
@@ -712,8 +711,8 @@ private fun QuickAddChip(
         modifier = modifier
             .clickable { onClick() },
         shape = AppShapes.medium,
-        color = Primary.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
@@ -724,7 +723,7 @@ private fun QuickAddChip(
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
-                color = Primary,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
             )
         }
@@ -778,7 +777,7 @@ private fun WeeklyPlanSection(todos: List<HealthTodo>) {
                         dayLabel,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (todo.dueDate == today) Primary else MaterialTheme.colorScheme.onSurface,
+                        color = if (todo.dueDate == today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.width(40.dp)
                     )
                     Text(

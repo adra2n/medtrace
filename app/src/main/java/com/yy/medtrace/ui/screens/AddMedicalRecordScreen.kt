@@ -46,7 +46,6 @@ import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.dashedBorder
 import com.yy.medtrace.navigation.Screen
-import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.components.MemberSelector
 import com.yy.medtrace.ui.components.SectionCard
 import com.yy.medtrace.viewmodel.AddMedicalRecordViewModel
@@ -311,7 +310,7 @@ fun AddMedicalRecordScreen(
                     if (analyzing) {
                         Surface(
                             shape = AppShapes.small,
-                            color = Primary.copy(alpha = 0.1f)
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         ) {
                             Row(
                                 modifier = Modifier.padding(12.dp),
@@ -321,12 +320,12 @@ fun AddMedicalRecordScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
                                     strokeWidth = 2.dp,
-                                    color = Primary
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text(
                                         stringResource(R.string.screen_add_record_ai_analyzing),
-                                        color = Primary,
+                                        color = MaterialTheme.colorScheme.primary,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     if (analysisProgress.isNotBlank()) {
@@ -457,7 +456,7 @@ fun AddMedicalRecordScreen(
                                     Text(stringResource(R.string.screen_add_record_label_medication_number, index + 1), style = MaterialTheme.typography.titleSmall)
                                     OutlinedButton(
                                         onClick = { medItems = medItems.filterIndexed { i, _ -> i != index } },
-                                        modifier = Modifier.height(32.dp),
+                                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                                     ) {
                                         Icon(Icons.Default.Delete, stringResource(R.string.screen_add_record_icon_delete), modifier = Modifier.size(16.dp))

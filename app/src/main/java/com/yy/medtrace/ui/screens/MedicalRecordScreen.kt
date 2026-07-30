@@ -164,7 +164,7 @@ fun MedicalRecordScreen(
                 subtitle = if (records.isNotEmpty()) stringResource(R.string.medical_record_subtitle_count, records.size) else null,
                 actions = {
                     IconButton(onClick = { navController.navigate("add_record") }) {
-                        Icon(Icons.Default.Add, stringResource(R.string.medical_record_cd_add), tint = androidx.compose.ui.graphics.Color.White)
+                        Icon(Icons.Default.Add, stringResource(R.string.medical_record_cd_add), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             )
@@ -669,7 +669,7 @@ private fun MedicalRecordCard(
                 TextButton(
                     onClick = onEdit,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp)
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp)
                 ) {
                     Icon(Icons.Default.Edit, stringResource(R.string.btn_edit), modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
@@ -679,7 +679,7 @@ private fun MedicalRecordCard(
                 TextButton(
                     onClick = onDelete,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    modifier = Modifier.height(32.dp),
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
                     Icon(Icons.Default.Delete, stringResource(R.string.btn_delete), modifier = Modifier.size(16.dp))

@@ -18,6 +18,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.yy.medtrace.ui.theme.AppShapes
+import com.yy.medtrace.ui.theme.SoftElevation
+import com.yy.medtrace.ui.theme.cardContainerColor
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.yy.medtrace.data.settings.PremiumManager
@@ -90,7 +93,12 @@ fun PremiumScreen(
             }
 
             // 功能列表
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -110,7 +118,12 @@ fun PremiumScreen(
             }
 
             // 设备ID
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppShapes.large,
+                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+            ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -149,7 +162,12 @@ fun PremiumScreen(
 
             // 注册码输入
             if (!isPremiumActive) {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = AppShapes.large,
+                    colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+                    elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+                ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)

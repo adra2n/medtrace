@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.theme.AppShapes
+import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import java.time.format.DateTimeFormatter
 
@@ -41,9 +42,9 @@ fun MedicalRecordCard(record: MedicalRecord) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = AppShapes.medium,
+        shape = AppShapes.large,
         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Column(
             modifier = Modifier

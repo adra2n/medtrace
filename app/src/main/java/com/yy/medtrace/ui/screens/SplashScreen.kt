@@ -11,10 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.yy.medtrace.MedTraceApplication
 import com.yy.medtrace.R
@@ -77,8 +75,7 @@ fun SplashScreen(navController: NavController) {
             Text(
                 text = "医迹",
                 color = MaterialTheme.colorScheme.onPrimary,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.displaySmall,
                 modifier = Modifier.alpha(alphaAnim.value)
             )
             
@@ -87,7 +84,7 @@ fun SplashScreen(navController: NavController) {
             Text(
                 text = "为您的家人记录每一次就诊",
                 color = MaterialTheme.colorScheme.onPrimary,
-                fontSize = 16.sp,
+                style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.alpha(alphaAnim.value)
             )
         }

@@ -53,7 +53,7 @@ fun GradientTopBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.White) // 白色背景
+            .background(MaterialTheme.colorScheme.surface)
             .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
@@ -73,14 +73,14 @@ fun GradientTopBar(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 subtitle?.let {
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -98,7 +98,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         text = text,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Bold,
-        color = Primary, // 青绿色
+        color = MaterialTheme.colorScheme.primary,
         modifier = modifier
     )
 }

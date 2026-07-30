@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.yy.medtrace.ui.theme.Primary
 
 /**
  * 空状态组件
@@ -44,7 +43,7 @@ fun EmptyState(
         // 图标背景
         Surface(
             shape = CircleShape,
-            color = Primary.copy(alpha = 0.1f),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
             modifier = Modifier.size(100.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -52,7 +51,7 @@ fun EmptyState(
                     imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
-                    tint = Primary.copy(alpha = 0.7f)
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                 )
             }
         }
@@ -83,7 +82,7 @@ fun EmptyState(
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = onAction,
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))

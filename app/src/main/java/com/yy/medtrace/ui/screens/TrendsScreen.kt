@@ -24,7 +24,6 @@ import com.yy.medtrace.ui.components.TrendSection
 import com.yy.medtrace.ui.components.buildSeries
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.GradientTopBar
-import com.yy.medtrace.ui.theme.Primary
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
@@ -92,7 +91,7 @@ fun TrendsScreen(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = AppShapes.medium,
+                        shape = AppShapes.large,
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                     ) {
                         Row(
@@ -148,7 +147,7 @@ fun TrendsScreen(
                                     text = "${records.size}",
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Primary
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = stringResource(R.string.trends_stat_total),
@@ -166,7 +165,7 @@ fun TrendsScreen(
                                     text = "$recentCount",
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Primary
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = stringResource(R.string.trends_stat_recent_30days),
@@ -179,7 +178,7 @@ fun TrendsScreen(
                                     text = "${records.sumOf { it.medItems.size }}",
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Primary
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = stringResource(R.string.trends_stat_medications),
@@ -226,14 +225,14 @@ fun TrendsScreen(
                 items(records.take(10), key = { it.id }) { record ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = AppShapes.medium,
+                        shape = AppShapes.large,
                         colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
                         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(14.dp),
+                                .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -252,13 +251,13 @@ fun TrendsScreen(
                             if (record.medItems.isNotEmpty()) {
                                 Surface(
                                     shape = AppShapes.small,
-                                    color = Primary.copy(alpha = 0.1f)
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                                 ) {
                                     Text(
                                         text = stringResource(R.string.trends_med_count, record.medItems.size),
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = Primary
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }

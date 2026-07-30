@@ -36,8 +36,7 @@ import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
-import com.yy.medtrace.ui.theme.HealthTagColors
-import com.yy.medtrace.ui.theme.Primary
+import com.yy.medtrace.ui.theme.healthTagColorSets
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
@@ -84,7 +83,7 @@ fun FamilyScreen(
                         editingMember = null
                         showDialog = true
                     }) {
-                        Icon(Icons.Default.Add, stringResource(R.string.screen_family_add_member_content_desc), tint = Primary)
+                        Icon(Icons.Default.Add, stringResource(R.string.screen_family_add_member_content_desc), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             )
@@ -232,7 +231,7 @@ private fun MemberCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -314,6 +313,7 @@ private fun MemberCard(
                         .forEach { add(it) }
                 }
                 if (healthTags.isNotEmpty()) {
+                    val tagColors = healthTagColorSets()
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -321,16 +321,15 @@ private fun MemberCard(
                     ) {
                         healthTags.forEach { tag ->
                             val isAllergy = tag.startsWith("过敏:")
+                            val colorSet = if (isAllergy) tagColors["allergy"]!! else tagColors["chronic"]!!
                             Surface(
                                 shape = AppShapes.small,
-                                color = if (isAllergy) HealthTagColors.AllergyBg
-                                       else HealthTagColors.ChronicBg
+                                color = colorSet.bg
                             ) {
                                 Text(
                                     tag,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (isAllergy) HealthTagColors.AllergyContent
-                                           else HealthTagColors.ChronicContent,
+                                    color = colorSet.content,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
@@ -446,9 +445,9 @@ private fun MemberCard(
                 TextButton(
                     onClick = onDelete,
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(vertical = 4.dp)
+                    contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
-                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(stringResource(R.string.screen_family_delete_member_button), style = MaterialTheme.typography.labelSmall)
                 }
@@ -486,7 +485,7 @@ private fun HealthDashboard(
                     icon = "👥",
                     value = "${members.size}",
                     label = stringResource(R.string.screen_family_stat_members),
-                    color = Primary,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
                 )
                 StatCard(

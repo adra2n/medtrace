@@ -8,7 +8,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -57,7 +56,6 @@ fun PrivacyPolicyScreen(
                     text = "本应用是记录存储工具，不是医疗器械。所有数据仅存储在本地设备，不会上传至任何服务器。",
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
@@ -143,7 +141,6 @@ private fun SectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onSurface
     )
 }

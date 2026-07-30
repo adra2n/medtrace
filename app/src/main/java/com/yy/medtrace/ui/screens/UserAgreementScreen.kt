@@ -8,7 +8,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -57,7 +56,6 @@ fun UserAgreementScreen(
                     text = "重要声明：本应用是记录存储工具，不是医疗器械，不提供任何医疗建议、诊断或治疗功能。如有健康问题，请咨询专业医生。",
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
@@ -121,7 +119,6 @@ private fun SectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onSurface
     )
 }
