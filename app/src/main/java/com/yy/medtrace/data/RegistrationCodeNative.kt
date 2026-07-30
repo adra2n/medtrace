@@ -2,8 +2,12 @@ package com.yy.medtrace.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
+import com.yy.medtrace.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,6 +26,8 @@ class RegistrationCodeNative @Inject constructor(
     companion object {
         private const val PREFS_NAME = "registration_prefs"
         private const val KEY_REGISTRATION_CODE = "registration_code"
+        private const val DEBUG_SIGNATURE_HASH = "846d78dc4d4da3c00715050fac83f87154c898e38640a97cd6839a71b3260870"
+        private const val RELEASE_SIGNATURE_HASH = "d82600c18237ac321e22a8e5afb2c187bd9b7a2f96c15f64f997df54e78ed728"
         
         init {
             try {
@@ -42,11 +48,6 @@ class RegistrationCodeNative @Inject constructor(
     private external fun verifyLicense(inputCode: String, androidId: String): Int
 
     /**
-     * JNI 原生方法：获取设备哈希（调试用）
-     */
-    private external fun getDeviceHash(androidId: String): String
-
-    /**
      * 获取当前设备ID
      */
     fun getDeviceId(): String {
@@ -57,10 +58,54 @@ class RegistrationCodeNative @Inject constructor(
     }
 
     /**
+     * 校验 APK 签名完整性（防篡改）
+     */
+    private fun checkIntegrity(): Boolean {
+        return try {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                context.packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.GET_SIGNING_CERTIFICATES
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getPackageInfo(
+                    context.packageName,
+                    PackageManager.GET_SIGNATURES
+                )
+            }
+            
+            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageInfo.signingInfo?.apkContentsSigners
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.signatures
+            }
+            
+            if (signatures.isNullOrEmpty()) return false
+            
+            val md = MessageDigest.getInstance("SHA-256")
+            val digest = md.digest(signatures[0].toByteArray())
+            val signatureHash = digest.joinToString("") { "%02x".format(it) }
+            
+            val expectedHash = if (BuildConfig.DEBUG) {
+                DEBUG_SIGNATURE_HASH
+            } else {
+                RELEASE_SIGNATURE_HASH
+            }
+            
+            signatureHash == expectedHash
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
      * 验证注册码
      */
     fun verifyCode(code: String): Boolean {
         return try {
+            if (!checkIntegrity()) return false
             val deviceId = getDeviceId()
             val result = verifyLicense(code, deviceId)
             result == 1
@@ -98,15 +143,9 @@ class RegistrationCodeNative @Inject constructor(
      * 检查是否已激活VIP
      */
     fun isVipActive(): Boolean {
+        if (!checkIntegrity()) return false
         val savedCode = getSavedCode()
         if (savedCode.isBlank()) return false
         return verifyCode(savedCode)
-    }
-
-    /**
-     * 获取设备哈希（调试用）
-     */
-    fun getDeviceHashDebug(): String {
-        return getDeviceHash(getDeviceId())
     }
 }

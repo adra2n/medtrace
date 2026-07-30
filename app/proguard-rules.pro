@@ -118,7 +118,6 @@
 -keep class com.yy.medtrace.MedTraceApplication { *; }
 -keep class com.yy.medtrace.worker.** { *; }
 -keep class com.yy.medtrace.data.dao.** { *; }
--keep class com.yy.medtrace.ui.** { *; }
 
 # kotlinx.serialization：保留 @Serializable 类及其生成的 Serializer，避免 release 下反序列化失败
 -keepattributes *Annotation*,InnerClasses
@@ -157,5 +156,7 @@
 -keep @dagger.hilt.InstallIn class * { *; }
 -keep class * extends androidx.lifecycle.ViewModel { <init>(...); }
 
-# medtrace 包
--keep class com.yy.medtrace.** { *; }
+# 保持 native 方法所在类（JNI 注册）
+-keepclasseswithmembernames class com.yy.medtrace.data.RegistrationCodeNative {
+    <methods>;
+}
