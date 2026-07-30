@@ -135,6 +135,7 @@
     <string name="screen_home_interval_label">每</string>
     <string name="screen_home_decrease">减少</string>
     <string name="screen_home_increase">增加</string>
+    <string name="screen_home_fab_add">添加就诊记录</string>
     
     <!-- 提醒管理页面 -->
     <string name="screen_reminders_title">提醒管理</string>
@@ -350,6 +351,8 @@
     <string name="medical_record_search_placeholder">搜索就诊类型 / 医院 / 备注</string>
     <string name="medical_record_cd_clear">清除</string>
     <string name="medical_record_cd_search">搜索</string>
+    <string name="medical_record_cd_filter">筛选</string>
+    <string name="medical_record_cd_select_member">选择成员</string>
     <string name="medical_record_filter_from">起始</string>
     <string name="medical_record_filter_to">结束</string>
     <string name="medical_record_btn_reset">重置筛选</string>

@@ -402,6 +402,7 @@ private fun HelpDialog(onDismiss: () -> Unit) {
         },
         text = {
             Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 HelpItem(

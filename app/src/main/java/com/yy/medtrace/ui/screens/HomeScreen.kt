@@ -107,6 +107,14 @@ fun HomeScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { navController.navigate("add_record") },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.screen_home_fab_add))
+            }
         }
     ) { padding ->
         LazyColumn(
@@ -723,144 +731,158 @@ internal fun AddTodoDialog(
         )
     }
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.screen_home_add_todo)) },
-        text = {
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.screen_home_add_todo),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            OutlinedTextField(
+                value = content,
+                onValueChange = { content = it },
+                label = { Text(stringResource(R.string.screen_home_todo_content)) },
+                placeholder = { Text(stringResource(R.string.screen_home_todo_content_hint)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            // 提醒类别
+            Text(stringResource(R.string.screen_home_reminder_category), style = MaterialTheme.typography.labelMedium)
             Column(
-                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // 第一行：用药、复查
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    categories.take(2).forEach { (type, icon) ->
+                        FilterChip(
+                            selected = category == type,
+                            onClick = { category = type },
+                            label = { Text("$icon$type") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                // 第二行：检查、其他
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    categories.drop(2).forEach { (type, icon) ->
+                        FilterChip(
+                            selected = category == type,
+                            onClick = { category = type },
+                            label = { Text("$icon$type") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+            ExposedDropdownMenuBox(
+                expanded = memberExpanded,
+                onExpandedChange = { memberExpanded = !memberExpanded }
             ) {
                 OutlinedTextField(
-                    value = content,
-                    onValueChange = { content = it },
-                    label = { Text(stringResource(R.string.screen_home_todo_content)) },
-                    placeholder = { Text(stringResource(R.string.screen_home_todo_content_hint)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                // 提醒类别
-                Text(stringResource(R.string.screen_home_reminder_category), style = MaterialTheme.typography.labelMedium)
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // 第一行：用药、复查
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        categories.take(2).forEach { (type, icon) ->
-                            FilterChip(
-                                selected = category == type,
-                                onClick = { category = type },
-                                label = { Text("$icon$type") },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                                ),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                    // 第二行：检查、其他
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        categories.drop(2).forEach { (type, icon) ->
-                            FilterChip(
-                                selected = category == type,
-                                onClick = { category = type },
-                                label = { Text("$icon$type") },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                                ),
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-                ExposedDropdownMenuBox(
-                    expanded = memberExpanded,
-                    onExpandedChange = { memberExpanded = !memberExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = selectedMember?.let { stringResource(R.string.screen_home_member_format, it.name, it.relation.ifBlank { stringResource(R.string.screen_home_member_default) }) } ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        enabled = false,
-                        label = { Text(stringResource(R.string.screen_home_related_member)) },
-                        trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_member), tint = MaterialTheme.colorScheme.primary) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
-                            disabledBorderColor = MaterialTheme.colorScheme.outline
-                        )
+                    value = selectedMember?.let { stringResource(R.string.screen_home_member_format, it.name, it.relation.ifBlank { stringResource(R.string.screen_home_member_default) }) } ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text(stringResource(R.string.screen_home_related_member)) },
+                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_member), tint = MaterialTheme.colorScheme.primary) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline
                     )
-                    DropdownMenu(
-                        expanded = memberExpanded,
-                        onDismissRequest = { memberExpanded = false },
-                        modifier = Modifier.exposedDropdownSize()
-                    ) {
-                        members.forEach { m ->
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.screen_home_member_format, m.name, m.relation.ifBlank { stringResource(R.string.screen_home_member_default) })) },
-                                onClick = { selectedMemberId = m.id; memberExpanded = false }
-                            )
-                        }
+                )
+                DropdownMenu(
+                    expanded = memberExpanded,
+                    onDismissRequest = { memberExpanded = false },
+                    modifier = Modifier.exposedDropdownSize()
+                ) {
+                    members.forEach { m ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.screen_home_member_format, m.name, m.relation.ifBlank { stringResource(R.string.screen_home_member_default) })) },
+                            onClick = { selectedMemberId = m.id; memberExpanded = false }
+                        )
                     }
                 }
-                val dateLabel = if (dueDate == LocalDate.now()) stringResource(R.string.screen_home_today_label) else dueDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                OutlinedTextField(
-                    value = dateLabel,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text(stringResource(R.string.screen_home_planned_date)) },
-                    trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_home_select_date), tint = MaterialTheme.colorScheme.primary) },
-                    modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
-                        disabledBorderColor = MaterialTheme.colorScheme.outline
-                    ),
-                    enabled = false
-                )
-                val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(repeatType, repeatInterval) ?: stringResource(R.string.screen_home_no_repeat)
-                OutlinedTextField(
-                    value = repeatLabel,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text(stringResource(R.string.screen_home_repeat)) },
-                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_repeat), tint = MaterialTheme.colorScheme.primary) },
-                    modifier = Modifier.fillMaxWidth().clickable { showRepeatDialog = true },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
-                        disabledBorderColor = MaterialTheme.colorScheme.outline
-                    ),
-                    enabled = false
-                )
             }
-        },
-        confirmButton = {
-            Button(
-                enabled = content.isNotBlank() && selectedMemberId != null,
-                onClick = {
-                    val m = selectedMember ?: return@Button
-                    onSave(m.id, m.name, content.trim(), dueDate, repeatType, repeatInterval, category)
-                }
-            ) { Text(stringResource(R.string.screen_home_save)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.screen_home_cancel)) }
+            val dateLabel = if (dueDate == LocalDate.now()) stringResource(R.string.screen_home_today_label) else dueDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            OutlinedTextField(
+                value = dateLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.screen_home_planned_date)) },
+                trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_home_select_date), tint = MaterialTheme.colorScheme.primary) },
+                modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline
+                ),
+                enabled = false
+            )
+            val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(repeatType, repeatInterval) ?: stringResource(R.string.screen_home_no_repeat)
+            OutlinedTextField(
+                value = repeatLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.screen_home_repeat)) },
+                trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_repeat), tint = MaterialTheme.colorScheme.primary) },
+                modifier = Modifier.fillMaxWidth().clickable { showRepeatDialog = true },
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline
+                ),
+                enabled = false
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
+                ) { Text(stringResource(R.string.screen_home_cancel)) }
+                Button(
+                    onClick = {
+                        val m = selectedMember ?: return@Button
+                        onSave(m.id, m.name, content.trim(), dueDate, repeatType, repeatInterval, category)
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = content.isNotBlank() && selectedMemberId != null
+                ) { Text(stringResource(R.string.screen_home_save)) }
+            }
+            Spacer(Modifier.height(16.dp))
         }
-    )
+    }
 }
 
 @Composable

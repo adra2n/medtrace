@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -372,10 +373,12 @@ private fun ReminderItem(
 ) {
     val isOverdue = todo.dueDate.isBefore(LocalDate.now()) && !todo.done
     val repeatLabel = RemindersViewModel.repeatLabel(todo.repeatType, todo.repeatInterval)
+    var showActions by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { showActions = !showActions }
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -429,23 +432,32 @@ private fun ReminderItem(
                 )
             }
         }
-        // 编辑按钮
-        IconButton(onClick = onEdit, modifier = Modifier.size(48.dp)) {
-            Icon(
-                Icons.Default.Edit,
-                contentDescription = stringResource(R.string.screen_reminders_edit),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-        // 删除按钮
-        IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
-            Icon(
-                Icons.Default.Delete,
-                contentDescription = stringResource(R.string.screen_reminders_delete),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp)
-            )
+        if (showActions) {
+            IconButton(onClick = onEdit, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.screen_reminders_edit),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.screen_reminders_delete),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        } else {
+            IconButton(onClick = { showActions = true }, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

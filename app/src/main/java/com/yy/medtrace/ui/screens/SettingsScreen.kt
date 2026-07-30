@@ -1,5 +1,6 @@
 package com.yy.medtrace.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import android.content.Intent
@@ -27,6 +28,9 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.animation.AnimatedVisibility
 import androidx.activity.compose.rememberLauncherForActivityResult
 import kotlinx.coroutines.Dispatchers
 import androidx.activity.result.contract.ActivityResultContracts
@@ -101,6 +105,11 @@ fun SettingsScreen(
     var pinSet by remember { mutableStateOf(false) }
     var showPinDialog by remember { mutableStateOf(false) }
     var darkMode by remember { mutableStateOf(false) }
+
+    var appearanceExpanded by remember { mutableStateOf(true) }
+    var securityExpanded by remember { mutableStateOf(false) }
+    var backupExpanded by remember { mutableStateOf(false) }
+    var aiExpanded by remember { mutableStateOf(false) }
 
     val activity = LocalContext.current as? FragmentActivity
 
@@ -376,26 +385,53 @@ fun SettingsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    SectionHeader(icon = Icons.Default.Settings, title = stringResource(R.string.settings_section_appearance))
-                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        SettingsRow(
-                            label = stringResource(R.string.settings_label_dark_mode),
-                            trailing = {
-                                Switch(
-                                    checked = darkMode,
-                                    onCheckedChange = { isChecked ->
-                                        darkMode = isChecked
-                                        scope.launch {
-                                            viewModel.database.userSettingsDao()
-                                                .insertOrUpdate((settings ?: UserSettings()).copy(darkMode = isChecked))
-                                        }
-                                    },
-                                    colors = SwitchDefaults.colors(
-                                        checkedTrackColor = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { appearanceExpanded = !appearanceExpanded }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
                         )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            stringResource(R.string.settings_section_appearance),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            if (appearanceExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    AnimatedVisibility(visible = appearanceExpanded) {
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            SettingsRow(
+                                label = stringResource(R.string.settings_label_dark_mode),
+                                trailing = {
+                                    Switch(
+                                        checked = darkMode,
+                                        onCheckedChange = { isChecked ->
+                                            darkMode = isChecked
+                                            scope.launch {
+                                                viewModel.database.userSettingsDao()
+                                                    .insertOrUpdate((settings ?: UserSettings()).copy(darkMode = isChecked))
+                                            }
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -408,80 +444,107 @@ fun SettingsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    SectionHeader(icon = Icons.Default.Lock, title = stringResource(R.string.settings_section_security))
-                    Column(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { securityExpanded = !securityExpanded }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(10.dp))
                         Text(
-                            stringResource(R.string.settings_security_description),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            stringResource(R.string.settings_section_security),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
                         )
-                        SettingsRow(
-                            label = stringResource(R.string.settings_label_app_lock),
-                            trailing = {
-                                Switch(
-                                    checked = appLockEnabled,
-                                    onCheckedChange = { checked ->
-                                        if (checked) {
-                                            activity?.let {
-                                                BiometricHelper.authenticate(
-                                                    activity = it,
-                                                    onSuccess = { appLockEnabled = true },
-                                                    onError = { msg -> backupError = context.getString(R.string.settings_error_auth_failed, msg) }
-                                                )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            if (securityExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    AnimatedVisibility(visible = securityExpanded) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                stringResource(R.string.settings_security_description),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            SettingsRow(
+                                label = stringResource(R.string.settings_label_app_lock),
+                                trailing = {
+                                    Switch(
+                                        checked = appLockEnabled,
+                                        onCheckedChange = { checked ->
+                                            if (checked) {
+                                                activity?.let {
+                                                    BiometricHelper.authenticate(
+                                                        activity = it,
+                                                        onSuccess = { appLockEnabled = true },
+                                                        onError = { msg -> backupError = context.getString(R.string.settings_error_auth_failed, msg) }
+                                                    )
+                                                }
+                                            } else {
+                                                appLockEnabled = false
                                             }
-                                        } else {
-                                            appLockEnabled = false
-                                        }
-                                    },
-                                    colors = SwitchDefaults.colors(
-                                        checkedTrackColor = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            }
-                        )
-
-                        if (appLockEnabled) {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(stringResource(R.string.settings_label_auto_lock), style = MaterialTheme.typography.labelMedium)
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    val options = listOf(0 to stringResource(R.string.settings_option_immediately), 60 to stringResource(R.string.settings_option_1_minute), 300 to stringResource(R.string.settings_option_5_minutes))
-                                    options.forEach { (sec, label) ->
-                                        FilterChip(
-                                            selected = autoLockSeconds == sec,
-                                            onClick = { autoLockSeconds = sec },
-                                            label = { Text(label) }
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedTrackColor = MaterialTheme.colorScheme.primary
                                         )
+                                    )
+                                }
+                            )
+
+                            if (appLockEnabled) {
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(stringResource(R.string.settings_label_auto_lock), style = MaterialTheme.typography.labelMedium)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        val options = listOf(0 to stringResource(R.string.settings_option_immediately), 60 to stringResource(R.string.settings_option_1_minute), 300 to stringResource(R.string.settings_option_5_minutes))
+                                        options.forEach { (sec, label) ->
+                                            FilterChip(
+                                                selected = autoLockSeconds == sec,
+                                                onClick = { autoLockSeconds = sec },
+                                                label = { Text(label) }
+                                            )
+                                        }
                                     }
                                 }
+
+                                SettingsRow(
+                                    label = stringResource(R.string.settings_label_pin_backup),
+                                    trailing = {
+                                        TextButton(onClick = { showPinDialog = true }) {
+                                            Text(if (pinSet) stringResource(R.string.settings_btn_clear) else stringResource(R.string.settings_btn_set))
+                                        }
+                                    }
+                                )
                             }
 
                             SettingsRow(
-                                label = stringResource(R.string.settings_label_pin_backup),
+                                label = stringResource(R.string.settings_label_block_screenshot),
                                 trailing = {
-                                    TextButton(onClick = { showPinDialog = true }) {
-                                        Text(if (pinSet) stringResource(R.string.settings_btn_clear) else stringResource(R.string.settings_btn_set))
-                                    }
+                                    Switch(
+                                        checked = secureScreen,
+                                        onCheckedChange = { checked ->
+                                            secureScreen = checked
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedTrackColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
                                 }
                             )
                         }
-
-                        SettingsRow(
-                            label = stringResource(R.string.settings_label_block_screenshot),
-                            trailing = {
-                                Switch(
-                                    checked = secureScreen,
-                                    onCheckedChange = { checked ->
-                                        secureScreen = checked
-                                    },
-                                    colors = SwitchDefaults.colors(
-                                        checkedTrackColor = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            }
-                        )
                     }
                     Spacer(Modifier.height(16.dp))
                 }
@@ -521,6 +584,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { backupExpanded = !backupExpanded }
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -552,140 +616,141 @@ fun SettingsScreen(
                                 )
                             }
                         }
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            if (backupExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-
-                    if (isPremiumActive) {
-                        // 已购买：显示完整功能
-                        Column(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text(
-                                stringResource(R.string.settings_backup_description),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            OutlinedTextField(
-                                value = githubToken,
-                                onValueChange = { githubToken = it },
-                                label = { Text(stringResource(R.string.settings_label_github_token)) },
-                                singleLine = true,
-                                visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
-                                trailingIcon = {
-                                    IconButton(onClick = { showToken = !showToken }) {
-                                        Icon(
-                                            imageVector = if (showToken) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                            contentDescription = if (showToken) stringResource(R.string.settings_cd_hide_token) else stringResource(R.string.settings_cd_show_token)
-                                        )
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            OutlinedTextField(
-                                value = encryptPassword,
-                                onValueChange = { encryptPassword = it },
-                                label = { Text(stringResource(R.string.settings_label_encrypt_password)) },
-                                singleLine = true,
-                                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                                trailingIcon = {
-                                    IconButton(onClick = { showPassword = !showPassword }) {
-                                        Icon(
-                                            imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                            contentDescription = if (showPassword) stringResource(R.string.settings_cd_hide_password) else stringResource(R.string.settings_cd_show_password)
-                                        )
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    AnimatedVisibility(visible = backupExpanded) {
+                        if (isPremiumActive) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
+                                Text(
+                                    stringResource(R.string.settings_backup_description),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                OutlinedTextField(
+                                    value = githubToken,
+                                    onValueChange = { githubToken = it },
+                                    label = { Text(stringResource(R.string.settings_label_github_token)) },
+                                    singleLine = true,
+                                    visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
+                                    trailingIcon = {
+                                        IconButton(onClick = { showToken = !showToken }) {
+                                            Icon(
+                                                imageVector = if (showToken) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                                contentDescription = if (showToken) stringResource(R.string.settings_cd_hide_token) else stringResource(R.string.settings_cd_show_token)
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = encryptPassword,
+                                    onValueChange = { encryptPassword = it },
+                                    label = { Text(stringResource(R.string.settings_label_encrypt_password)) },
+                                    singleLine = true,
+                                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                                    trailingIcon = {
+                                        IconButton(onClick = { showPassword = !showPassword }) {
+                                            Icon(
+                                                imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                                contentDescription = if (showPassword) stringResource(R.string.settings_cd_hide_password) else stringResource(R.string.settings_cd_show_password)
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            val time = java.time.LocalDateTime.now()
+                                                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                                            exportLauncher.launch("chiyaole_backup_$time.json")
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text(stringResource(R.string.settings_btn_export_backup)) }
+                                    OutlinedButton(
+                                        onClick = { showImportConfirm = true },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text(stringResource(R.string.settings_btn_import_restore)) }
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { syncToGist() },
+                                        enabled = !busy,
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text(if (existingGistId != null) stringResource(R.string.settings_btn_update_to_gist) else stringResource(R.string.settings_btn_sync_to_gist)) }
+                                    OutlinedButton(
+                                        onClick = { restoreFromGist() },
+                                        enabled = !busy && existingGistId != null,
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text(stringResource(R.string.settings_btn_restore_from_gist)) }
+                                }
                                 OutlinedButton(
                                     onClick = {
-                                        val time = java.time.LocalDateTime.now()
-                                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                                        exportLauncher.launch("chiyaole_backup_$time.json")
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                ) { Text(stringResource(R.string.settings_btn_export_backup)) }
-                                OutlinedButton(
-                                    onClick = { showImportConfirm = true },
-                                    modifier = Modifier.weight(1f)
-                                ) { Text(stringResource(R.string.settings_btn_import_restore)) }
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                OutlinedButton(
-                                    onClick = { syncToGist() },
-                                    enabled = !busy,
-                                    modifier = Modifier.weight(1f)
-                                ) { Text(if (existingGistId != null) stringResource(R.string.settings_btn_update_to_gist) else stringResource(R.string.settings_btn_sync_to_gist)) }
-                                OutlinedButton(
-                                    onClick = { restoreFromGist() },
-                                    enabled = !busy && existingGistId != null,
-                                    modifier = Modifier.weight(1f)
-                                ) { Text(stringResource(R.string.settings_btn_restore_from_gist)) }
-                            }
-
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch {
-                                        try {
-                                            val csv = buildRecordsCsv(viewModel.database)
-                                            withContext(Dispatchers.Main) {
-                                        context.startActivity(
-                                            Intent.createChooser(
-                                                shareCsvIntent(context, csv),
-                                                context.getString(R.string.settings_chooser_export_csv)
-                                            )
-                                        )
-                                    }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, context.getString(R.string.settings_toast_csv_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
+                                        scope.launch {
+                                            try {
+                                                val csv = buildRecordsCsv(viewModel.database)
+                                                withContext(Dispatchers.Main) {
+                                                    context.startActivity(
+                                                        Intent.createChooser(
+                                                            shareCsvIntent(context, csv),
+                                                            context.getString(R.string.settings_chooser_export_csv)
+                                                        )
+                                                    )
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    Toast.makeText(context, context.getString(R.string.settings_toast_csv_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
+                                                }
                                             }
                                         }
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) { Text(stringResource(R.string.settings_btn_export_csv)) }
-                        }
-                    } else {
-                        // 未购买：显示锁定状态
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Lock,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                                    )
-                                }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) { Text(stringResource(R.string.settings_btn_export_csv)) }
                             }
-                            Text(
-                                stringResource(R.string.settings_premium_unlock_hint),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            TextButton(onClick = { navController.navigate("premium") }) {
-                                Text(stringResource(R.string.settings_btn_upgrade_price))
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    modifier = Modifier.size(48.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.Lock,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp),
+                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    stringResource(R.string.settings_premium_unlock_hint),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                TextButton(onClick = { navController.navigate("premium") }) {
+                                    Text(stringResource(R.string.settings_btn_upgrade_price))
+                                }
                             }
                         }
                     }
@@ -707,6 +772,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { aiExpanded = !aiExpanded }
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -738,104 +804,109 @@ fun SettingsScreen(
                                 )
                             }
                         }
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            if (aiExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-
-                    if (isPremiumActive) {
-                        // 已购买：显示完整功能
-                        Column(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                stringResource(R.string.settings_ai_description),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                stringResource(R.string.settings_ai_privacy_warning),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
-                            )
-                            OutlinedTextField(
-                                value = llmBaseUrl,
-                                onValueChange = { llmBaseUrl = it },
-                                label = { Text("API Base URL") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                            OutlinedTextField(
-                                value = llmApiKey,
-                                onValueChange = { llmApiKey = it },
-                                label = { Text("API Key") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
-                                trailingIcon = {
-                                    IconButton(onClick = { showApiKey = !showApiKey }) {
-                                        Icon(
-                                            imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                            contentDescription = if (showApiKey) stringResource(R.string.settings_cd_hide_key) else stringResource(R.string.settings_cd_show_key)
-                                        )
-                                    }
-                                }
-                            )
-                            OutlinedTextField(
-                                value = llmModel,
-                                onValueChange = { llmModel = it },
-                                label = { Text(stringResource(R.string.settings_label_model_name)) },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
-                            OutlinedButton(
-                                onClick = { testLlmConnection() },
-                                enabled = !testingLlm && llmBaseUrl.isNotBlank() && llmApiKey.isNotBlank() && llmModel.isNotBlank(),
-                                modifier = Modifier.fillMaxWidth()
+                    AnimatedVisibility(visible = aiExpanded) {
+                        if (isPremiumActive) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                if (testingLlm) {
-                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                                Text(stringResource(R.string.settings_llm_test_btn))
-                            }
-                            llmTestResult?.let { result ->
-                                val isError = result.startsWith("❌")
                                 Text(
-                                    result,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                    stringResource(R.string.settings_ai_description),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            }
-                        }
-                    } else {
-                        // 未购买：显示锁定状态
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                modifier = Modifier.size(48.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Lock,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                Text(
+                                    stringResource(R.string.settings_ai_privacy_warning),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                                )
+                                OutlinedTextField(
+                                    value = llmBaseUrl,
+                                    onValueChange = { llmBaseUrl = it },
+                                    label = { Text("API Base URL") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = llmApiKey,
+                                    onValueChange = { llmApiKey = it },
+                                    label = { Text("API Key") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
+                                    trailingIcon = {
+                                        IconButton(onClick = { showApiKey = !showApiKey }) {
+                                            Icon(
+                                                imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                                contentDescription = if (showApiKey) stringResource(R.string.settings_cd_hide_key) else stringResource(R.string.settings_cd_show_key)
+                                            )
+                                        }
+                                    }
+                                )
+                                OutlinedTextField(
+                                    value = llmModel,
+                                    onValueChange = { llmModel = it },
+                                    label = { Text(stringResource(R.string.settings_label_model_name)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                                OutlinedButton(
+                                    onClick = { testLlmConnection() },
+                                    enabled = !testingLlm && llmBaseUrl.isNotBlank() && llmApiKey.isNotBlank() && llmModel.isNotBlank(),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    if (testingLlm) {
+                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    Text(stringResource(R.string.settings_llm_test_btn))
+                                }
+                                llmTestResult?.let { result ->
+                                    val isError = result.startsWith("❌")
+                                    Text(
+                                        result,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
-                            Text(
-                                stringResource(R.string.settings_premium_unlock_hint),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            TextButton(onClick = { navController.navigate("premium") }) {
-                                Text(stringResource(R.string.settings_btn_upgrade_price))
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    modifier = Modifier.size(48.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.Lock,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp),
+                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    stringResource(R.string.settings_premium_unlock_hint),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                TextButton(onClick = { navController.navigate("premium") }) {
+                                    Text(stringResource(R.string.settings_btn_upgrade_price))
+                                }
                             }
                         }
                     }

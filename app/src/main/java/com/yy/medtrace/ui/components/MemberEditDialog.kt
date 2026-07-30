@@ -23,7 +23,9 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.util.copyAvatarToInternal
 import kotlinx.coroutines.Dispatchers
@@ -83,165 +85,176 @@ fun MemberEditDialog(
         } else null
     }
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = {
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // 标题
             Text(
-                if (member == null) "新增家庭成员" else "编辑家庭成员",
-                style = MaterialTheme.typography.titleLarge
+                text = if (member == null) "新增家庭成员" else "编辑家庭成员",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
-        },
-        text = {
-            Column(
+            
+            // 头像选择
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                            .clickable { galleryLauncher.launch("image/*") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        avatarBitmap?.let { bmp ->
+                            Image(
+                                bitmap = bmp,
+                                contentDescription = "头像",
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } ?: Icon(Icons.Filled.Person, "选择头像", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
+                    }
+                    Text("点击选择头像", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            // 基本信息分组
+            DialogSectionTitle("👤 基本信息")
+            OutlinedTextField(name, { name = it }, label = { Text("姓名 *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(relation, { relation = it }, label = { Text("关系（如 本人/父亲/子女）") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+
+            // 个人资料分组
+            DialogSectionTitle("🎂 个人资料")
+            Text("性别", style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                GENDER_OPTIONS.forEach { g ->
+                    FilterChip(
+                        selected = gender == g,
+                        onClick = { gender = if (gender == g) "" else g },
+                        label = {
+                            val icon = when(g) {
+                                "男" -> "♂"
+                                "女" -> "♀"
+                                else -> "⚧"
+                            }
+                            Text("$icon $g")
+                        }
+                    )
+                }
+            }
+
+            val birthdayMillis = parseBirthdayMillis(birthday)
+            var showDatePicker by remember { mutableStateOf(false) }
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .clickable { showDatePicker = true }
             ) {
-                // 头像选择
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                .clickable { galleryLauncher.launch("image/*") },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            avatarBitmap?.let { bmp ->
-                                Image(
-                                    bitmap = bmp,
-                                    contentDescription = "头像",
-                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } ?: Icon(Icons.Filled.Person, "选择头像", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
-                        }
-                        Text("点击选择头像", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-
-                // 基本信息分组
-                DialogSectionTitle("👤 基本信息")
-                OutlinedTextField(name, { name = it }, label = { Text("姓名 *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(relation, { relation = it }, label = { Text("关系（如 本人/父亲/子女）") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-
-                // 个人资料分组
-                DialogSectionTitle("🎂 个人资料")
-                Text("性别", style = MaterialTheme.typography.bodyMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GENDER_OPTIONS.forEach { g ->
-                        FilterChip(
-                            selected = gender == g,
-                            onClick = { gender = if (gender == g) "" else g },
-                            label = {
-                                val icon = when(g) {
-                                    "男" -> "♂"
-                                    "女" -> "♀"
-                                    else -> "⚧"
-                                }
-                                Text("$icon $g")
-                            }
-                        )
-                    }
-                }
-
-                val birthdayMillis = parseBirthdayMillis(birthday)
-                var showDatePicker by remember { mutableStateOf(false) }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showDatePicker = true }
-                ) {
-                    OutlinedTextField(
-                        value = birthday,
-                        onValueChange = {},
-                        readOnly = true,
-                        enabled = false,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            disabledBorderColor = MaterialTheme.colorScheme.outline,
-                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        label = { Text("生日") },
-                        placeholder = { Text("点击选择") },
-                        trailingIcon = {
-                            Icon(Icons.Filled.Person, "选择生日")
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                if (showDatePicker) {
-                    val datePickerState = rememberDatePickerState(
-                        initialSelectedDateMillis = birthdayMillis ?: System.currentTimeMillis()
-                    )
-                    DatePickerDialog(
-                        onDismissRequest = { showDatePicker = false },
-                        confirmButton = {
-                            TextButton(onClick = {
-                                datePickerState.selectedDateMillis?.let { millis ->
-                                    birthday = millisToBirthday(millis)
-                                }
-                                showDatePicker = false
-                            }) { Text("确定") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showDatePicker = false }) { Text("取消") }
-                        }
-                    ) {
-                        DatePicker(state = datePickerState)
-                    }
-                }
-
-                // 健康信息分组
-                DialogSectionTitle("🏥 健康信息")
-                PresetField("血型", bloodType, { bloodType = it }, BLOOD_PRESETS, onPick = { bloodType = it })
-                PresetField("过敏史", allergy, { allergy = it }, ALLERGY_PRESETS, onPick = { allergy = appendCsv(allergy, it) })
-                PresetField("慢性病", chronic, { chronic = it }, CHRONIC_PRESETS, onPick = { chronic = appendCsv(chronic, it) })
-                PresetField("用药注意", medicationNote, { medicationNote = it }, MEDICATION_PRESETS, onPick = { medicationNote = appendCsv(medicationNote, it) })
-
-                // 备注分组
-                DialogSectionTitle("📝 备注")
-                OutlinedTextField(otherNote, { otherNote = it }, label = { Text("其他备注") }, singleLine = false, maxLines = 3, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = birthday,
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    label = { Text("生日") },
+                    placeholder = { Text("点击选择") },
+                    trailingIcon = {
+                        Icon(Icons.Filled.Person, "选择生日")
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-        },
-        confirmButton = {
-            Button(
-                enabled = name.isNotBlank(),
-                onClick = {
-                    val result = FamilyMember(
-                        id = member?.id ?: 0,
-                        name = name.trim(),
-                        relation = relation.trim(),
-                        gender = gender,
-                        birthday = birthday.trim(),
-                        bloodType = bloodType.trim(),
-                        allergy = allergy.trim(),
-                        chronic = chronic.trim(),
-                        medicationNote = medicationNote.trim(),
-                        otherNote = otherNote.trim(),
-                        isDefault = member?.isDefault ?: false,
-                        avatarPath = avatarPath.trim()
-                    )
-                    onSave(result)
+
+            if (showDatePicker) {
+                val datePickerState = rememberDatePickerState(
+                    initialSelectedDateMillis = birthdayMillis ?: System.currentTimeMillis()
+                )
+                DatePickerDialog(
+                    onDismissRequest = { showDatePicker = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            datePickerState.selectedDateMillis?.let { millis ->
+                                birthday = millisToBirthday(millis)
+                            }
+                            showDatePicker = false
+                        }) { Text("确定") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+                    }
+                ) {
+                    DatePicker(state = datePickerState)
                 }
-            ) { Text("保存") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            }
+
+            // 健康信息分组
+            DialogSectionTitle("🏥 健康信息")
+            PresetField("血型", bloodType, { bloodType = it }, BLOOD_PRESETS, onPick = { bloodType = it })
+            PresetField("过敏史", allergy, { allergy = it }, ALLERGY_PRESETS, onPick = { allergy = appendCsv(allergy, it) })
+            PresetField("慢性病", chronic, { chronic = it }, CHRONIC_PRESETS, onPick = { chronic = appendCsv(chronic, it) })
+            PresetField("用药注意", medicationNote, { medicationNote = it }, MEDICATION_PRESETS, onPick = { medicationNote = appendCsv(medicationNote, it) })
+
+            // 备注分组
+            DialogSectionTitle("📝 备注")
+            OutlinedTextField(otherNote, { otherNote = it }, label = { Text("其他备注") }, singleLine = false, maxLines = 3, modifier = Modifier.fillMaxWidth())
+            
+            // 底部按钮行
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f)
+                ) { Text(stringResource(R.string.btn_cancel)) }
+                Button(
+                    onClick = {
+                        val result = FamilyMember(
+                            id = member?.id ?: 0,
+                            name = name.trim(),
+                            relation = relation.trim(),
+                            gender = gender,
+                            birthday = birthday.trim(),
+                            bloodType = bloodType.trim(),
+                            allergy = allergy.trim(),
+                            chronic = chronic.trim(),
+                            medicationNote = medicationNote.trim(),
+                            otherNote = otherNote.trim(),
+                            isDefault = member?.isDefault ?: false,
+                            avatarPath = avatarPath.trim()
+                        )
+                        onSave(result)
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = name.isNotBlank()
+                ) { Text(stringResource(R.string.btn_save)) }
+            }
+            Spacer(Modifier.height(16.dp))
         }
-    )
+    }
 }
 
 @Composable

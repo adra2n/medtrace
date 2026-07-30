@@ -1,16 +1,14 @@
 package com.yy.medtrace.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
@@ -30,6 +28,7 @@ import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.EmptyState
+import com.yy.medtrace.ui.components.MedicalRecordCard
 import com.yy.medtrace.ui.components.MemberSelector
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
@@ -39,7 +38,6 @@ import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.viewmodel.MedicalRecordViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -62,6 +60,8 @@ fun MedicalRecordScreen(
     var toDate by remember { mutableStateOf<LocalDate?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var datePickerTarget by remember { mutableStateOf(DateTarget.From) }
+    var showFilter by remember { mutableStateOf(false) }
+    var showMemberMenu by remember { mutableStateOf(false) }
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
     
     // 分页状态
@@ -163,6 +163,30 @@ fun MedicalRecordScreen(
                 title = stringResource(R.string.medical_record_title),
                 subtitle = if (records.isNotEmpty()) stringResource(R.string.medical_record_subtitle_count, records.size) else null,
                 actions = {
+                    Box {
+                        IconButton(onClick = { showMemberMenu = true }) {
+                            Icon(Icons.Default.People, stringResource(R.string.medical_record_cd_select_member), tint = MaterialTheme.colorScheme.onSurface)
+                        }
+                        DropdownMenu(
+                            expanded = showMemberMenu,
+                            onDismissRequest = { showMemberMenu = false }
+                        ) {
+                            members.forEach { member ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = if (member.relation.isNotBlank()) "${member.name}（${member.relation}）" else member.name,
+                                            color = if (member.id == selectedMemberId) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    onClick = {
+                                        scope.launch { SelectedMemberHolder.select(member.id, database) }
+                                        showMemberMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                     IconButton(onClick = { navController.navigate("add_record") }) {
                         Icon(Icons.Default.Add, stringResource(R.string.medical_record_cd_add), tint = MaterialTheme.colorScheme.onSurface)
                     }
@@ -170,7 +194,10 @@ fun MedicalRecordScreen(
             )
         }
     ) { padding ->
+        val listState = rememberLazyListState()
+
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -233,47 +260,6 @@ fun MedicalRecordScreen(
                 }
             }
 
-            // 成员选择
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = AppShapes.large,
-                    colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                    elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Filled.People,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.medical_record_select_member),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        MemberSelector(
-                            members = members,
-                            selectedMemberId = selectedMemberId,
-                            onSelect = { member -> scope.launch { SelectedMemberHolder.select(member.id, database) } },
-                            emptyHint = stringResource(R.string.medical_record_empty_members)
-                        )
-                    }
-                }
-            }
-
             // 搜索筛选
             item {
                 Card(
@@ -312,36 +298,47 @@ fun MedicalRecordScreen(
                             placeholder = { Text(stringResource(R.string.medical_record_search_placeholder)) },
                             singleLine = true,
                             trailingIcon = {
-                                if (keyword.isNotEmpty()) {
-                                    IconButton(onClick = { keyword = "" }) {
-                                        Icon(Icons.Default.Close, stringResource(R.string.medical_record_cd_clear))
+                                Row {
+                                    if (keyword.isNotEmpty()) {
+                                        IconButton(onClick = { keyword = "" }) {
+                                            Icon(Icons.Default.Close, stringResource(R.string.medical_record_cd_clear))
+                                        }
+                                    }
+                                    IconButton(onClick = { showFilter = !showFilter }) {
+                                        Icon(
+                                            Icons.Default.Settings,
+                                            stringResource(R.string.medical_record_cd_filter),
+                                            tint = if (showFilter || fromDate != null || toDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             },
                             leadingIcon = { Icon(Icons.Default.Search, stringResource(R.string.medical_record_cd_search)) }
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            FilterDateChip(
-                                label = stringResource(R.string.medical_record_filter_from),
-                                value = fromDate?.format(dayFormatter),
-                                onClick = {
-                                    datePickerTarget = DateTarget.From
-                                    showDatePicker = true
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
-                            FilterDateChip(
-                                label = stringResource(R.string.medical_record_filter_to),
-                                value = toDate?.format(dayFormatter),
-                                onClick = {
-                                    datePickerTarget = DateTarget.To
-                                    showDatePicker = true
-                                },
-                                modifier = Modifier.weight(1f)
-                            )
+                        if (showFilter) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                FilterDateChip(
+                                    label = stringResource(R.string.medical_record_filter_from),
+                                    value = fromDate?.format(dayFormatter),
+                                    onClick = {
+                                        datePickerTarget = DateTarget.From
+                                        showDatePicker = true
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                FilterDateChip(
+                                    label = stringResource(R.string.medical_record_filter_to),
+                                    value = toDate?.format(dayFormatter),
+                                    onClick = {
+                                        datePickerTarget = DateTarget.To
+                                        showDatePicker = true
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
                         if (keyword.isNotEmpty() || fromDate != null || toDate != null) {
                             TextButton(
@@ -416,26 +413,20 @@ fun MedicalRecordScreen(
                         onDelete = { pendingDelete = record }
                     )
                 }
-                
-                // 加载更多
-                if (hasMore) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isLoadingMore) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                            } else {
-                                OutlinedButton(onClick = { loadMore() }) {
-                                    Text(stringResource(R.string.medical_record_btn_load_more))
-                                }
-                            }
-                        }
-                    }
-                }
+            }
+        }
+
+        val shouldLoadMore by remember {
+            derivedStateOf {
+                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                val totalItems = listState.layoutInfo.totalItemsCount
+                lastVisibleItem >= totalItems - 3 && !isLoadingMore && hasMore
+            }
+        }
+
+        LaunchedEffect(shouldLoadMore) {
+            if (shouldLoadMore) {
+                loadMore()
             }
         }
     }
@@ -507,189 +498,7 @@ private fun StatItem(
     }
 }
 
-@Composable
-private fun MedicalRecordCard(
-    record: MedicalRecord,
-    dateFormatter: DateTimeFormatter,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // 卡片头部：成员名称和时间（同一行）
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.People,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = record.patientName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Text(
-                    text = record.onsetTime.format(dateFormatter),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            // 卡片内容
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // 诊断信息
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.MedicalServices,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text = record.diagnosis,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                // 就诊医院
-                if (record.hospital.isNotBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = record.hospital,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // 开具药品
-                if (record.medItems.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.MedicalServices,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = stringResource(R.string.medical_record_prescribed_meds),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        record.medItems.forEach { med ->
-                            val parts = listOf(med.name, med.dose, med.freq, med.duration)
-                                .filter { it.isNotBlank() }
-                                .joinToString(" ")
-                            Row(
-                                modifier = Modifier.padding(start = 26.dp)
-                            ) {
-                                Text(
-                                    text = "·",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    text = parts,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // 备注
-                if (record.notes.isNotBlank()) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = record.notes,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            // 操作按钮行
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(
-                    onClick = onEdit,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    modifier = Modifier.defaultMinSize(minHeight = 48.dp)
-                ) {
-                    Icon(Icons.Default.Edit, stringResource(R.string.btn_edit), modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.btn_edit))
-                }
-                Spacer(Modifier.width(8.dp))
-                TextButton(
-                    onClick = onDelete,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Icon(Icons.Default.Delete, stringResource(R.string.btn_delete), modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.btn_delete))
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -200,6 +200,8 @@ fun AddMedicalRecordScreen(
         }
     }
 
+    val canSave = selectedMemberId != null
+
     Scaffold(
         topBar = {
             GradientTopBar(
@@ -216,6 +218,85 @@ fun AddMedicalRecordScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            Surface(shadowElevation = 4.dp) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .navigationBarsPadding(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.screen_add_record_btn_cancel))
+                    }
+                    Button(
+                        onClick = {
+                            val selectedMember = members.firstOrNull { it.id == selectedMemberId }
+                            if (selectedMemberId == null || selectedMember == null) {
+                                error = context.getString(R.string.screen_add_record_error_select_member)
+                                return@Button
+                            }
+                            if (diagnosis.isBlank() || medItems.isEmpty()) {
+                                error = context.getString(R.string.screen_add_record_error_fill_required)
+                                return@Button
+                            }
+
+                            val dosage = medItems.firstOrNull { it.dose.isNotBlank() }?.dose ?: ""
+                            val frequency = medItems.map { it.freq }.filter { it.isNotBlank() }
+                                .distinct().joinToString("；")
+
+                            val metricsJson = analysisResult?.metrics?.takeIf { it.isNotEmpty() }
+                                ?.let { encodeMetrics(it) }
+                                ?: existingMetricsJson
+
+                            val record = MedicalRecord(
+                                id = existingId ?: 0,
+                                patientId = selectedMember.id,
+                                patientName = selectedMember.name,
+                                diagnosis = diagnosis,
+                                onsetTime = onsetTime,
+                                hospital = hospital,
+                                medItems = medItems,
+                                frequency = frequency,
+                                dosage = dosage,
+                                notes = notes,
+                                metricsJson = metricsJson
+                            )
+
+                            scope.launch {
+                                try {
+                                    if (existingId != null) {
+                                        database.medicalRecordDao().update(record)
+                                        android.util.Log.d("AddRecord", "updated id=${record.id}")
+                                    } else {
+                                        val id = database.medicalRecordDao().insert(record)
+                                        val count = database.medicalRecordDao().count()
+                                        android.util.Log.d("AddRecord", "inserted id=$id, total=$count")
+                                    }
+                                    SelectedMemberHolder.select(selectedMember.id, database)
+                                    Toast.makeText(context, context.getString(R.string.screen_add_record_toast_save_success), Toast.LENGTH_SHORT).show()
+                                    navController.navigate("medical_records") {
+                                        popUpTo("medical_records") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                } catch (e: Exception) {
+                                    error = e.message ?: context.getString(R.string.screen_add_record_error_save_failed)
+                                    e.printStackTrace()
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = canSave
+                    ) {
+                        Text(stringResource(R.string.screen_add_record_btn_save))
+                    }
+                }
+            }
         }
     ) { padding ->
         Column(
@@ -242,6 +323,126 @@ fun AddMedicalRecordScreen(
                     onSelect = { selectedMemberId = it.id },
                     emptyHint = stringResource(R.string.screen_add_record_empty_members)
                 )
+            }
+
+            // 基本信息
+            SectionCard(title = stringResource(R.string.screen_add_record_section_basic_info)) {
+                OutlinedTextField(
+                    value = diagnosis,
+                    onValueChange = { diagnosis = it },
+                    label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_type)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = hospital,
+                    onValueChange = { hospital = it },
+                    label = { Text(stringResource(R.string.screen_add_record_label_hospital)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedButton(
+                    onClick = {
+                        val currentDateTime = onsetTime
+                        DatePickerDialog(
+                            context,
+                            { _, year, month, dayOfMonth ->
+                                TimePickerDialog(
+                                    context,
+                                    { _, hourOfDay, minute ->
+                                        onsetTime = LocalDateTime.of(
+                                            year, month + 1, dayOfMonth,
+                                            hourOfDay, minute
+                                        )
+                                    },
+                                    currentDateTime.hour,
+                                    currentDateTime.minute,
+                                    true
+                                ).show()
+                            },
+                            currentDateTime.year,
+                            currentDateTime.monthValue - 1,
+                            currentDateTime.dayOfMonth
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.DateRange, stringResource(R.string.screen_add_record_icon_select_datetime))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.screen_add_record_label_visit_time, onsetTime.format(dateTimeFormatter)))
+                }
+            }
+
+            // 用药记录
+            SectionCard(title = stringResource(R.string.screen_add_record_section_medication)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    medItems.forEachIndexed { index, item ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = AppShapes.medium,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(stringResource(R.string.screen_add_record_label_medication_number, index + 1), style = MaterialTheme.typography.titleSmall)
+                                    OutlinedButton(
+                                        onClick = { medItems = medItems.filterIndexed { i, _ -> i != index } },
+                                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                    ) {
+                                        Icon(Icons.Default.Delete, stringResource(R.string.screen_add_record_icon_delete), modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(stringResource(R.string.screen_add_record_icon_delete))
+                                    }
+                                }
+                                OutlinedTextField(
+                                    value = item.name,
+                                    onValueChange = { medItems = medItems.updateAt(index) { copy(name = it) } },
+                                    label = { Text(stringResource(R.string.screen_add_record_label_medication_name)) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = item.dose,
+                                        onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
+                                        label = { Text(stringResource(R.string.screen_add_record_label_dosage)) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    OutlinedTextField(
+                                        value = item.freq,
+                                        onValueChange = { medItems = medItems.updateAt(index) { copy(freq = it) } },
+                                        label = { Text(stringResource(R.string.screen_add_record_label_frequency)) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                OutlinedTextField(
+                                    value = item.duration,
+                                    onValueChange = { medItems = medItems.updateAt(index) { copy(duration = it) } },
+                                    label = { Text(stringResource(R.string.screen_add_record_label_duration)) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                    Button(
+                        onClick = { medItems = medItems + MedicationItem() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(R.string.screen_add_record_btn_add_medication))
+                    }
+                }
             }
 
             // AI 智能识别区（需要配置 AI 才能使用）
@@ -385,126 +586,6 @@ fun AddMedicalRecordScreen(
                 }
             }
 
-            // 基本信息
-            SectionCard(title = stringResource(R.string.screen_add_record_section_basic_info)) {
-                OutlinedTextField(
-                    value = diagnosis,
-                    onValueChange = { diagnosis = it },
-                    label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_type)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = hospital,
-                    onValueChange = { hospital = it },
-                    label = { Text(stringResource(R.string.screen_add_record_label_hospital)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedButton(
-                    onClick = {
-                        val currentDateTime = onsetTime
-                        DatePickerDialog(
-                            context,
-                            { _, year, month, dayOfMonth ->
-                                TimePickerDialog(
-                                    context,
-                                    { _, hourOfDay, minute ->
-                                        onsetTime = LocalDateTime.of(
-                                            year, month + 1, dayOfMonth,
-                                            hourOfDay, minute
-                                        )
-                                    },
-                                    currentDateTime.hour,
-                                    currentDateTime.minute,
-                                    true
-                                ).show()
-                            },
-                            currentDateTime.year,
-                            currentDateTime.monthValue - 1,
-                            currentDateTime.dayOfMonth
-                        ).show()
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.DateRange, stringResource(R.string.screen_add_record_icon_select_datetime))
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.screen_add_record_label_visit_time, onsetTime.format(dateTimeFormatter)))
-                }
-            }
-
-            // 用药记录
-            SectionCard(title = stringResource(R.string.screen_add_record_section_medication)) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    medItems.forEachIndexed { index, item ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = AppShapes.medium,
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(stringResource(R.string.screen_add_record_label_medication_number, index + 1), style = MaterialTheme.typography.titleSmall)
-                                    OutlinedButton(
-                                        onClick = { medItems = medItems.filterIndexed { i, _ -> i != index } },
-                                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                                    ) {
-                                        Icon(Icons.Default.Delete, stringResource(R.string.screen_add_record_icon_delete), modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(stringResource(R.string.screen_add_record_icon_delete))
-                                    }
-                                }
-                                OutlinedTextField(
-                                    value = item.name,
-                                    onValueChange = { medItems = medItems.updateAt(index) { copy(name = it) } },
-                                    label = { Text(stringResource(R.string.screen_add_record_label_medication_name)) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = item.dose,
-                                        onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
-                                        label = { Text(stringResource(R.string.screen_add_record_label_dosage)) },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    OutlinedTextField(
-                                        value = item.freq,
-                                        onValueChange = { medItems = medItems.updateAt(index) { copy(freq = it) } },
-                                        label = { Text(stringResource(R.string.screen_add_record_label_frequency)) },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                OutlinedTextField(
-                                    value = item.duration,
-                                    onValueChange = { medItems = medItems.updateAt(index) { copy(duration = it) } },
-                                    label = { Text(stringResource(R.string.screen_add_record_label_duration)) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-                    Button(
-                        onClick = { medItems = medItems + MedicationItem() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.screen_add_record_btn_add_medication))
-                    }
-                }
-            }
-
             // 备注
             SectionCard(title = stringResource(R.string.screen_add_record_section_notes)) {
                 OutlinedTextField(
@@ -515,80 +596,6 @@ fun AddMedicalRecordScreen(
                     singleLine = false,
                     maxLines = 3
                 )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val canSave = selectedMemberId != null
-                OutlinedButton(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.screen_add_record_btn_cancel))
-                }
-                Button(
-                    onClick = {
-                        val selectedMember = members.firstOrNull { it.id == selectedMemberId }
-                        if (selectedMemberId == null || selectedMember == null) {
-                            error = context.getString(R.string.screen_add_record_error_select_member)
-                            return@Button
-                        }
-                        if (diagnosis.isBlank() || medItems.isEmpty()) {
-                            error = context.getString(R.string.screen_add_record_error_fill_required)
-                            return@Button
-                        }
-
-                        val dosage = medItems.firstOrNull { it.dose.isNotBlank() }?.dose ?: ""
-                        val frequency = medItems.map { it.freq }.filter { it.isNotBlank() }
-                            .distinct().joinToString("；")
-
-                        val metricsJson = analysisResult?.metrics?.takeIf { it.isNotEmpty() }
-                            ?.let { encodeMetrics(it) }
-                            ?: existingMetricsJson
-
-                        val record = MedicalRecord(
-                            id = existingId ?: 0,
-                            patientId = selectedMember.id,
-                            patientName = selectedMember.name,
-                            diagnosis = diagnosis,
-                            onsetTime = onsetTime,
-                            hospital = hospital,
-                            medItems = medItems,
-                            frequency = frequency,
-                            dosage = dosage,
-                            notes = notes,
-                            metricsJson = metricsJson
-                        )
-
-                        scope.launch {
-                            try {
-                                if (existingId != null) {
-                                    database.medicalRecordDao().update(record)
-                                    android.util.Log.d("AddRecord", "updated id=${record.id}")
-                                } else {
-                                    val id = database.medicalRecordDao().insert(record)
-                                    val count = database.medicalRecordDao().count()
-                                    android.util.Log.d("AddRecord", "inserted id=$id, total=$count")
-                                }
-                                SelectedMemberHolder.select(selectedMember.id, database)
-                                Toast.makeText(context, context.getString(R.string.screen_add_record_toast_save_success), Toast.LENGTH_SHORT).show()
-                                navController.navigate("medical_records") {
-                                    popUpTo("medical_records") { inclusive = true }
-                                    launchSingleTop = true
-                                }
-                            } catch (e: Exception) {
-                                error = e.message ?: context.getString(R.string.screen_add_record_error_save_failed)
-                                e.printStackTrace()
-                            }
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    enabled = canSave
-                ) {
-                    Text(stringResource(R.string.screen_add_record_btn_save))
-                }
             }
         }
     }

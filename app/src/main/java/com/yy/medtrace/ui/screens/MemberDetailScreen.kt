@@ -167,7 +167,7 @@ fun MemberDetailScreen(
                         item { EmptyRecords() }
                     } else {
                         items(medicationRecords, key = { it.id }) { record ->
-                            MedicalRecordCard(record)
+                            MedicalRecordCard(record, showActions = false)
                         }
                     }
                 }
@@ -176,7 +176,7 @@ fun MemberDetailScreen(
                         item { EmptyRecords() }
                     } else {
                         items(examRecords, key = { it.id }) { record ->
-                            MedicalRecordCard(record)
+                            MedicalRecordCard(record, showActions = false)
                         }
                     }
                 }
@@ -218,7 +218,7 @@ fun MemberDetailScreen(
                         item { EmptyRecords() }
                     } else {
                         items(visitRecords, key = { it.id }) { record ->
-                            MedicalRecordCard(record)
+                            MedicalRecordCard(record, showActions = false)
                         }
                     }
                 }
