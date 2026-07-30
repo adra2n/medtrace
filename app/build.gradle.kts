@@ -17,8 +17,8 @@ android {
         targetSdk = 35
         // versionCode 约定：每个 minor 版本 +1（v2.0.0 = 10）。
         // versionCode = 10 + minor * 1 + patch
-        versionCode = 30
-        versionName = "v3.8.1"
+        versionCode = 31
+        versionName = "v3.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
