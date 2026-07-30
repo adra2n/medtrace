@@ -14,16 +14,21 @@ data class ComprehensiveResult(
 
 class ComprehensiveAnalysisUseCase(settings: LlmSettingsStore) : BaseLlmUseCase(settings) {
 
-    private fun buildSummary(member: FamilyMember, records: List<MedicalRecord>): String {
+    private fun buildSummary(member: FamilyMember, records: List<MedicalRecord>, maskPii: Boolean = false): String {
+        val name = if (maskPii) "成员A" else member.name
+        val birthday = if (maskPii) "****" else member.birthday
+        val allergy = if (maskPii && member.allergy.isNotBlank()) "有（已脱敏）" else member.allergy
+        val chronic = if (maskPii && member.chronic.isNotBlank()) "有（已脱敏）" else member.chronic
+        val medNote = if (maskPii && member.medicationNote.isNotBlank()) "有（已脱敏）" else member.medicationNote
         val profile = buildString {
-            append("成员：${member.name}")
+            append("成员：$name")
             if (member.relation.isNotBlank()) append("（${member.relation}）")
             if (member.gender.isNotBlank()) append("，性别：${member.gender}")
-            if (member.birthday.isNotBlank()) append("，生日：${member.birthday}")
+            if (birthday.isNotBlank()) append("，生日：$birthday")
             if (member.bloodType.isNotBlank()) append("，血型：${member.bloodType}")
-            if (member.allergy.isNotBlank()) append("；过敏史：${member.allergy}")
-            if (member.chronic.isNotBlank()) append("；慢性病：${member.chronic}")
-            if (member.medicationNote.isNotBlank()) append("；用药注意：${member.medicationNote}")
+            if (allergy.isNotBlank()) append("；过敏史：$allergy")
+            if (chronic.isNotBlank()) append("；慢性病：$chronic")
+            if (medNote.isNotBlank()) append("；用药注意：$medNote")
         }
         val recordsText = if (records.isEmpty()) {
             "（该成员暂无医疗记录）"
@@ -65,9 +70,33 @@ $summary
 仅输出 JSON，不要额外说明。
 """.trimIndent()
 
-    suspend fun analyze(member: FamilyMember, records: List<MedicalRecord>): ComprehensiveResult {
+    data class DataOverview(
+        val name: String,
+        val hasRelation: Boolean,
+        val hasGender: Boolean,
+        val hasBirthday: Boolean,
+        val hasBloodType: Boolean,
+        val hasAllergy: Boolean,
+        val hasChronic: Boolean,
+        val hasMedicationNote: Boolean,
+        val recordCount: Int
+    )
+
+    fun buildOverview(member: FamilyMember, records: List<MedicalRecord>): DataOverview = DataOverview(
+        name = member.name,
+        hasRelation = member.relation.isNotBlank(),
+        hasGender = member.gender.isNotBlank(),
+        hasBirthday = member.birthday.isNotBlank(),
+        hasBloodType = member.bloodType.isNotBlank(),
+        hasAllergy = member.allergy.isNotBlank(),
+        hasChronic = member.chronic.isNotBlank(),
+        hasMedicationNote = member.medicationNote.isNotBlank(),
+        recordCount = records.size
+    )
+
+    suspend fun analyze(member: FamilyMember, records: List<MedicalRecord>, maskPii: Boolean = false): ComprehensiveResult {
         val model = getModel()
-        val prompt = buildPrompt(buildSummary(member, records))
+        val prompt = buildPrompt(buildSummary(member, records, maskPii))
         val req = ChatRequest(model, listOf(Message("user", JsonPrimitive(prompt))))
         val raw = callApi(req)
         return runCatching { parse(raw) }.getOrDefault(ComprehensiveResult(raw = raw))
