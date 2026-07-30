@@ -93,6 +93,7 @@ fun AddMedicalRecordScreen(
     var analysisError by remember { mutableStateOf<String?>(null) }
     var analysisJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var analysisProgress by remember { mutableStateOf("") }
+    var showConsent by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -152,7 +153,7 @@ fun AddMedicalRecordScreen(
         scope.launch(Dispatchers.IO) {
             uriToBitmap(context, uri)?.let { bmp ->
                 images = images + bmp
-                runAnalysis()
+                showConsent = true
             }
         }
     }
@@ -355,7 +356,7 @@ fun AddMedicalRecordScreen(
 
                     if (noteText.isNotBlank()) {
                         OutlinedButton(
-                            onClick = { runAnalysis() },
+                            onClick = { showConsent = true },
                             enabled = !analyzing,
                             modifier = Modifier.fillMaxWidth()
                         ) { Text(stringResource(R.string.screen_add_record_btn_analyze_text)) }
@@ -591,6 +592,27 @@ fun AddMedicalRecordScreen(
                 }
             }
         }
+    }
+
+    if (showConsent) {
+        AlertDialog(
+            onDismissRequest = { showConsent = false },
+            title = { Text(stringResource(R.string.screen_add_record_consent_title)) },
+            text = { Text(stringResource(R.string.screen_add_record_consent_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConsent = false
+                    runAnalysis()
+                }) {
+                    Text(stringResource(R.string.btn_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConsent = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
     }
 }
 

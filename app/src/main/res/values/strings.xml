@@ -53,6 +53,9 @@
     <string name="screen_add_record_error_recognition_with_detail">识别失败：%1$s</string>
     <string name="screen_add_record_label_paste_text">粘贴文本（可选，如病历文字）</string>
     <string name="screen_add_record_btn_analyze_text">分析文本</string>
+    <string name="btn_confirm">确定</string>
+    <string name="screen_add_record_consent_title">隐私提示</string>
+    <string name="screen_add_record_consent_message">AI 分析会将您输入的文字和拍摄的图片发送到您配置的第三方端点。请确认您信任该服务提供商后再继续。</string>
     <string name="screen_add_record_disclaimer">识别结果仅供参考，请以实际病历为准</string>
     <string name="screen_add_record_label_diagnosis_type">就诊类型</string>
     <string name="screen_add_record_label_hospital">就诊医院（可选）</string>
@@ -272,6 +275,7 @@
     <string name="settings_btn_upgrade_price">立即升级 ¥9.90</string>
     <string name="settings_title_ai_config">AI 配置</string>
     <string name="settings_ai_description">配置你自己的 OpenAI 兼容大模型（Base URL / Key / 模型名）。密钥仅保存在本机。</string>
+    <string name="settings_ai_privacy_warning">⚠ AI 分析会将您输入的文字和拍摄的图片发送到上述端点，请确认您信任该服务提供商。</string>
     <string name="settings_label_model_name">模型名（如 gpt-4o）</string>
     <string name="settings_cd_hide_key">隐藏 Key</string>
     <string name="settings_cd_show_key">显示 Key</string>

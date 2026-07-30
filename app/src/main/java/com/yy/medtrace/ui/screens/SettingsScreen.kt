@@ -728,6 +728,11 @@ fun SettingsScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Text(
+                                stringResource(R.string.settings_ai_privacy_warning),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                            )
                             OutlinedTextField(
                                 value = llmBaseUrl,
                                 onValueChange = { llmBaseUrl = it },
