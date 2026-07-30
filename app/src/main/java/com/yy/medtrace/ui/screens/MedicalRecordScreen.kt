@@ -21,10 +21,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.EmptyState
@@ -158,11 +160,11 @@ fun MedicalRecordScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "就诊记录",
-                subtitle = if (records.isNotEmpty()) "共 ${records.size} 条记录" else null,
+                title = stringResource(R.string.medical_record_title),
+                subtitle = if (records.isNotEmpty()) stringResource(R.string.medical_record_subtitle_count, records.size) else null,
                 actions = {
                     IconButton(onClick = { navController.navigate("add_record") }) {
-                        Icon(Icons.Default.Add, "添加记录", tint = androidx.compose.ui.graphics.Color.White)
+                        Icon(Icons.Default.Add, stringResource(R.string.medical_record_cd_add), tint = androidx.compose.ui.graphics.Color.White)
                     }
                 }
             )
@@ -199,7 +201,7 @@ fun MedicalRecordScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = "记录概览",
+                                    text = stringResource(R.string.medical_record_overview),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -210,19 +212,19 @@ fun MedicalRecordScreen(
                             ) {
                                 StatItem(
                                     value = records.size.toString(),
-                                    label = "总记录",
+                                    label = stringResource(R.string.medical_record_stat_total),
                                     modifier = Modifier.weight(1f)
                                 )
                                 StatItem(
                                     value = records.count {
                                         it.onsetTime.month == java.time.Month.from(java.time.LocalDate.now())
                                     }.toString(),
-                                    label = "本月",
+                                    label = stringResource(R.string.medical_record_stat_month),
                                     modifier = Modifier.weight(1f)
                                 )
                                 StatItem(
                                     value = records.sumOf { it.medItems.size }.toString(),
-                                    label = "药品",
+                                    label = stringResource(R.string.medical_record_stat_medications),
                                     modifier = Modifier.weight(1f)
                                 )
                             }
@@ -257,7 +259,7 @@ fun MedicalRecordScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "选择成员",
+                                text = stringResource(R.string.medical_record_select_member),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -266,7 +268,7 @@ fun MedicalRecordScreen(
                             members = members,
                             selectedMemberId = selectedMemberId,
                             onSelect = { member -> scope.launch { SelectedMemberHolder.select(member.id, database) } },
-                            emptyHint = "暂无家庭成员，请先在家庭中添加"
+                            emptyHint = stringResource(R.string.medical_record_empty_members)
                         )
                     }
                 }
@@ -298,7 +300,7 @@ fun MedicalRecordScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "搜索筛选",
+                                text = stringResource(R.string.medical_record_search_filter),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -307,23 +309,23 @@ fun MedicalRecordScreen(
                             value = keyword,
                             onValueChange = { keyword = it },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("搜索就诊类型 / 医院 / 备注") },
+                            placeholder = { Text(stringResource(R.string.medical_record_search_placeholder)) },
                             singleLine = true,
                             trailingIcon = {
                                 if (keyword.isNotEmpty()) {
                                     IconButton(onClick = { keyword = "" }) {
-                                        Icon(Icons.Default.Close, "清除")
+                                        Icon(Icons.Default.Close, stringResource(R.string.medical_record_cd_clear))
                                     }
                                 }
                             },
-                            leadingIcon = { Icon(Icons.Default.Search, "搜索") }
+                            leadingIcon = { Icon(Icons.Default.Search, stringResource(R.string.medical_record_cd_search)) }
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             FilterDateChip(
-                                label = "起始",
+                                label = stringResource(R.string.medical_record_filter_from),
                                 value = fromDate?.format(dayFormatter),
                                 onClick = {
                                     datePickerTarget = DateTarget.From
@@ -332,7 +334,7 @@ fun MedicalRecordScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             FilterDateChip(
-                                label = "结束",
+                                label = stringResource(R.string.medical_record_filter_to),
                                 value = toDate?.format(dayFormatter),
                                 onClick = {
                                     datePickerTarget = DateTarget.To
@@ -350,7 +352,7 @@ fun MedicalRecordScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("重置筛选")
+                                Text(stringResource(R.string.medical_record_btn_reset))
                             }
                         }
                     }
@@ -372,7 +374,7 @@ fun MedicalRecordScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "记录列表",
+                            text = stringResource(R.string.medical_record_list_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -387,7 +389,7 @@ fun MedicalRecordScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("加载数据时出错：$error", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.medical_record_error_loading, error ?: ""), color = MaterialTheme.colorScheme.error)
                     }
                 }
             } else if (records.isEmpty()) {
@@ -395,12 +397,12 @@ fun MedicalRecordScreen(
                     EmptyState(
                         icon = Icons.Default.MedicalServices,
                         title = if (keyword.isNotEmpty() || fromDate != null || toDate != null) {
-                            "没有符合筛选条件的记录"
+                            stringResource(R.string.medical_record_empty_no_match)
                         } else {
-                            "该成员还没有就诊记录"
+                            stringResource(R.string.medical_record_empty_no_records)
                         },
                         hint = if (keyword.isEmpty() && fromDate == null && toDate == null) {
-                            "点击右上角 + 按钮添加第一条记录"
+                            stringResource(R.string.medical_record_empty_hint)
                         } else null,
                         modifier = Modifier.padding(top = 32.dp)
                     )
@@ -428,7 +430,7 @@ fun MedicalRecordScreen(
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
                             } else {
                                 OutlinedButton(onClick = { loadMore() }) {
-                                    Text("加载更多")
+                                    Text(stringResource(R.string.medical_record_btn_load_more))
                                 }
                             }
                         }
@@ -457,8 +459,8 @@ fun MedicalRecordScreen(
     pendingDelete?.let { record ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("删除就诊记录") },
-            text = { Text("确定删除「${record.diagnosis}」这条记录？此操作不可撤销。") },
+            title = { Text(stringResource(R.string.medical_record_dialog_delete_title)) },
+            text = { Text(stringResource(R.string.medical_record_dialog_delete_message, record.diagnosis)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
@@ -470,10 +472,10 @@ fun MedicalRecordScreen(
                         }
                     }
                     pendingDelete = null
-                }) { Text("删除") }
+                }) { Text(stringResource(R.string.btn_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("取消") }
+                TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
     }
@@ -606,7 +608,7 @@ private fun MedicalRecordCard(
                             )
                             Spacer(Modifier.width(10.dp))
                             Text(
-                                text = "开具药品",
+                                text = stringResource(R.string.medical_record_prescribed_meds),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -669,9 +671,9 @@ private fun MedicalRecordCard(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                     modifier = Modifier.height(32.dp)
                 ) {
-                    Icon(Icons.Default.Edit, "编辑", modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Edit, stringResource(R.string.btn_edit), modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("编辑")
+                    Text(stringResource(R.string.btn_edit))
                 }
                 Spacer(Modifier.width(8.dp))
                 TextButton(
@@ -680,9 +682,9 @@ private fun MedicalRecordCard(
                     modifier = Modifier.height(32.dp),
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Icon(Icons.Default.Delete, "删除", modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Delete, stringResource(R.string.btn_delete), modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("删除")
+                    Text(stringResource(R.string.btn_delete))
                 }
             }
         }

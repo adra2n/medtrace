@@ -19,10 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.ui.components.MemberAvatar
@@ -61,7 +63,7 @@ fun ProfileScreen(
 
     Scaffold(
         topBar = {
-            GradientTopBar(title = "我的")
+            GradientTopBar(title = stringResource(R.string.profile_title))
         }
     ) { padding ->
         Column(
@@ -116,7 +118,7 @@ fun ProfileScreen(
                             }
                         }
                         Text(
-                            defaultMember?.name ?: "我的医迹",
+                            defaultMember?.name ?: stringResource(R.string.profile_default_name),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -129,9 +131,9 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatItem(count = "${uiState.recordCount}", label = "就诊记录")
-                        StatItem(count = "${uiState.memberCount}", label = "家庭成员")
-                        StatItem(count = "${uiState.todoCount}", label = "待办提醒")
+                        StatItem(count = "${uiState.recordCount}", label = stringResource(R.string.profile_stat_records))
+                        StatItem(count = "${uiState.memberCount}", label = stringResource(R.string.profile_stat_members))
+                        StatItem(count = "${uiState.todoCount}", label = stringResource(R.string.profile_stat_todos))
                     }
                 }
             }
@@ -168,13 +170,13 @@ fun ProfileScreen(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "解锁高级版",
+                                stringResource(R.string.profile_premium_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "¥9.90 一次购买，永久使用",
+                                stringResource(R.string.profile_premium_subtitle),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.8f)
                             )
@@ -197,8 +199,8 @@ fun ProfileScreen(
             ) {
                 ProfileMenuItem(
                     icon = Icons.Default.Settings,
-                    title = "设置",
-                    subtitle = "隐私、备份与偏好",
+                    title = stringResource(R.string.profile_menu_settings),
+                    subtitle = stringResource(R.string.profile_menu_settings_desc),
                     onClick = { navController.navigate(Screen.Settings.route) }
                 )
             }
@@ -213,28 +215,28 @@ fun ProfileScreen(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     ProfileMenuItem(
                         icon = Icons.Default.Help,
-                        title = "帮助中心",
-                        subtitle = "使用说明与常见问题",
+                        title = stringResource(R.string.profile_menu_help),
+                        subtitle = stringResource(R.string.profile_menu_help_desc),
                         onClick = { showHelpDialog = true }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
                     ProfileMenuItem(
                         icon = Icons.Default.Feedback,
-                        title = "意见反馈",
-                        subtitle = "提交建议或问题",
-                        onClick = {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
-                                data = android.net.Uri.parse("mailto:cljkle@163.com")
-                                putExtra(android.content.Intent.EXTRA_SUBJECT, "医迹意见反馈")
-                            }
-                            context.startActivity(android.content.Intent.createChooser(intent, "发送邮件"))
+                        title = stringResource(R.string.profile_menu_feedback),
+                        subtitle = stringResource(R.string.profile_menu_feedback_desc),
+                    onClick = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                            data = android.net.Uri.parse("mailto:cljkle@163.com")
+                            putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.profile_email_subject))
+                        }
+                        context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.profile_chooser_send_email)))
                         }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
                     ProfileMenuItem(
                         icon = Icons.Default.RateReview,
-                        title = "给我们评分",
-                        subtitle = "去应用商店评分",
+                        title = stringResource(R.string.profile_menu_rate),
+                        subtitle = stringResource(R.string.profile_menu_rate_desc),
                         onClick = { 
                             try {
                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
@@ -242,7 +244,7 @@ fun ProfileScreen(
                                 }
                                 context.startActivity(intent)
                             } catch (e: Exception) {
-                                Toast.makeText(context, "无法打开应用商店", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.profile_toast_cannot_open_store), Toast.LENGTH_SHORT).show()
                             }
                         }
                     )
@@ -259,15 +261,15 @@ fun ProfileScreen(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     ProfileMenuItem(
                         icon = Icons.Default.Policy,
-                        title = "隐私政策",
-                        subtitle = "查看隐私政策",
+                        title = stringResource(R.string.profile_menu_privacy),
+                        subtitle = stringResource(R.string.profile_menu_privacy_desc),
                         onClick = { navController.navigate("privacy_policy") }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
                     ProfileMenuItem(
                         icon = Icons.Default.Description,
-                        title = "用户协议",
-                        subtitle = "查看用户协议",
+                        title = stringResource(R.string.profile_menu_terms),
+                        subtitle = stringResource(R.string.profile_menu_terms_desc),
                         onClick = { navController.navigate("user_agreement") }
                     )
                 }
@@ -282,7 +284,7 @@ fun ProfileScreen(
             ) {
                 ProfileMenuItem(
                     icon = Icons.Default.Info,
-                    title = "关于",
+                    title = stringResource(R.string.profile_menu_about),
                     subtitle = "版本 $appVersion",
                     onClick = { }
                 )
@@ -297,12 +299,12 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "医迹 MedTrace",
+                    text = stringResource(R.string.profile_app_name),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "© 2026 天津市津南区亦阳智创软件开发工作室",
+                    text = stringResource(R.string.profile_copyright),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -394,7 +396,7 @@ private fun HelpDialog(onDismiss: () -> Unit) {
         },
         title = {
             Text(
-                "帮助中心",
+                stringResource(R.string.profile_help_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -404,30 +406,30 @@ private fun HelpDialog(onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 HelpItem(
-                    title = "如何添加家庭成员？",
-                    content = "点击首页右上角「+」按钮，选择「添加家庭成员」，填写基本信息即可。"
+                    title = stringResource(R.string.profile_help_add_member_title),
+                    content = stringResource(R.string.profile_help_add_member_content)
                 )
                 HelpItem(
-                    title = "如何添加就诊记录？",
-                    content = "点击首页「就诊记录」卡片，可选择拍照识别或手动录入。"
+                    title = stringResource(R.string.profile_help_add_record_title),
+                    content = stringResource(R.string.profile_help_add_record_content)
                 )
                 HelpItem(
-                    title = "AI智能识别如何使用？",
-                    content = "在设置 → AI配置中添加API Key，即可使用拍照识别功能。"
+                    title = stringResource(R.string.profile_help_ai_title),
+                    content = stringResource(R.string.profile_help_ai_content)
                 )
                 HelpItem(
-                    title = "数据如何备份？",
-                    content = "在设置 → 数据备份与同步中配置GitHub Token，即可备份数据。"
+                    title = stringResource(R.string.profile_help_backup_title),
+                    content = stringResource(R.string.profile_help_backup_content)
                 )
                 HelpItem(
-                    title = "如何联系客服？",
-                    content = "通过意见反馈发送邮件至 cljkle@163.com，我们会在24小时内回复。"
+                    title = stringResource(R.string.profile_help_contact_title),
+                    content = stringResource(R.string.profile_help_contact_content)
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("知道了", color = Primary)
+                Text(stringResource(R.string.profile_btn_got_it), color = Primary)
             }
         }
     )

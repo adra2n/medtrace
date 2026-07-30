@@ -15,7 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
+import com.yy.medtrace.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
@@ -149,7 +151,7 @@ fun SettingsScreen(
             applySecureScreenFlag(secureScreen)
             viewModel.database.userSettingsDao().insertOrUpdate((settings ?: UserSettings()).copy(darkMode = darkMode))
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.settings_toast_saved), Toast.LENGTH_SHORT).show()
                 backToPrevious()
             }
         }
@@ -169,7 +171,7 @@ fun SettingsScreen(
     // 将文件/网络内容解析为 BackupData：自动识别 ENC: 密文并按加密密码解密
     suspend fun parseBackupContent(content: String): com.yy.medtrace.data.backup.BackupData {
         val text = if (content.startsWith("ENC:")) {
-            if (encryptPassword.isBlank()) throw IllegalStateException("该备份已加密，请先在上方填写加密密码")
+            if (encryptPassword.isBlank()) throw IllegalStateException(context.getString(R.string.settings_backup_encrypted_error))
             CryptoUtil.decrypt(content.removePrefix("ENC:"), encryptPassword)
         } else {
             content
@@ -188,11 +190,11 @@ fun SettingsScreen(
                     os.write(content.toByteArray(Charsets.UTF_8))
                 }
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "备份已导出", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_exported), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "导出失败：${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -206,15 +208,15 @@ fun SettingsScreen(
             try {
                 val content = context.contentResolver.openInputStream(uri)
                     ?.bufferedReader(Charsets.UTF_8)?.readText()
-                    ?: throw IllegalStateException("无法读取文件")
+                    ?: throw IllegalStateException(context.getString(R.string.settings_error_cannot_read_file))
                 val data = parseBackupContent(content)
                 backupRepository.importAll(data)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "备份已恢复", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_restored), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "恢复失败：${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_restore_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -222,7 +224,7 @@ fun SettingsScreen(
 
     fun syncToGist() {
         if (githubToken.isBlank()) {
-            backupError = "请先填写 GitHub Token"
+            backupError = context.getString(R.string.settings_error_fill_github_token)
             return
         }
         scope.launch(Dispatchers.IO) {
@@ -233,11 +235,11 @@ fun SettingsScreen(
                 syncSettings.setGistId(id)
                 existingGistId = id
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "已同步到 Gist", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_synced_to_gist), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "同步失败：${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_sync_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             } finally {
                 busy = false
@@ -247,11 +249,11 @@ fun SettingsScreen(
 
     fun restoreFromGist() {
         if (githubToken.isBlank()) {
-            backupError = "请先填写 GitHub Token"
+            backupError = context.getString(R.string.settings_error_fill_github_token)
             return
         }
         if (existingGistId == null) {
-            backupError = "尚未同步过 Gist，无可用备份"
+            backupError = context.getString(R.string.settings_error_no_gist_backup)
             return
         }
         scope.launch(Dispatchers.IO) {
@@ -261,11 +263,11 @@ fun SettingsScreen(
                 val data = parseBackupContent(content)
                 backupRepository.importAll(data)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "已从 Gist 恢复", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_restored), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "恢复失败：${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_restore_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             } finally {
                 busy = false
@@ -276,16 +278,16 @@ fun SettingsScreen(
     if (showImportConfirm) {
         AlertDialog(
             onDismissRequest = { showImportConfirm = false },
-            title = { Text("恢复备份") },
-            text = { Text("将用备份文件覆盖当前所有家庭成员与就诊记录，确定继续？") },
+            title = { Text(stringResource(R.string.settings_dialog_restore_title)) },
+            text = { Text(stringResource(R.string.settings_dialog_restore_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showImportConfirm = false
                     importLauncher.launch(arrayOf("application/json"))
-                }) { Text("继续") }
+                }) { Text(stringResource(R.string.settings_btn_continue)) }
             },
             dismissButton = {
-                TextButton(onClick = { showImportConfirm = false }) { Text("取消") }
+                TextButton(onClick = { showImportConfirm = false }) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
     }
@@ -293,10 +295,10 @@ fun SettingsScreen(
     backupError?.let { msg ->
         AlertDialog(
             onDismissRequest = { backupError = null },
-            title = { Text("提示") },
+            title = { Text(stringResource(R.string.settings_dialog_hint_title)) },
             text = { Text(msg) },
             confirmButton = {
-                TextButton(onClick = { backupError = null }) { Text("知道了") }
+                TextButton(onClick = { backupError = null }) { Text(stringResource(R.string.settings_btn_got_it)) }
             }
         )
     }
@@ -304,10 +306,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "设置",
+                title = stringResource(R.string.settings_title),
                 navigationIcon = {
                     IconButton(onClick = { backToPrevious() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.settings_cd_back))
                     }
                 },
                 actions = {
@@ -320,7 +322,7 @@ fun SettingsScreen(
                         ),
                         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp)
                     ) {
-                        Text("保存", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.btn_save), style = MaterialTheme.typography.labelLarge)
                     }
                 }
             )
@@ -342,10 +344,10 @@ fun SettingsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    SectionHeader(icon = Icons.Default.Settings, title = "外观")
+                    SectionHeader(icon = Icons.Default.Settings, title = stringResource(R.string.settings_section_appearance))
                     Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                         SettingsRow(
-                            label = "深色模式",
+                            label = stringResource(R.string.settings_label_dark_mode),
                             trailing = {
                                 Switch(
                                     checked = darkMode,
@@ -377,18 +379,18 @@ fun SettingsScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    SectionHeader(icon = Icons.Default.Lock, title = "安全与锁屏")
+                    SectionHeader(icon = Icons.Default.Lock, title = stringResource(R.string.settings_section_security))
                     Column(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            "开启应用锁后，每次进入或回到医迹都需要验证身份，保护你的家庭医疗数据。",
+                            stringResource(R.string.settings_security_description),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         SettingsRow(
-                            label = "应用锁（指纹 / 面容 / PIN）",
+                            label = stringResource(R.string.settings_label_app_lock),
                             trailing = {
                                 Switch(
                                     checked = appLockEnabled,
@@ -398,7 +400,7 @@ fun SettingsScreen(
                                                 BiometricHelper.authenticate(
                                                     activity = it,
                                                     onSuccess = { appLockEnabled = true },
-                                                    onError = { msg -> backupError = "验证失败：$msg" }
+                                                    onError = { msg -> backupError = context.getString(R.string.settings_error_auth_failed, msg) }
                                                 )
                                             }
                                         } else {
@@ -417,9 +419,9 @@ fun SettingsScreen(
 
                         if (appLockEnabled) {
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text("自动锁定", style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(R.string.settings_label_auto_lock), style = MaterialTheme.typography.labelMedium)
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    val options = listOf(0 to "立即", 60 to "1 分钟后", 300 to "5 分钟后")
+                                    val options = listOf(0 to stringResource(R.string.settings_option_immediately), 60 to stringResource(R.string.settings_option_1_minute), 300 to stringResource(R.string.settings_option_5_minutes))
                                     options.forEach { (sec, label) ->
                                         FilterChip(
                                             selected = autoLockSeconds == sec,
@@ -431,17 +433,17 @@ fun SettingsScreen(
                             }
 
                             SettingsRow(
-                                label = "PIN 备用密码",
+                                label = stringResource(R.string.settings_label_pin_backup),
                                 trailing = {
                                     TextButton(onClick = { showPinDialog = true }) {
-                                        Text(if (pinSet) "清除" else "设置")
+                                        Text(if (pinSet) stringResource(R.string.settings_btn_clear) else stringResource(R.string.settings_btn_set))
                                     }
                                 }
                             )
                         }
 
                         SettingsRow(
-                            label = "阻止截屏与录屏",
+                            label = stringResource(R.string.settings_label_block_screenshot),
                             trailing = {
                                 Switch(
                                     checked = secureScreen,
@@ -508,7 +510,7 @@ fun SettingsScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "数据备份与同步",
+                            stringResource(R.string.settings_title_backup_sync),
                             style = MaterialTheme.typography.titleMedium,
                             color = if (isPremiumActive) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -520,7 +522,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             ) {
                                 Text(
-                                    "高级版",
+                                    stringResource(R.string.settings_label_premium),
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary
@@ -536,7 +538,7 @@ fun SettingsScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text(
-                                "将家庭成员与就诊记录导出为文件，或导入此前导出的备份恢复数据。",
+                                stringResource(R.string.settings_backup_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -544,14 +546,14 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = githubToken,
                                 onValueChange = { githubToken = it },
-                                label = { Text("GitHub Token（需 gist 权限）") },
+                                label = { Text(stringResource(R.string.settings_label_github_token)) },
                                 singleLine = true,
                                 visualTransformation = if (showToken) VisualTransformation.None else PasswordVisualTransformation(),
                                 trailingIcon = {
                                     IconButton(onClick = { showToken = !showToken }) {
                                         Icon(
                                             imageVector = if (showToken) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                            contentDescription = if (showToken) "隐藏 Token" else "显示 Token"
+                                            contentDescription = if (showToken) stringResource(R.string.settings_cd_hide_token) else stringResource(R.string.settings_cd_show_token)
                                         )
                                     }
                                 },
@@ -560,14 +562,14 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = encryptPassword,
                                 onValueChange = { encryptPassword = it },
-                                label = { Text("加密密码（留空则不加密）") },
+                                label = { Text(stringResource(R.string.settings_label_encrypt_password)) },
                                 singleLine = true,
                                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                                 trailingIcon = {
                                     IconButton(onClick = { showPassword = !showPassword }) {
                                         Icon(
                                             imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                            contentDescription = if (showPassword) "隐藏密码" else "显示密码"
+                                            contentDescription = if (showPassword) stringResource(R.string.settings_cd_hide_password) else stringResource(R.string.settings_cd_show_password)
                                         )
                                     }
                                 },
@@ -585,11 +587,11 @@ fun SettingsScreen(
                                         exportLauncher.launch("chiyaole_backup_$time.json")
                                     },
                                     modifier = Modifier.weight(1f)
-                                ) { Text("导出备份") }
+                                ) { Text(stringResource(R.string.settings_btn_export_backup)) }
                                 OutlinedButton(
                                     onClick = { showImportConfirm = true },
                                     modifier = Modifier.weight(1f)
-                                ) { Text("导入恢复") }
+                                ) { Text(stringResource(R.string.settings_btn_import_restore)) }
                             }
 
                             Row(
@@ -600,12 +602,12 @@ fun SettingsScreen(
                                     onClick = { syncToGist() },
                                     enabled = !busy,
                                     modifier = Modifier.weight(1f)
-                                ) { Text(if (existingGistId != null) "更新到 Gist" else "同步到 Gist") }
+                                ) { Text(if (existingGistId != null) stringResource(R.string.settings_btn_update_to_gist) else stringResource(R.string.settings_btn_sync_to_gist)) }
                                 OutlinedButton(
                                     onClick = { restoreFromGist() },
                                     enabled = !busy && existingGistId != null,
                                     modifier = Modifier.weight(1f)
-                                ) { Text("从 Gist 恢复") }
+                                ) { Text(stringResource(R.string.settings_btn_restore_from_gist)) }
                             }
 
                             OutlinedButton(
@@ -614,22 +616,22 @@ fun SettingsScreen(
                                         try {
                                             val csv = buildRecordsCsv(viewModel.database)
                                             withContext(Dispatchers.Main) {
-                                                context.startActivity(
-                                                    Intent.createChooser(
-                                                        shareCsvIntent(context, csv),
-                                                        "导出就诊记录 CSV"
-                                                    )
-                                                )
-                                            }
-                                        } catch (e: Exception) {
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, "CSV 导出失败：${e.message}", Toast.LENGTH_LONG).show()
+                                        context.startActivity(
+                                            Intent.createChooser(
+                                                shareCsvIntent(context, csv),
+                                                context.getString(R.string.settings_chooser_export_csv)
+                                            )
+                                        )
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, context.getString(R.string.settings_toast_csv_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                                             }
                                         }
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth()
-                            ) { Text("导出 CSV 报告") }
+                            ) { Text(stringResource(R.string.settings_btn_export_csv)) }
                         }
                     } else {
                         // 未购买：显示锁定状态
@@ -655,12 +657,12 @@ fun SettingsScreen(
                                 }
                             }
                             Text(
-                                "升级高级版解锁此功能",
+                                stringResource(R.string.settings_premium_unlock_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             TextButton(onClick = { navController.navigate("premium") }) {
-                                Text("立即升级 ¥9.90")
+                                Text(stringResource(R.string.settings_btn_upgrade_price))
                             }
                         }
                     }
@@ -694,7 +696,7 @@ fun SettingsScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "AI 配置",
+                            stringResource(R.string.settings_title_ai_config),
                             style = MaterialTheme.typography.titleMedium,
                             color = if (isPremiumActive) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -706,7 +708,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             ) {
                                 Text(
-                                    "高级版",
+                                    stringResource(R.string.settings_label_premium),
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary
@@ -722,7 +724,7 @@ fun SettingsScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                "配置你自己的 OpenAI 兼容大模型（Base URL / Key / 模型名）。密钥仅保存在本机。",
+                                stringResource(R.string.settings_ai_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -744,7 +746,7 @@ fun SettingsScreen(
                                     IconButton(onClick = { showApiKey = !showApiKey }) {
                                         Icon(
                                             imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                            contentDescription = if (showApiKey) "隐藏 Key" else "显示 Key"
+                                            contentDescription = if (showApiKey) stringResource(R.string.settings_cd_hide_key) else stringResource(R.string.settings_cd_show_key)
                                         )
                                     }
                                 }
@@ -752,7 +754,7 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = llmModel,
                                 onValueChange = { llmModel = it },
-                                label = { Text("模型名（如 gpt-4o）") },
+                                label = { Text(stringResource(R.string.settings_label_model_name)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
@@ -781,12 +783,12 @@ fun SettingsScreen(
                                 }
                             }
                             Text(
-                                "升级高级版解锁此功能",
+                                stringResource(R.string.settings_premium_unlock_hint),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             TextButton(onClick = { navController.navigate("premium") }) {
-                                Text("立即升级 ¥9.90")
+                                Text(stringResource(R.string.settings_btn_upgrade_price))
                             }
                         }
                     }
@@ -801,19 +803,19 @@ fun SettingsScreen(
     if (showPremiumDialog) {
         AlertDialog(
             onDismissRequest = { showPremiumDialog = false },
-            title = { Text("解锁高级版") },
-            text = { Text("「${premiumFeatureName}」是高级版功能。升级高级版（¥9.90）即可解锁所有功能！") },
+            title = { Text(stringResource(R.string.settings_dialog_premium_title)) },
+            text = { Text(stringResource(R.string.settings_dialog_premium_message, premiumFeatureName)) },
             confirmButton = {
                 TextButton(onClick = {
                     showPremiumDialog = false
                     navController.navigate("premium")
                 }) {
-                    Text("立即升级")
+                    Text(stringResource(R.string.settings_btn_upgrade))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showPremiumDialog = false }) {
-                    Text("稍后再说")
+                    Text(stringResource(R.string.settings_btn_later))
                 }
             }
         )
@@ -898,13 +900,14 @@ fun PinSetupDialog(
     onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     if (pinSet) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("清除 PIN") },
-            text = { Text("确定清除备用 PIN？清除后仅能使用指纹 / 面容解锁。") },
-            confirmButton = { TextButton(onClick = onClear) { Text("清除") } },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+            title = { Text(stringResource(R.string.settings_dialog_clear_pin_title)) },
+            text = { Text(stringResource(R.string.settings_dialog_clear_pin_message)) },
+            confirmButton = { TextButton(onClick = onClear) { Text(stringResource(R.string.settings_btn_clear)) } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } }
         )
         return
     }
@@ -916,11 +919,11 @@ fun PinSetupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("设置备用 PIN") },
+        title = { Text(stringResource(R.string.settings_dialog_set_pin_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    if (step == 1) "请输入 6 位数字 PIN" else "请再次输入以确认",
+                    if (step == 1) stringResource(R.string.settings_pin_step1_hint) else stringResource(R.string.settings_pin_step2_hint),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
@@ -947,21 +950,21 @@ fun PinSetupDialog(
                 onClick = {
                     if (step == 1) {
                         if (pin.length != 6) {
-                            error = "PIN 需为 6 位数字"
+                            error = context.getString(R.string.settings_error_pin_not_6_digits)
                             return@TextButton
                         }
                         step = 2
                     } else {
                         if (confirm != pin) {
-                            error = "两次输入不一致"
+                            error = context.getString(R.string.settings_error_pin_mismatch)
                             confirm = ""
                             return@TextButton
                         }
                         onConfirm(pin)
                     }
                 }
-            ) { Text(if (step == 1) "下一步" else "确定") }
+            ) { Text(if (step == 1) stringResource(R.string.settings_btn_next_step) else stringResource(R.string.settings_btn_confirm)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_cancel)) } }
     )
 }

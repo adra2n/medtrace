@@ -14,10 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yy.medtrace.R
 import com.yy.medtrace.data.security.PinManager
 import com.yy.medtrace.ui.theme.Primary
 import kotlinx.coroutines.delay
@@ -86,12 +88,12 @@ fun LockScreen(
         ) {
             Icon(
                 imageVector = Icons.Filled.Fingerprint,
-                contentDescription = "医迹",
+                contentDescription = stringResource(R.string.lock_app_name),
                 tint = Primary,
                 modifier = Modifier.size(64.dp)
             )
             Spacer(Modifier.height(12.dp))
-            Text("医迹已锁定", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.lock_title), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(24.dp))
 
             // PIN 圆点
@@ -114,7 +116,7 @@ fun LockScreen(
             if (error && lockoutSeconds == 0) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "PIN 错误，请重试",
+                    stringResource(R.string.lock_pin_error),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -123,7 +125,7 @@ fun LockScreen(
             if (lockoutSeconds > 0) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "PIN 已锁定，请 ${lockoutSeconds}s 后重试",
+                    stringResource(R.string.lock_pin_locked, lockoutSeconds),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -142,14 +144,14 @@ fun LockScreen(
                 Button(onClick = onBiometricClick) {
                     Icon(Icons.Filled.Fingerprint, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("点击验证指纹 / 面容")
+                    Text(stringResource(R.string.lock_btn_verify_biometric))
                 }
             }
 
             if (onForgotPin != null) {
                 Spacer(Modifier.height(16.dp))
                 TextButton(onClick = { showForgot = true }) {
-                    Text("忘记 PIN？", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.lock_btn_forgot_pin), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -158,22 +160,20 @@ fun LockScreen(
     if (showForgot) {
         AlertDialog(
             onDismissRequest = { showForgot = false },
-            title = { Text("忘记 PIN") },
+            title = { Text(stringResource(R.string.lock_dialog_forgot_title)) },
             text = {
                 Text(
-                    "清除应用数据会移除本地 PIN 与所有未备份的资料。\n\n" +
-                        "若你曾同步到 GitHub Gist，可在清除后重新登录并从 Gist 恢复。\n\n" +
-                        "也可在系统设置中清除「医迹」的应用数据后重设 PIN。"
+                    stringResource(R.string.lock_dialog_forgot_message)
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     showForgot = false
                     onForgotPin?.invoke()
-                }) { Text("打开应用设置") }
+                }) { Text(stringResource(R.string.lock_btn_open_settings)) }
             },
             dismissButton = {
-                TextButton(onClick = { showForgot = false }) { Text("取消") }
+                TextButton(onClick = { showForgot = false }) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
     }
@@ -198,7 +198,7 @@ private fun Keypad(
                         when (key) {
                             "" -> {}
                             "del" -> IconButton(onClick = onDelete) {
-                                Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = "删除")
+                                Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = stringResource(R.string.lock_cd_delete))
                             }
                             else -> Text(
                                 key,
@@ -221,7 +221,7 @@ private fun Keypad(
             IconButton(onClick = onBiometric, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 Icon(
                     Icons.Filled.Fingerprint,
-                    contentDescription = "指纹 / 面容",
+                    contentDescription = stringResource(R.string.lock_cd_biometric),
                     tint = Primary,
                     modifier = Modifier.size(40.dp)
                 )

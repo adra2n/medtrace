@@ -220,11 +220,8 @@ private fun EmptyReminders(onAdd: () -> Unit) {
             icon = Icons.Default.DateRange,
             title = stringResource(R.string.screen_reminders_empty_title),
             hint = stringResource(R.string.screen_reminders_empty_hint),
-            action = {
-                Button(onClick = onAdd) {
-                    Text(stringResource(R.string.screen_reminders_add_reminder))
-                }
-            }
+            actionText = stringResource(R.string.screen_reminders_add_reminder),
+            onAction = onAdd
         )
     }
 }

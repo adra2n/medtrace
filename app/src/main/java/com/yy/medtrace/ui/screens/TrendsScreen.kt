@@ -11,10 +11,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.MemberSelector
@@ -56,10 +58,10 @@ fun TrendsScreen(
     Scaffold(
         topBar = {
             GradientTopBar(
-                title = "数据统计",
+                title = stringResource(R.string.trends_title),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.trends_cd_back))
                     }
                 }
             )
@@ -81,7 +83,7 @@ fun TrendsScreen(
                         onSelect = { member ->
                             scope.launch { SelectedMemberHolder.select(member.id, viewModel.database) }
                         },
-                        emptyHint = "暂无家庭成员，请先在家庭中添加"
+                        emptyHint = stringResource(R.string.trends_empty_members)
                     )
                 }
             }
@@ -105,7 +107,7 @@ fun TrendsScreen(
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
                             TextButton(onClick = { viewModel.clearError() }) {
-                                Text("关闭")
+                                Text(stringResource(R.string.trends_btn_close))
                             }
                         }
                     }
@@ -132,7 +134,7 @@ fun TrendsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "记录统计",
+                            text = stringResource(R.string.trends_record_stats),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -149,7 +151,7 @@ fun TrendsScreen(
                                     color = Primary
                                 )
                                 Text(
-                                    text = "总记录",
+                                    text = stringResource(R.string.trends_stat_total),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -167,7 +169,7 @@ fun TrendsScreen(
                                     color = Primary
                                 )
                                 Text(
-                                    text = "近30天",
+                                    text = stringResource(R.string.trends_stat_recent_30days),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -180,7 +182,7 @@ fun TrendsScreen(
                                     color = Primary
                                 )
                                 Text(
-                                    text = "药品数",
+                                    text = stringResource(R.string.trends_stat_medications),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -192,7 +194,7 @@ fun TrendsScreen(
 
             item {
                 Text(
-                    text = "最近记录",
+                    text = stringResource(R.string.trends_recent_records),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -213,7 +215,7 @@ fun TrendsScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "暂无记录",
+                                text = stringResource(R.string.trends_no_records),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -237,12 +239,12 @@ fun TrendsScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = record.diagnosis.ifBlank { "未填写" },
+                                    text = record.diagnosis.ifBlank { stringResource(R.string.trends_diagnosis_unfilled) },
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
-                                    text = record.onsetTime?.format(dateFormatter) ?: "未知时间",
+                                    text = record.onsetTime?.format(dateFormatter) ?: stringResource(R.string.trends_time_unknown),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -253,7 +255,7 @@ fun TrendsScreen(
                                     color = Primary.copy(alpha = 0.1f)
                                 ) {
                                     Text(
-                                        text = "${record.medItems.size}种药品",
+                                        text = stringResource(R.string.trends_med_count, record.medItems.size),
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = Primary

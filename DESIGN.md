@@ -1,440 +1,395 @@
 ## 1. 项目概述
-智药乐是一款基于 Android 平台的用药提醒和医疗记录管理应用。主要功能包括用药提醒、医疗记录管理和用药统计。
+医迹 (MedTrace) 是一款基于 Android 平台的医疗健康管理应用，主要功能包括：
+- 家庭成员管理：支持多成员档案，记录基本信息、过敏史、慢性病等
+- 病历记录：记录就诊信息、诊断结果、处方药物、检查指标等
+- AI 分析：通过 AI 提取病历中的关键指标，支持健康趋势分析
+- 数据安全：应用锁（生物识别/PIN）、加密备份、Gist 同步
+- 健康待办提醒：服药、复查、检查等健康任务的提醒与追踪
 ## 2. 系统架构
 ### 2.1 技术栈
 - 开发语言：Kotlin
-- UI框架：Jetpack Compose
+- UI 框架：Jetpack Compose
 - 数据库：Room
-- 后台任务：WorkManager
+- 依赖注入：Hilt
+- 架构模式：MVVM（ViewModel + Repository + Room DAO）
+- 后台任务：AlarmManager（每日提醒）+ ReminderReceiver（BroadcastReceiver）
 - 系统通知：NotificationManager
+- 导航：Navigation Compose
+- 序列化：Gson + kotlinx.serialization
 ### 2.2 架构图
 ```mermaid
-
 graph TD
-
-A[用户界面层] --> B[业务逻辑层]
-
-B --> C[数据访问层]
-
-C --> D[本地数据库]
-```
-
-```mermaid
-graph TD
-
-subgraph UI层
-
-A1[HomeScreen] --> A2[AddMedicationReminderScreen]
-
-A1 --> A3[AddMedicalRecordScreen]
-
-A1 --> A4[AboutScreen]
-
-end
-```
-
-```mermaid
-
-graph TD
-
-subgraph 业务逻辑层
-
-B1[MedicationReminder管理] --> B2[通知管理]
-
-B1 --> B3[数据统计]
-
-end
-
-subgraph 数据层
-
-C1[Room DAO] --> C2[Entity模型]
-
-C2 --> C3[类型转换器]
-
-end
-
+    subgraph UI层
+        A1[Screen/Composable] --> A2[ViewModel]
+    end
+    subgraph 依赖注入层
+        B1[Hilt] --> B2[Repository]
+        B1 --> B3[DAO]
+    end
+    subgraph 数据层
+        C1[Repository] --> C2[Room DAO]
+        C2 --> C3[Entity模型]
+    end
+    A2 --> B1
+    B2 --> C1
 ```
 ## 3. 核心功能设计
-### 3.1 用药提醒功能
+### 3.1 健康待办功能
 #### 3.1.1 功能描述
 
-1. **创建用药提醒**
-- 支持设置患者姓名、药品名称
-- 可设置服药起止时间
-- 支持设置每日服药次数和具体时间点
-- 可配置每次服用剂量和单位
-- 可添加服药说明（如饭前/饭后服用）
+1. **创建健康待办**
+- 支持设置待办内容（服药、复查、检查等）
+- 可设置截止日期
+- 支持设置重复类型（每日、每周等）
+- 可配置持续天数
+- 支持关联家庭成员
 
 1. **提醒通知**
 - 根据设定时间自动发送提醒通知
 - 支持声音提醒
 - 支持震动提醒
-- 支持语音提醒
-- 未服药时自动重复提醒（30秒间隔）
+- 未完成时自动重复提醒
 
- 1. **服药确认**
-- 点击通知可直接确认服药
-- 支持在App内确认服药
+1. **待办完成**
+- 点击通知可直接标记完成
+- 支持在App内标记完成
+- 支持连续天数统计
+- 可查看完成进度
 - 可查看服药状态（已服用/未服用）
 - 支持补录历史服药记录 
 
-1. **提醒管理**
-- 支持暂停/启用提醒
-- 可修改提醒设置
-- 支持删除提醒
-- 可查看所有提醒列表
+1. **待办管理**
+- 支持暂停/启用待办
+- 可修改待办设置
+- 支持删除待办
+- 可查看所有待办列表
 #### 3.1.2 数据模型
 
+**FamilyMember 实体**
 ```kotlin
-@Entity(tableName = "medication_reminders")
-
-data class MedicationReminder(
-
-@PrimaryKey(autoGenerate = true)
-
-val id: Long = 0,
-
-val patientName: String, // 患者姓名
-
-val medicineName: String, // 药品名称
-
-val startDate: LocalDateTime, // 开始服药日期
-
-val endDate: LocalDateTime, // 结束服药日期
-
-val timesPerDay: Int, // 每天服用次数
-
-val medicationTimes: List<LocalTime>, // 每天的服药时间点列表
-
-val dosageAmount: Float, // 每次服用数量
-
-val dosageUnit: String, // 剂量单位
-
-val instructions: String = "", // 服药说明
-
-val isActive: Boolean = true, // 是否启用提醒
-
-var scheduledTime: LocalDateTime = LocalDateTime.now()
-
+@Entity(tableName = "family_members")
+data class FamilyMember(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val relation: String = "",
+    val gender: String = "",
+    val birthday: String = "",
+    val bloodType: String = "",
+    val allergy: String = "",
+    val chronic: String = "",
+    val medicationNote: String = "",
+    val otherNote: String = "",
+    val isDefault: Boolean = false,
+    val avatarPath: String = ""
 )
+```
 
+**MedicalRecord 实体**
+```kotlin
+@Entity(tableName = "medical_records")
+data class MedicalRecord(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val patientId: Long = 0,
+    val patientName: String,
+    val diagnosis: String,
+    val onsetTime: LocalDateTime,
+    val hospital: String = "",
+    val medItems: List<MedicationItem> = emptyList(),
+    val frequency: String,    // 服药频率
+    val dosage: String,       // 用药剂量
+    val notes: String = "",
+    @ColumnInfo(name = "metrics_json") val metricsJson: String = ""  // AI 解析的检查指标 JSON
+)
+```
+
+**HealthTodo 实体**
+```kotlin
+@Entity(tableName = "health_todos")
+data class HealthTodo(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val memberId: Long = 0,
+    val memberName: String = "",
+    val content: String,
+    val dueDate: LocalDate,
+    val done: Boolean = false,
+    val notifiedDate: String = "",
+    val repeatType: String = "none",
+    val repeatInterval: Int = 1,
+    val startDate: LocalDate = LocalDate.now(),
+    val durationDays: Int = 0,
+    val completedDates: String = "",
+    val category: String = "其他"  // 服药/复查/检查/其他
+)
+```
+
+**UserSettings 实体**
+```kotlin
+@Entity(tableName = "user_settings")
+data class UserSettings(
+    @PrimaryKey val id: Int = 1, // 只需要一条记录
+    val enableNotificationSound: Boolean = true,
+    val enableVibration: Boolean = true,
+    val darkMode: Boolean = false,
+    val selectedMemberId: Long = 0
+)
 ```
 
 #### 3.1.3 提醒流程
 
 ```mermaid
-
 sequenceDiagram
-
-participant U as 用户
-
-participant A as App
-
-participant W as WorkManager
-
-participant N as 通知系统
-
-participant D as 数据库
-
-  
-
-U->>A: 创建用药提醒
-
-A->>D: 保存提醒数据
-
-A->>W: 调度提醒任务
-
-W->>D: 查询提醒状态
-
-W->>N: 发送通知
-
-N-->>U: 展示提醒
-
-U->>A: 确认服药
-
-A->>D: 更新服药记录
-
-A->>N: 取消通知
-
+    participant U as 用户
+    participant A as App
+    participant AM as AlarmManager
+    participant RR as ReminderReceiver
+    participant N as 通知系统
+    participant D as 数据库
+    U->>A: 创建健康待办
+    A->>D: 保存待办数据
+    A->>AM: 设置每日闹钟
+    AM->>RR: 触发广播
+    RR->>D: 查询今日待办
+    RR->>N: 发送提醒通知
+    N-->>U: 展示提醒
+    U->>A: 标记完成
+    A->>D: 更新待办状态
+    A->>N: 取消通知
 ```
-### 3.2 医疗记录管理
+### 3.2 病历记录管理
 #### 3.2.1 功能描述
 
-1. **就医记录创建**
-- 记录就医时间和医院信息
-- 支持填写医生姓名
-- 可记录诊断结果
-- 支持添加处方信息
-- 可上传相关医疗文件
+1. **病历记录创建**
+- 记录就诊时间和医院信息
+- 支持填写诊断结果
+- 可记录处方药物信息
+- 支持添加检查指标（AI 提取）
+- 可添加备注信息
 
 1. **记录管理**
-- 支持查看历史就医记录
+- 支持查看历史病历记录
 - 可按时间顺序排序
 - 支持搜索特定记录
 - 可编辑已有记录
 - 支持删除记录
-#### 3.2.2 数据统计展示
+#### 3.2.2 数据展示
 ```mermaid
-
 graph LR
-
-A[首页统计] --> B[今日用药统计]
-
-B --> C[服药数量]
-
-B --> D[已服用数量]
-
-A --> E[医疗记录]
-
-E --> F[最近就医记录]
-
-E --> G[历史记录查看]
-
+    A[首页统计] --> B[今日待办]
+    B --> C[待办数量]
+    B --> D[已完成数量]
+    A --> E[病历记录]
+    E --> F[最近病历]
+    E --> G[历史记录查看]
 ```
-#### 3.2.3 主页面实现
+#### 3.2.3 页面实现示例
 
 ```kotlin
-
 @Composable
-
 fun HomeScreen(
-
-database: AppDatabase,
-
-navController: NavController
-
+    navController: NavController
 ) {
-
-// 统计数据
-
-data class MedicationStats(
-
-val totalToday: Int = 0,
-
-val completedToday: Int = 0,
-
-val takenDosesToday: Int = 0
-
-)
-
-// 数据加载和统计逻辑
-
-LaunchedEffect(Unit) {
-
-combine(
-
-database.medicationReminderDao().getTodayReminders(now),
-
-database.medicationRecordDao().getAll()
-
-) { reminders, records ->
-
-// 计算用药统计
-
-val totalDoses = reminders.sumOf { it.timesPerDay }
-
-val todayRecords = records.filter {
-
-it.scheduledTime.toLocalDate() == now.toLocalDate()
-
-}
-
-val takenDosesToday = todayRecords.count {
-
-it.status == MedicationStatus.TAKEN
-
-}
-
-}
-
-}
-
+    val viewModel: HomeViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsState()
+    
+    LazyColumn {
+        items(uiState.todayTodos) { todo ->
+            HealthTodoCard(todo = todo)
+        }
+    }
 }
 ```
-### 3.3 用药统计功能
+### 3.3 健康趋势功能
 #### 3.3.1 功能描述
 
-1. **今日用药统计**
-- 显示今日应服用药品总数
-- 统计已服用药品数量
-- 实时更新服药状态
+1. **健康指标分析**
+- 通过 AI 提取病历中的检查指标
+- 支持查看指标变化趋势
+- 可按时间范围筛选
 
-1. **历史用药分析**
-- 支持按周/月查看服药情况
-### 3.4 系统设置
+1. **数据可视化**
+- 支持图表展示指标变化
+- 支持按周/月查看趋势
+### 3.4 应用设置
 #### 3.4.1 功能描述
 
-1. **提醒设置**
+1. **通知设置**
 - 可设置提醒声音开关
 - 支持震动提醒设置
-- 可配置语音提醒
-- 设置提醒重复间隔
+
 1. **个性化设置**
 - 支持深色/浅色主题切换
-- 可设置字体大小
-- 支持多语言切换
-- 可自定义提醒铃声
+
+1. **数据管理**
+- 支持数据备份与恢复
+- 支持 Gist 同步
 ## 4. 数据库设计
 
 ### 4.1 实体关系图
 ```mermaid
-
 erDiagram
-
-MedicationReminder ||--o{ MedicationRecord : "记录服药情况"
-
-MedicationReminder {
-
-Long id PK
-
-String patientName
-
-String medicineName
-
-DateTime startDate
-
-DateTime endDate
-
-Int timesPerDay
-
-List medicationTimes
-
-Float dosageAmount
-
-String dosageUnit
-
-String instructions
-
-Boolean isActive
-
-}
-
-MedicalRecord {
-
-Long id PK
-
-String hospitalName
-
-String doctorName
-
-String diagnosis
-
-String prescription
-
-DateTime visitDate
-
-}
-
-UserSettings {
-
-Long id PK
-
-Boolean enableNotificationSound
-
-Boolean enableVibration
-
-Boolean enableVoiceReminder
-
-}
-
+    FamilyMember ||--o{ MedicalRecord : "拥有的病历"
+    FamilyMember ||--o{ HealthTodo : "拥有的待办"
+    FamilyMember ||--o{ UserSettings : "用户设置"
+    
+    FamilyMember {
+        Long id PK
+        String name
+        String relation
+        String gender
+        String birthday
+        String bloodType
+        String allergy
+        String chronic
+        String medicationNote
+        String otherNote
+        Boolean isDefault
+        String avatarPath
+    }
+    
+    MedicalRecord {
+        Long id PK
+        Long patientId FK
+        String patientName
+        String diagnosis
+        DateTime onsetTime
+        String hospital
+        String medItems
+        String frequency
+        String dosage
+        String notes
+        String metricsJson
+    }
+    
+    HealthTodo {
+        Long id PK
+        Long memberId FK
+        String memberName
+        String content
+        Date dueDate
+        Boolean done
+        String notifiedDate
+        String repeatType
+        Int repeatInterval
+        Date startDate
+        Int durationDays
+        String completedDates
+        String category
+    }
+    
+    UserSettings {
+        Int id PK
+        Boolean enableNotificationSound
+        Boolean enableVibration
+        Boolean darkMode
+        Long selectedMemberId
+    }
 ```
 
 ## 5. 界面设计
 ### 5.1 整体布局
 
 ```mermaid
-
 graph TD
-
-A[底部导航栏] --> B[首页]
-
-A --> C[用药提醒]
-
-A --> D[医疗记录]
-
-A --> E[个人中心]
-
-B --> B1[今日统计]
-
-B --> B2[待服用药品]
-
-B --> B3[最近就医记录]
-
-C --> C1[提醒列表]
-
-C --> C2[新增提醒]
-
-C --> C3[历史记录]
-
+    A[底部导航栏] --> B[首页]
+    A --> C[家人]
+    A --> D[提醒]
+    A --> E[我的]
+    B --> B1[今日统计]
+    B --> B2[待办事项]
+    B --> B3[最近病历]
+    C --> C1[家庭成员列表]
+    C --> C2[成员详情]
+    D --> D1[健康待办]
+    D --> D2[提醒管理]
+    E --> E1[个人设置]
+    E --> E2[数据同步]
 ```
 ### 5.2 关键界面说明
-#### 5.2.1 首页设计
+#### 5.2.1 页面列表
+- **HomeScreen**：首页，展示今日统计、待办事项、最近病历
+- **FamilyScreen**：家人管理，家庭成员列表
+- **RemindersScreen**：健康待办提醒列表
+- **ProfileScreen**：个人中心
+- **MedicalRecordScreen**：病历记录列表
+- **AddMedicalRecordScreen**：添加/编辑病历
+- **SettingsScreen**：应用设置
+- **TrendsScreen**：健康趋势分析
+- **MemberDetailScreen**：成员详情页
+- **LockScreen**：应用锁界面
+- **PremiumScreen**：高级功能页面
 
+#### 5.2.2 首页设计
 - 顶部显示问候语和设置入口
-- 今日用药统计卡片采用醒目的主题色
-- 待服用药品列表支持左滑确认服用
-- 最近就医记录以卡片形式展示
+- 今日待办统计卡片
+- 待办事项列表
+- 最近病历以卡片形式展示
 - 支持下拉刷新更新数据
-#### 5.2.2 用药提醒界面
-- 采用日历视图展示提醒
-- 支持按时间段筛选
+
+#### 5.2.3 健康待办界面
+- 按日期筛选待办事项
+- 待办分类：服药/复查/检查/其他
+- 支持标记完成和连续天数统计
 - 新增按钮固定在右下角
-- 提醒卡片显示关键信息：
-- 药品名称和剂量
-- 服用时间
-- 服用说明
-- 状态标识
-#### 5.2.3 医疗记录界面
+
+#### 5.2.4 病历记录界面
 - 支持时间轴展示
-- 可按医院/科室分类查看
-- 处方图片支持预览
+- 可按成员筛选查看
 - 记录卡片包含：
-- 就医时间
-- 医院信息
-- 诊断结果
-- 处方链接
+  - 就医时间
+  - 医院信息
+  - 诊断结果
+  - 处方信息
 ## 7. 技术实现细节
 
 ### 7.1 项目依赖
 
 ```kotlin
-
 // build.gradle.kts
-
 dependencies {
-
-// Jetpack Compose
-
-implementation("androidx.compose.ui:ui:${Versions.compose}")
-
-implementation("androidx.compose.material3:material3:${Versions.material3}")
-
-implementation("androidx.compose.runtime:runtime:${Versions.compose}")
-
-// Room数据库
-
-implementation("androidx.room:room-runtime:${Versions.room}")
-
-implementation("androidx.room:room-ktx:${Versions.room}")
-
-kapt("androidx.room:room-compiler:${Versions.room}")
-
-// WorkManager
-
-implementation("androidx.work:work-runtime-ktx:${Versions.work}")
-
-// 协程
-
-implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}")
-
-// 生命周期组件
-
-implementation("androidx.lifecycle:lifecycle-runtime-ktx:${Versions.lifecycle}")
-
-implementation("androidx.lifecycle:lifecycle-viewmodel-compose:${Versions.lifecycle}")
-
+    // Jetpack Compose
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
+    
+    // Room
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    implementation("androidx.room:room-paging:$roomVersion")
+    kapt("androidx.room:room-compiler:$roomVersion")
+    
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.8.0")
+    
+    // WorkManager (for notifications)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    
+    // Hilt
+    val hiltVersion = "2.50"
+    implementation("com.google.dagger:hilt-android:$hiltVersion")
+    kapt("com.google.dagger:hilt-android-compiler:$hiltVersion")
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+    
+    // Gson
+    implementation("com.google.code.gson:gson:2.10.1")
+    
+    // kotlinx.serialization
+    implementation(libs.kotlinx.serialization.json)
+    
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    
+    // Lifecycle
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    
+    // Biometric
+    implementation(libs.androidx.biometric)
+    
+    // EncryptedSharedPreferences
+    implementation(libs.androidx.security.crypto)
 }
-
 ```
 ### 7.2 框架使用规范
 #### 7.2.1 Jetpack Compose UI
@@ -445,35 +400,23 @@ implementation("androidx.lifecycle:lifecycle-viewmodel-compose:${Versions.lifecy
 - 使用 remember 和 mutableStateOf 管理状态
 
 ```kotlin
-
 @Composable
-
-fun ReminderCard(
-
-reminder: MedicationReminder,
-
-modifier: Modifier = Modifier
-
+fun HealthTodoCard(
+    todo: HealthTodo,
+    modifier: Modifier = Modifier
 ) {
-
-var expanded by remember { mutableStateOf(false) }
-
-Card(
-
-modifier = modifier
-
-.fillMaxWidth()
-
-.clickable { expanded = !expanded }
-
-) {
-
-// Card content
-
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        Column {
+            Text(text = todo.content)
+            Text(text = "截止日期: ${todo.dueDate}")
+            Text(text = "状态: ${if (todo.done) "已完成" else "待完成"}")
+        }
+    }
 }
-
-}
-
 ```
 #### 7.2.2 Room 数据库
 
@@ -481,110 +424,77 @@ modifier = modifier
 - 合理使用事务操作
 - 采用 Flow 实现响应式数据更新
 - 类型转换器处理复杂数据类型
+
 ```kotlin
-
 @Dao
+interface MedicalRecordDao {
+    @Query("SELECT * FROM medical_records")
+    fun getAllRecords(): Flow<List<MedicalRecord>>
 
-interface MedicationReminderDao {
+    @Query("SELECT * FROM medical_records WHERE patientId = :patientId ORDER BY onsetTime DESC")
+    fun getRecordsByMember(patientId: Long): Flow<List<MedicalRecord>>
 
-@Query("SELECT * FROM medication_reminders WHERE date(scheduledTime) = date('now')")
+    @Insert
+    suspend fun insert(record: MedicalRecord): Long
 
-fun getTodayReminders(): Flow<List<MedicationReminder>>
+    @Update
+    suspend fun update(record: MedicalRecord)
 
-@Transaction
-
-suspend fun updateReminderAndRecord(reminder: MedicationReminder) {
-
-updateReminder(reminder)
-
-insertRecord(MedicationRecord(reminderId = reminder.id))
-
+    @Delete
+    suspend fun delete(record: MedicalRecord)
 }
-
-}
-
 ```
 
-#### 7.2.3 WorkManager
+#### 7.2.3 后台提醒
 
-- 使用 CoroutineWorker 处理后台任务
-- 合理设置任务执行条件
-- 实现任务链和并行任务
-- 处理任务失败和重试
+- 使用 AlarmManager 设置每日闹钟
+- ReminderReceiver 接收广播并触发提醒
+- 提醒逻辑：查询今日待办，发送通知
 
 ```kotlin
-
-class ReminderWorker(
-
-context: Context,
-
-params: WorkerParameters
-
-) : CoroutineWorker(context, params) {
-
-override suspend fun doWork(): Result {
-
-// 实现提醒逻辑
-
-return try {
-
-// 发送通知
-
-Result.success()
-
-} catch (e: Exception) {
-
-Result.retry()
-
+class ReminderReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
+        if (intent?.action != "com.yy.medtrace.reminder.DAILY") return
+        val pendingResult = goAsync()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        scope.launch {
+            try {
+                val database = AppDatabase.getDatabase(context)
+                runCatching { ReminderHelper.maybeNotify(context, database) }
+                ReminderHelper.scheduleDaily(context)
+            } finally {
+                pendingResult.finish()
+            }
+        }
+    }
 }
-
-}
-
-}
-
 ```
 ### 7.3 代码规范
 
 #### 7.3.1 项目结构
 
 ```
-
 app/
-
 ├── src/
-
-│ ├── main/
-
-│ │ ├── java/
-
-│ │ │ └── com/yy/medtrace/
-
-│ │ │ ├── data/ // 数据层
-
-│ │ │ │ ├── dao/ // 数据访问对象
-
-│ │ │ │ ├── model/ // 数据模型
-
-│ │ │ │ └── repository/ // 数据仓库
-
-│ │ │ ├── ui/ // 界面层
-
-│ │ │ │ ├── components/ // 可复用组件
-
-│ │ │ │ ├── screens/ // 页面
-
-│ │ │ │ └── theme/ // 主题
-
-│ │ │ ├── util/ // 工具类
-
-│ │ │ └── worker/ // 后台任务
-
-│ │ └── res/ // 资源文件
-
-│ └── test/ // 测试代码
-
-└── build.gradle.kts // 构建配置
-
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/yy/medtrace/
+│   │   │       ├── data/               # 数据层
+│   │   │       │   ├── dao/            # Room DAO
+│   │   │       │   ├── model/          # 数据模型
+│   │   │       │   └── repository/     # 数据仓库
+│   │   │       ├── viewmodel/          # ViewModel 层
+│   │   │       ├── di/                 # Hilt 依赖注入
+│   │   │       ├── reminder/           # 提醒相关
+│   │   │       ├── navigation/         # 导航配置
+│   │   │       ├── ui/                 # 界面层
+│   │   │       │   ├── components/     # 可复用组件
+│   │   │       │   ├── screens/        # 页面
+│   │   │       │   └── theme/          # 主题
+│   │   │       └── util/               # 工具类
+│   │   └── res/                        # 资源文件
+│   └── test/                           # 测试代码
+└── build.gradle.kts                    # 构建配置
 ```
 
 #### 7.3.2 命名规范
