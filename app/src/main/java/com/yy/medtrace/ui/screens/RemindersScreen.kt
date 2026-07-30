@@ -163,7 +163,7 @@ fun RemindersScreen(
             members = members,
             initialCategory = selectedCategory,
             onDismiss = { showAddDialog = false },
-            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval, category ->
+            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval, category, reminderTime ->
                 viewModel.insertTodo(
                     HealthTodo(
                         memberId = memberId,
@@ -172,7 +172,8 @@ fun RemindersScreen(
                         dueDate = dueDate,
                         repeatType = repeatType,
                         repeatInterval = repeatInterval,
-                        category = category
+                        category = category,
+                        reminderTime = reminderTime
                     )
                 )
                 showAddDialog = false
@@ -184,13 +185,14 @@ fun RemindersScreen(
         EditTodoDialog(
             todo = todo,
             onDismiss = { editingTodo = null },
-            onUpdate = { content, category, dueDate, repeatType, repeatInterval ->
+            onUpdate = { content, category, dueDate, repeatType, repeatInterval, reminderTime ->
                 viewModel.updateTodo(todo.copy(
                     content = content,
                     category = category,
                     dueDate = dueDate,
                     repeatType = repeatType,
-                    repeatInterval = repeatInterval
+                    repeatInterval = repeatInterval,
+                    reminderTime = reminderTime
                 ))
                 editingTodo = null
             }
@@ -468,7 +470,7 @@ private fun ReminderItem(
 private fun EditTodoDialog(
     todo: HealthTodo,
     onDismiss: () -> Unit,
-    onUpdate: (content: String, category: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int) -> Unit
+    onUpdate: (content: String, category: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int, reminderTime: String) -> Unit
 ) {
     var content by remember { mutableStateOf(todo.content) }
     var category by remember { mutableStateOf(todo.category) }
@@ -477,6 +479,8 @@ private fun EditTodoDialog(
     var selectedType by remember { mutableStateOf(if (todo.repeatType == "none") "day" else todo.repeatType) }
     var interval by remember { mutableIntStateOf(if (todo.repeatInterval < 1) 1 else todo.repeatInterval) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var reminderTime by remember { mutableStateOf(todo.reminderTime) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     val categories = listOf(
         stringResource(R.string.screen_reminders_category_medication) to "💊",
@@ -511,6 +515,39 @@ private fun EditTodoDialog(
                 TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.screen_reminders_cancel)) }
             }
         ) { DatePicker(state = datePickerState) }
+    }
+
+    if (showTimePicker) {
+        val parts = reminderTime.split(":")
+        val initialHour = parts.getOrNull(0)?.toIntOrNull() ?: 9
+        val initialMinute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        
+        val timePickerState = rememberTimePickerState(
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            is24Hour = true
+        )
+        
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text(stringResource(R.string.screen_home_select_reminder_time)) },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val hour = timePickerState.hour.toString().padStart(2, '0')
+                        val minute = timePickerState.minute.toString().padStart(2, '0')
+                        reminderTime = "$hour:$minute"
+                        showTimePicker = false
+                    }
+                ) { Text(stringResource(R.string.screen_home_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.screen_home_cancel)) }
+            }
+        )
     }
 
     AlertDialog(
@@ -594,6 +631,25 @@ private fun EditTodoDialog(
                     enabled = false
                 )
 
+                // 提醒时间
+                OutlinedTextField(
+                    value = reminderTime,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(stringResource(R.string.screen_home_reminder_time)) },
+                    trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_home_select_time), tint = MaterialTheme.colorScheme.primary) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showTimePicker = true },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline
+                    ),
+                    enabled = false
+                )
+
                 // 重复设置
                 Text(stringResource(R.string.screen_reminders_repeat), style = MaterialTheme.typography.labelMedium)
                 Row(
@@ -665,7 +721,7 @@ private fun EditTodoDialog(
             Button(
                 onClick = {
                     val repeatType = if (repeatEnabled) selectedType else "none"
-                    onUpdate(content, category, dueDate, repeatType, interval)
+                    onUpdate(content, category, dueDate, repeatType, interval, reminderTime)
                 },
                 enabled = content.isNotBlank()
             ) { Text(stringResource(R.string.screen_reminders_save)) }

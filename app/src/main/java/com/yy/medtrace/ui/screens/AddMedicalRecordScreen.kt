@@ -605,6 +605,13 @@ fun AddMedicalRecordScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showConsent = false
+                    val premiumManager = viewModel.premiumManager
+                    val todayCount = premiumManager.getTodayAiCount()
+                    if (!premiumManager.canUseAiToday(todayCount)) {
+                        Toast.makeText(context, "今日免费识别次数已用完，升级高级版可无限使用", Toast.LENGTH_SHORT).show()
+                        return@TextButton
+                    }
+                    premiumManager.incrementAiUsage()
                     runAnalysis()
                 }) {
                     Text(stringResource(R.string.btn_confirm))

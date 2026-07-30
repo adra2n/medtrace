@@ -118,7 +118,8 @@ class HomeViewModel @Inject constructor(
         dueDate: LocalDate,
         repeatType: String = "none",
         repeatInterval: Int = 1,
-        category: String = "其他"
+        category: String = "其他",
+        reminderTime: String = "09:00"
     ) {
         viewModelScope.launch {
             todoRepository.insert(
@@ -129,7 +130,8 @@ class HomeViewModel @Inject constructor(
                     dueDate = dueDate,
                     repeatType = repeatType,
                     repeatInterval = repeatInterval,
-                    category = category
+                    category = category,
+                    reminderTime = reminderTime
                 )
             )
         }

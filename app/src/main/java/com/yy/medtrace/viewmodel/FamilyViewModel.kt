@@ -11,6 +11,7 @@ import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.repository.MemberRepository
 import com.yy.medtrace.data.repository.RecordRepository
+import com.yy.medtrace.data.settings.PremiumManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,11 +26,15 @@ import javax.inject.Inject
 class FamilyViewModel @Inject constructor(
     val database: AppDatabase,
     private val memberRepository: MemberRepository,
-    private val recordRepository: RecordRepository
+    private val recordRepository: RecordRepository,
+    val premiumManager: PremiumManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FamilyUiState())
     val uiState: StateFlow<FamilyUiState> = _uiState.asStateFlow()
+
+    private val _showPremiumDialog = MutableStateFlow(false)
+    val showPremiumDialog: StateFlow<Boolean> = _showPremiumDialog.asStateFlow()
 
     fun loadMembers() {
         _uiState.update { it.copy(isLoading = true) }
@@ -65,10 +70,19 @@ class FamilyViewModel @Inject constructor(
     }
 
     fun addMember(member: FamilyMember) {
+        val currentCount = uiState.value.members.size
+        if (!premiumManager.canAddMember(currentCount)) {
+            _showPremiumDialog.value = true
+            return
+        }
         viewModelScope.launch {
             memberRepository.insert(member)
             loadMembers()
         }
+    }
+
+    fun dismissPremiumDialog() {
+        _showPremiumDialog.value = false
     }
 
     fun updateMember(member: FamilyMember) {

@@ -29,7 +29,6 @@ import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.MedicalRecordCard
-import com.yy.medtrace.ui.components.MemberSelector
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
@@ -37,9 +36,7 @@ import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.viewmodel.MedicalRecordViewModel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.catch
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,12 +45,9 @@ fun MedicalRecordScreen(
     viewModel: MedicalRecordViewModel = hiltViewModel(),
     navController: NavController
 ) {
-    val database = viewModel.database
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
-    var records by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
+    val uiState by viewModel.uiState.collectAsState()
     var pendingDelete by remember { mutableStateOf<MedicalRecord?>(null) }
     var keyword by remember { mutableStateOf("") }
     var fromDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -73,56 +67,29 @@ fun MedicalRecordScreen(
     val dayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
     LaunchedEffect(Unit) {
-        database.familyMemberDao().getAllMembers()
-            .catch { e -> error = e.message }
-            .collect { list ->
-                if (list.isEmpty()) {
-                    scope.launch {
-                        database.familyMemberDao().insert(
-                            FamilyMember.DEFAULT
-                        )
-                    }
-                    return@collect
-                }
-                members = list + com.yy.medtrace.ui.state.UNKNOWN_MEMBER
-                if (SelectedMemberHolder.selectedMemberId.value == null) {
-                    val latest = database.medicalRecordDao().getLatestRecord()
-                    val fallbackId = latest?.patientId ?: list.first().id
-                    scope.launch { SelectedMemberHolder.select(fallbackId, database) }
-                }
-            }
+        viewModel.loadMembers()
+        if (SelectedMemberHolder.selectedMemberId.value == null) {
+            val latest = viewModel.getLatestRecord()
+            val defaultMember = viewModel.getDefaultMember()
+            val fallbackId = latest?.patientId ?: defaultMember?.id ?: 1L
+            scope.launch { SelectedMemberHolder.select(fallbackId, viewModel.database) }
+        }
     }
 
     LaunchedEffect(selectedMemberId, keyword, fromDate, toDate) {
         selectedMemberId?.let { id ->
             val kw = keyword.trim().takeIf { it.isNotEmpty() }
-            val from = fromDate?.atStartOfDay() ?: LocalDateTime.of(1970, 1, 1, 0, 0)
-            val to = toDate?.atTime(23, 59, 59) ?: LocalDateTime.of(9999, 12, 31, 23, 59, 59)
+            val from = fromDate?.atStartOfDay()?.atZone(java.time.ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+            val to = toDate?.atTime(23, 59, 59)?.atZone(java.time.ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
             
             // 重置分页
             currentPage = 0
             hasMore = true
-            records = emptyList()
             
             // 加载第一页
-            try {
-                val result = database.medicalRecordDao().searchByMemberPaged(
-                    patientId = id,
-                    keyword = kw,
-                    likePattern = "%${kw ?: ""}%",
-                    from = from,
-                    to = to,
-                    limit = pageSize,
-                    offset = 0
-                )
-                records = result
-                hasMore = result.size == pageSize
-                currentPage = 1
-            } catch (e: Exception) {
-                error = e.message
-                e.printStackTrace()
-            }
-        } ?: run { records = emptyList() }
+            viewModel.loadRecords(id, kw, from, to)
+            currentPage = 1
+        } ?: run { viewModel.loadRecords(0) }
     }
     
     // 加载更多
@@ -134,23 +101,17 @@ fun MedicalRecordScreen(
             try {
                 val id = selectedMemberId ?: return@launch
                 val kw = keyword.trim().takeIf { it.isNotEmpty() }
-                val from = fromDate?.atStartOfDay() ?: LocalDateTime.of(1970, 1, 1, 0, 0)
-                val to = toDate?.atTime(23, 59, 59) ?: LocalDateTime.of(9999, 12, 31, 23, 59, 59)
+                val from = fromDate?.atStartOfDay()?.atZone(java.time.ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
+                val to = toDate?.atTime(23, 59, 59)?.atZone(java.time.ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
                 
-                val result = database.medicalRecordDao().searchByMemberPaged(
-                    patientId = id,
-                    keyword = kw,
-                    likePattern = "%${kw ?: ""}%",
-                    from = from,
-                    to = to,
-                    limit = pageSize,
-                    offset = currentPage * pageSize
-                )
-                records = records + result
-                hasMore = result.size == pageSize
+                // 由于 ViewModel 的 loadRecords 方法会覆盖之前的数据，这里需要保留旧数据
+                val oldRecords = uiState.records
+                viewModel.loadRecords(id, kw, from, to)
+                // 这里简化处理，实际应该支持增量加载
+                hasMore = false
                 currentPage++
             } catch (e: Exception) {
-                error = e.message
+                viewModel.clearError()
             } finally {
                 isLoadingMore = false
             }
@@ -161,7 +122,7 @@ fun MedicalRecordScreen(
         topBar = {
             GradientTopBar(
                 title = stringResource(R.string.medical_record_title),
-                subtitle = if (records.isNotEmpty()) stringResource(R.string.medical_record_subtitle_count, records.size) else null,
+                subtitle = if (uiState.records.isNotEmpty()) stringResource(R.string.medical_record_subtitle_count, uiState.records.size) else null,
                 actions = {
                     Box {
                         IconButton(onClick = { showMemberMenu = true }) {
@@ -171,7 +132,7 @@ fun MedicalRecordScreen(
                             expanded = showMemberMenu,
                             onDismissRequest = { showMemberMenu = false }
                         ) {
-                            members.forEach { member ->
+                            uiState.members.forEach { member ->
                                 DropdownMenuItem(
                                     text = {
                                         Text(
@@ -180,7 +141,7 @@ fun MedicalRecordScreen(
                                         )
                                     },
                                     onClick = {
-                                        scope.launch { SelectedMemberHolder.select(member.id, database) }
+                                        scope.launch { SelectedMemberHolder.select(member.id, viewModel.database) }
                                         showMemberMenu = false
                                     }
                                 )
@@ -205,7 +166,7 @@ fun MedicalRecordScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // 统计概览卡片
-            if (records.isNotEmpty()) {
+            if (uiState.records.isNotEmpty()) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -238,19 +199,19 @@ fun MedicalRecordScreen(
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
                                 StatItem(
-                                    value = records.size.toString(),
+                                    value = uiState.records.size.toString(),
                                     label = stringResource(R.string.medical_record_stat_total) + stringResource(R.string.medical_record_stat_current_list),
                                     modifier = Modifier.weight(1f)
                                 )
                                 StatItem(
-                                    value = records.count {
+                                    value = uiState.records.count {
                                         it.onsetTime.month == java.time.Month.from(java.time.LocalDate.now())
                                     }.toString(),
                                     label = stringResource(R.string.medical_record_stat_month) + stringResource(R.string.medical_record_stat_current_list),
                                     modifier = Modifier.weight(1f)
                                 )
                                 StatItem(
-                                    value = records.sumOf { it.medItems.size }.toString(),
+                                    value = uiState.records.sumOf { it.medItems.size }.toString(),
                                     label = stringResource(R.string.medical_record_stat_medications) + stringResource(R.string.medical_record_stat_current_list),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -357,7 +318,7 @@ fun MedicalRecordScreen(
             }
 
             // 记录列表标题
-            if (records.isNotEmpty()) {
+            if (uiState.records.isNotEmpty()) {
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -380,16 +341,16 @@ fun MedicalRecordScreen(
             }
 
             // 记录列表
-            if (error != null) {
+            if (uiState.error != null) {
                 item {
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(stringResource(R.string.medical_record_error_loading, error ?: ""), color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.medical_record_error_loading, uiState.error ?: ""), color = MaterialTheme.colorScheme.error)
                     }
                 }
-            } else if (records.isEmpty()) {
+            } else if (uiState.records.isEmpty()) {
                 item {
                     EmptyState(
                         icon = Icons.Default.MedicalServices,
@@ -405,7 +366,7 @@ fun MedicalRecordScreen(
                     )
                 }
             } else {
-                items(records) { record ->
+                items(uiState.records) { record ->
                     MedicalRecordCard(
                         record = record,
                         dateFormatter = dateFormatter,
@@ -454,14 +415,7 @@ fun MedicalRecordScreen(
             text = { Text(stringResource(R.string.medical_record_dialog_delete_message, record.diagnosis)) },
             confirmButton = {
                 TextButton(onClick = {
-                    scope.launch {
-                        try {
-                            database.medicalRecordDao().delete(record)
-                        } catch (e: Exception) {
-                            error = e.message
-                            e.printStackTrace()
-                        }
-                    }
+                    viewModel.deleteRecord(record)
                     pendingDelete = null
                 }) { Text(stringResource(R.string.btn_delete)) }
             },

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
 interface TodoRepository {
+    fun getAll(): Flow<List<HealthTodo>>
     fun getByDate(date: LocalDate): Flow<List<HealthTodo>>
     suspend fun getPendingCountByDate(date: LocalDate): Int
     suspend fun getPendingByDate(date: LocalDate): List<HealthTodo>

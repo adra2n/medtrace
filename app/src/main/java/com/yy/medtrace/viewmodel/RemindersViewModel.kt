@@ -4,9 +4,10 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
+import com.yy.medtrace.data.repository.MemberRepository
+import com.yy.medtrace.data.repository.TodoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
 class RemindersViewModel @Inject constructor(
-    private val database: AppDatabase
+    private val todoRepository: TodoRepository,
+    private val memberRepository: MemberRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RemindersUiState())
@@ -29,8 +31,8 @@ class RemindersViewModel @Inject constructor(
     fun loadReminders() {
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
-            val membersFlow = database.familyMemberDao().getAllMembers()
-            val todosFlow = database.healthTodoDao().getAll()
+            val membersFlow = memberRepository.getAllMembers()
+            val todosFlow = todoRepository.getAll()
             combine(membersFlow, todosFlow) { m, t -> m to t }
                 .collect { (m, t) ->
                     val sorted = t.sortedWith(compareBy({ it.done }, { it.dueDate }))
@@ -46,7 +48,7 @@ class RemindersViewModel @Inject constructor(
 
     fun setTodoDone(todoId: Long, done: Boolean) {
         viewModelScope.launch {
-            val todo = database.healthTodoDao().getById(todoId) ?: return@launch
+            val todo = todoRepository.getById(todoId) ?: return@launch
             val today = LocalDate.now().toString()
             val newCompletedDates = if (done) {
                 if (todo.completedDates.isBlank()) today
@@ -54,13 +56,13 @@ class RemindersViewModel @Inject constructor(
             } else {
                 todo.completedDates.split(",").filter { it.trim() != today }.joinToString(",")
             }
-            database.healthTodoDao().update(todo.copy(
+            todoRepository.update(todo.copy(
                 done = done,
                 completedDates = newCompletedDates
             ))
             if (done && todo.repeatType != "none") {
                 val nextDate = calculateNextDueDate(todo.dueDate, todo.repeatType, todo.repeatInterval)
-                database.healthTodoDao().insert(
+                todoRepository.insert(
                     todo.copy(
                         id = 0,
                         dueDate = nextDate,
@@ -75,20 +77,20 @@ class RemindersViewModel @Inject constructor(
 
     fun deleteTodo(todo: HealthTodo) {
         viewModelScope.launch {
-            database.healthTodoDao().delete(todo)
+            todoRepository.delete(todo)
         }
     }
 
     fun insertTodo(todo: HealthTodo) {
         viewModelScope.launch {
-            database.healthTodoDao().insert(todo)
+            todoRepository.insert(todo)
         }
     }
 
     fun updateRepeat(todoId: Long, repeatType: String, repeatInterval: Int) {
         viewModelScope.launch {
-            val todo = database.healthTodoDao().getById(todoId) ?: return@launch
-            database.healthTodoDao().update(
+            val todo = todoRepository.getById(todoId) ?: return@launch
+            todoRepository.update(
                 todo.copy(repeatType = repeatType, repeatInterval = repeatInterval)
             )
         }
@@ -96,7 +98,7 @@ class RemindersViewModel @Inject constructor(
 
     fun updateTodo(todo: HealthTodo) {
         viewModelScope.launch {
-            database.healthTodoDao().update(todo)
+            todoRepository.update(todo)
         }
     }
 

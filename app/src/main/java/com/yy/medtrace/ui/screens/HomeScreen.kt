@@ -376,7 +376,7 @@ fun HomeScreen(
         AddTodoDialog(
             members = uiState.members,
             onDismiss = { showAddTodoDialog = false },
-            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval, category ->
+            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval, category, reminderTime ->
                 viewModel.addTodo(
                     memberId = memberId,
                     memberName = memberName,
@@ -384,7 +384,8 @@ fun HomeScreen(
                     dueDate = dueDate,
                     repeatType = repeatType,
                     repeatInterval = repeatInterval,
-                    category = category
+                    category = category,
+                    reminderTime = reminderTime
                 )
                 showAddTodoDialog = false
             }
@@ -681,7 +682,7 @@ internal fun AddTodoDialog(
     members: List<FamilyMember>,
     initialCategory: String = stringResource(R.string.screen_home_category_other),
     onDismiss: () -> Unit,
-    onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int, category: String) -> Unit
+    onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int, category: String, reminderTime: String) -> Unit
 ) {
     var content by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(initialCategory) }
@@ -693,6 +694,8 @@ internal fun AddTodoDialog(
     var repeatType by remember { mutableStateOf("none") }
     var repeatInterval by remember { mutableIntStateOf(1) }
     var showRepeatDialog by remember { mutableStateOf(false) }
+    var reminderTime by remember { mutableStateOf("09:00") }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     val categories = listOf(stringResource(R.string.screen_home_category_medication) to "💊", stringResource(R.string.screen_home_category_review) to "🏥", stringResource(R.string.screen_home_category_checkup) to "🔬", stringResource(R.string.screen_home_category_other) to "📋")
 
@@ -728,6 +731,39 @@ internal fun AddTodoDialog(
                 showRepeatDialog = false
             },
             onDismiss = { showRepeatDialog = false }
+        )
+    }
+
+    if (showTimePicker) {
+        val parts = reminderTime.split(":")
+        val initialHour = parts.getOrNull(0)?.toIntOrNull() ?: 9
+        val initialMinute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        
+        val timePickerState = rememberTimePickerState(
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            is24Hour = true
+        )
+        
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text(stringResource(R.string.screen_home_select_reminder_time)) },
+            text = {
+                TimePicker(state = timePickerState)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val hour = timePickerState.hour.toString().padStart(2, '0')
+                        val minute = timePickerState.minute.toString().padStart(2, '0')
+                        reminderTime = "$hour:$minute"
+                        showTimePicker = false
+                    }
+                ) { Text(stringResource(R.string.screen_home_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.screen_home_cancel)) }
+            }
         )
     }
 
@@ -863,6 +899,21 @@ internal fun AddTodoDialog(
                 ),
                 enabled = false
             )
+            OutlinedTextField(
+                value = reminderTime,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.screen_home_reminder_time)) },
+                trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_home_select_time), tint = MaterialTheme.colorScheme.primary) },
+                modifier = Modifier.fillMaxWidth().clickable { showTimePicker = true },
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledTrailingIconColor = MaterialTheme.colorScheme.primary,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline
+                ),
+                enabled = false
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -874,7 +925,7 @@ internal fun AddTodoDialog(
                 Button(
                     onClick = {
                         val m = selectedMember ?: return@Button
-                        onSave(m.id, m.name, content.trim(), dueDate, repeatType, repeatInterval, category)
+                        onSave(m.id, m.name, content.trim(), dueDate, repeatType, repeatInterval, category, reminderTime)
                     },
                     modifier = Modifier.weight(1f),
                     enabled = content.isNotBlank() && selectedMemberId != null

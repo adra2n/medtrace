@@ -19,7 +19,8 @@ data class HealthTodo(
     val startDate: LocalDate = LocalDate.now(),
     val durationDays: Int = 0,
     val completedDates: String = "",
-    val category: String = "其他"  // 服药/复查/检查/其他
+    val category: String = "其他",  // 服药/复查/检查/其他
+    val reminderTime: String = "09:00"  // HH:mm 格式，默认 9 点
 ) {
     fun getStreak(): Int {
         if (completedDates.isBlank()) return 0

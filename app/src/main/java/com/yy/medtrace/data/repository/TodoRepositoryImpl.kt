@@ -12,6 +12,10 @@ class TodoRepositoryImpl(
     private val healthTodoDao: HealthTodoDao
 ) : TodoRepository {
     
+    override fun getAll(): Flow<List<HealthTodo>> {
+        return healthTodoDao.getAll()
+    }
+    
     override fun getByDate(date: LocalDate): Flow<List<HealthTodo>> {
         return healthTodoDao.getByDate(date)
     }

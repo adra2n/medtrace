@@ -19,6 +19,12 @@ interface HealthTodoDao {
     @Query("SELECT * FROM health_todos WHERE dueDate = :date AND done = 0")
     suspend fun getPendingByDate(date: LocalDate): List<HealthTodo>
 
+    @Query("SELECT * FROM health_todos WHERE dueDate = :date AND done = 0 AND reminderTime = :time")
+    suspend fun getPendingByDateAndTime(date: LocalDate, time: String): List<HealthTodo>
+
+    @Query("SELECT DISTINCT reminderTime FROM health_todos WHERE dueDate = :date AND done = 0")
+    suspend fun getPendingReminderTimesByDate(date: LocalDate): List<String>
+
     @Query("SELECT * FROM health_todos WHERE id = :id")
     suspend fun getById(id: Long): HealthTodo?
 

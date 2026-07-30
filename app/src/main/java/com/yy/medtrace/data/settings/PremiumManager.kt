@@ -1,8 +1,10 @@
 package com.yy.medtrace.data.settings
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.yy.medtrace.data.RegistrationCodeNative
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,6 +21,40 @@ class PremiumManager @Inject constructor(
         // 功能限制
         const val FREE_MEMBER_LIMIT = 2
         const val FREE_AI_DAILY_LIMIT = 3
+
+        private const val AI_PREFS_NAME = "ai_usage_prefs"
+        private const val KEY_AI_COUNT = "ai_daily_count"
+        private const val KEY_AI_DATE = "ai_last_date"
+    }
+
+    private val aiPrefs: SharedPreferences = context.getSharedPreferences(
+        AI_PREFS_NAME, Context.MODE_PRIVATE
+    )
+
+    /**
+     * 获取今日 AI 使用次数
+     */
+    fun getTodayAiCount(): Int {
+        val savedDate = aiPrefs.getString(KEY_AI_DATE, null)
+        val today = LocalDate.now().toString()
+        return if (savedDate == today) {
+            aiPrefs.getInt(KEY_AI_COUNT, 0)
+        } else {
+            0
+        }
+    }
+
+    /**
+     * 增加今日 AI 使用次数
+     */
+    fun incrementAiUsage() {
+        val savedDate = aiPrefs.getString(KEY_AI_DATE, null)
+        val today = LocalDate.now().toString()
+        val currentCount = if (savedDate == today) aiPrefs.getInt(KEY_AI_COUNT, 0) else 0
+        aiPrefs.edit()
+            .putInt(KEY_AI_COUNT, currentCount + 1)
+            .putString(KEY_AI_DATE, today)
+            .apply()
     }
 
     /**

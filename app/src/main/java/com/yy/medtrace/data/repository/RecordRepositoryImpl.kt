@@ -50,6 +50,18 @@ class RecordRepositoryImpl(private val medicalRecordDao: MedicalRecordDao) : Rec
         return medicalRecordDao.searchByMember(patientId, keyword, likePattern, from, to)
     }
     
+    override suspend fun searchByMemberPaged(
+        patientId: Long,
+        keyword: String?,
+        likePattern: String,
+        from: LocalDateTime,
+        to: LocalDateTime,
+        limit: Int,
+        offset: Int
+    ): List<MedicalRecord> {
+        return medicalRecordDao.searchByMemberPaged(patientId, keyword, likePattern, from, to, limit, offset)
+    }
+    
     override suspend fun getLatestRecord(): MedicalRecord? {
         return medicalRecordDao.getLatestRecord()
     }

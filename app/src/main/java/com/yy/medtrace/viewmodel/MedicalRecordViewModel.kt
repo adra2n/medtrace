@@ -47,16 +47,36 @@ class MedicalRecordViewModel @Inject constructor(
     fun loadRecords(memberId: Long, keyword: String? = null, fromDate: Long? = null, toDate: Long? = null) {
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
-            // Simplified: just load by member for now
-            recordRepository.getRecordsByMember(memberId)
-                .asResultWithoutLoading()
-                .collect { result ->
-                    when (result) {
-                        is Result.Success -> _uiState.update { it.copy(records = result.data, isLoading = false) }
-                        is Result.Error -> _uiState.update { it.copy(error = result.message, isLoading = false) }
-                        is Result.Loading -> {}
-                    }
+            try {
+                val kw = keyword?.trim()?.takeIf { it.isNotEmpty() }
+                val likePattern = "%${kw ?: ""}%"
+                
+                // Convert Long timestamps to LocalDateTime
+                val from = if (fromDate != null) {
+                    java.time.Instant.ofEpochMilli(fromDate).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                } else {
+                    java.time.LocalDateTime.of(1970, 1, 1, 0, 0)
                 }
+                
+                val to = if (toDate != null) {
+                    java.time.Instant.ofEpochMilli(toDate).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime().withHour(23).withMinute(59).withSecond(59)
+                } else {
+                    java.time.LocalDateTime.of(9999, 12, 31, 23, 59, 59)
+                }
+                
+                val records = recordRepository.searchByMemberPaged(
+                    patientId = memberId,
+                    keyword = kw,
+                    likePattern = likePattern,
+                    from = from,
+                    to = to,
+                    limit = 100,
+                    offset = 0
+                )
+                _uiState.update { it.copy(records = records, isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = e.message, isLoading = false) }
+            }
         }
     }
 
@@ -79,6 +99,22 @@ class MedicalRecordViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+    
+    suspend fun getDefaultMember(): FamilyMember? {
+        return memberRepository.getDefaultMember()
+    }
+    
+    suspend fun insertMember(member: FamilyMember): Long {
+        return memberRepository.insert(member)
+    }
+    
+    suspend fun getLatestRecord(): MedicalRecord? {
+        return recordRepository.getLatestRecord()
+    }
+    
+    suspend fun getMemberById(id: Long): FamilyMember? {
+        return memberRepository.getMemberById(id)
     }
 }
 

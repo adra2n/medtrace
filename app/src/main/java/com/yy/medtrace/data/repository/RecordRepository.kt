@@ -21,6 +21,15 @@ interface RecordRepository {
         from: LocalDateTime,
         to: LocalDateTime
     ): Flow<List<MedicalRecord>>
+    suspend fun searchByMemberPaged(
+        patientId: Long,
+        keyword: String?,
+        likePattern: String,
+        from: LocalDateTime,
+        to: LocalDateTime,
+        limit: Int,
+        offset: Int
+    ): List<MedicalRecord>
     suspend fun getLatestRecord(): MedicalRecord?
     suspend fun insert(record: MedicalRecord): Long
     suspend fun count(): Int
