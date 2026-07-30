@@ -17,9 +17,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.EmptyRecords
@@ -38,11 +40,11 @@ import com.yy.medtrace.viewmodel.MemberDetailViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
-private enum class DetailTab(val label: String) {
-    Medication("用药记录"),
-    Exam("检查报告"),
-    Metric("检查指标"),
-    Visit("就诊记录")
+private enum class DetailTab(val labelResId: Int) {
+    Medication(R.string.tab_medication_records),
+    Exam(R.string.tab_exam_reports),
+    Metric(R.string.tab_check_indicators),
+    Visit(R.string.tab_visit_records)
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -155,7 +157,7 @@ fun MemberDetailScreen(
                         FilterChip(
                             selected = selectedTab == tab,
                             onClick = { selectedTab = tab },
-                            label = { Text(tab.label) }
+                            label = { Text(stringResource(tab.labelResId)) }
                         )
                     }
                 }

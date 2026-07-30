@@ -3,11 +3,12 @@ package com.yy.medtrace.ui.screens
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -89,30 +90,32 @@ fun FamilyScreen(
             )
         }
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Spacer(Modifier.height(8.dp))
+            item { Spacer(Modifier.height(8.dp)) }
 
             if (members.isEmpty()) {
-                EmptyFamily()
+                item { EmptyFamily() }
             } else {
-                HealthDashboard(
-                    members = members,
-                    recentRecordCount = recentRecordCount
-                )
-
-                Text(
-                    stringResource(R.string.screen_family_member_list),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                members.forEach { member ->
+                item {
+                    HealthDashboard(
+                        members = members,
+                        recentRecordCount = recentRecordCount
+                    )
+                }
+                item {
+                    Text(
+                        stringResource(R.string.screen_family_member_list),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                items(members, key = { it.id }) { member ->
                     val recordCount = recordCounts[member.id] ?: 0
                     val recentRecords = recentRecordsMap[member.id] ?: emptyList()
                     MemberCard(
@@ -456,6 +459,7 @@ private fun MemberCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HealthDashboard(
     members: List<FamilyMember>,
@@ -477,9 +481,10 @@ private fun HealthDashboard(
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(12.dp))
-            Row(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 StatCard(
                     icon = "👥",

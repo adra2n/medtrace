@@ -324,52 +324,28 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                Surface(
-                    color = Background,
-                    shadowElevation = 4.dp
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .height(64.dp)
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        screens.forEach { screen ->
-                            val selected = currentRoute == screen.route
-                            val iconColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            val textColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
-
-                            Column(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        if (selected) Primary.copy(alpha = 0.10f) else Color.Transparent
-                                    )
-                                    .clickable {
-                                        navController.navigate(screen.route) {
-                                            popUpTo(Screen.Home.route) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    }
-                                    .weight(1f)
-                                    .padding(vertical = 6.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                screen.icon(iconColor, if (selected) 24.dp else 22.dp)
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    text = screen.label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = textColor,
-                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                    screens.forEach { screen ->
+                        NavigationBarItem(
+                            icon = {
+                                screen.icon(
+                                    if (currentRoute == screen.route) MaterialTheme.colorScheme.primary 
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    if (currentRoute == screen.route) 24.dp else 22.dp
                                 )
+                            },
+                            label = { Text(screen.label) },
+                            selected = currentRoute == screen.route,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(Screen.Home.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
-                        }
+                        )
                     }
                 }
             }

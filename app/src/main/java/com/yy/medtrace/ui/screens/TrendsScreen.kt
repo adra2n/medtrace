@@ -155,6 +155,12 @@ fun TrendsScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                            VerticalDivider(
+                                modifier = Modifier
+                                    .height(40.dp)
+                                    .width(1.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 val recentCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                     records.count {
@@ -173,6 +179,12 @@ fun TrendsScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                            VerticalDivider(
+                                modifier = Modifier
+                                    .height(40.dp)
+                                    .width(1.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = "${records.sumOf { it.medItems.size }}",

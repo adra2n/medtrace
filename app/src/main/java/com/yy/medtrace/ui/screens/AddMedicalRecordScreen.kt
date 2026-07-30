@@ -394,14 +394,11 @@ fun AddMedicalRecordScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(stringResource(R.string.screen_add_record_label_medication_number, index + 1), style = MaterialTheme.typography.titleSmall)
-                                    OutlinedButton(
+                                    IconButton(
                                         onClick = { medItems = medItems.filterIndexed { i, _ -> i != index } },
-                                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                        modifier = Modifier.size(48.dp)
                                     ) {
-                                        Icon(Icons.Default.Delete, stringResource(R.string.screen_add_record_icon_delete), modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(stringResource(R.string.screen_add_record_icon_delete))
+                                        Icon(Icons.Default.Delete, stringResource(R.string.screen_add_record_icon_delete), modifier = Modifier.size(18.dp))
                                     }
                                 }
                                 OutlinedTextField(

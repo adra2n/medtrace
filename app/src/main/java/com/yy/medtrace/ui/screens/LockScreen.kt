@@ -1,7 +1,11 @@
 package com.yy.medtrace.ui.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -12,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -188,25 +193,47 @@ private fun Keypad(
         keys.chunked(3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 row.forEach { key ->
-                    Box(
-                        modifier = Modifier.size(72.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        when (key) {
-                            "" -> {}
-                            "del" -> IconButton(onClick = onDelete) {
-                                Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = stringResource(R.string.lock_cd_delete))
-                            }
-                            else -> Text(
-                                key,
-                                style = MaterialTheme.typography.titleLarge,
-                                textAlign = TextAlign.Center,
+                    when (key) {
+                        "" -> Spacer(modifier = Modifier.size(72.dp))
+                        "del" -> {
+                            val interactionSource = remember { MutableInteractionSource() }
+                            val isPressed by interactionSource.collectIsPressedAsState()
+                            val scale by animateFloatAsState(if (isPressed) 0.9f else 1f, label = "delScale")
+                            Surface(
+                                onClick = onDelete,
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .clickable { onDigit(key) }
-                                    .wrapContentSize(Alignment.Center)
-                            )
+                                    .size(72.dp)
+                                    .scale(scale),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = stringResource(R.string.lock_cd_delete))
+                                }
+                            }
+                        }
+                        else -> {
+                            val interactionSource = remember { MutableInteractionSource() }
+                            val isPressed by interactionSource.collectIsPressedAsState()
+                            val scale by animateFloatAsState(if (isPressed) 0.9f else 1f, label = "keyScale")
+                            Surface(
+                                onClick = { onDigit(key) },
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .scale(scale),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        key,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
                         }
                     }
                 }

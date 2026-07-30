@@ -239,19 +239,19 @@ fun MedicalRecordScreen(
                             ) {
                                 StatItem(
                                     value = records.size.toString(),
-                                    label = stringResource(R.string.medical_record_stat_total),
+                                    label = stringResource(R.string.medical_record_stat_total) + stringResource(R.string.medical_record_stat_current_list),
                                     modifier = Modifier.weight(1f)
                                 )
                                 StatItem(
                                     value = records.count {
                                         it.onsetTime.month == java.time.Month.from(java.time.LocalDate.now())
                                     }.toString(),
-                                    label = stringResource(R.string.medical_record_stat_month),
+                                    label = stringResource(R.string.medical_record_stat_month) + stringResource(R.string.medical_record_stat_current_list),
                                     modifier = Modifier.weight(1f)
                                 )
                                 StatItem(
                                     value = records.sumOf { it.medItems.size }.toString(),
-                                    label = stringResource(R.string.medical_record_stat_medications),
+                                    label = stringResource(R.string.medical_record_stat_medications) + stringResource(R.string.medical_record_stat_current_list),
                                     modifier = Modifier.weight(1f)
                                 )
                             }

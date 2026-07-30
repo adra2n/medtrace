@@ -24,6 +24,12 @@
     <string name="title_medication_reminders">用药提醒</string>
     <string name="title_medical_records">医疗记录</string>
     
+    <!-- 标签页 -->
+    <string name="tab_medication_records">用药记录</string>
+    <string name="tab_exam_reports">检查报告</string>
+    <string name="tab_check_indicators">检查指标</string>
+    <string name="tab_visit_records">就诊记录</string>
+    
     <!-- 提示文本 -->
     <string name="empty_reminders">还没有添加任何用药提醒</string>
     <string name="empty_records">还没有添加任何医疗记录</string>
@@ -345,6 +351,7 @@
     <string name="medical_record_stat_total">总记录</string>
     <string name="medical_record_stat_month">本月</string>
     <string name="medical_record_stat_medications">药品</string>
+    <string name="medical_record_stat_current_list">（当前列表中）</string>
     <string name="medical_record_select_member">选择成员</string>
     <string name="medical_record_empty_members">暂无家庭成员，请先在家庭中添加</string>
     <string name="medical_record_search_filter">搜索筛选</string>
