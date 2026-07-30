@@ -11,7 +11,6 @@ import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.data.repository.MemberRepository
 import com.yy.medtrace.data.repository.RecordRepository
-import com.yy.medtrace.data.settings.PremiumManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,8 +24,7 @@ import javax.inject.Inject
 class AddMedicalRecordViewModel @Inject constructor(
     val database: AppDatabase,
     private val memberRepository: MemberRepository,
-    private val recordRepository: RecordRepository,
-    val premiumManager: PremiumManager
+    private val recordRepository: RecordRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddMedicalRecordUiState())

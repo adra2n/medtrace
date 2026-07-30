@@ -1,10 +1,7 @@
 package com.yy.medtrace.data.settings
 
-import android.content.Context
-import android.content.SharedPreferences
 import com.yy.medtrace.data.RegistrationCodeNative
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,47 +11,11 @@ import javax.inject.Singleton
  */
 @Singleton
 class PremiumManager @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val registrationCodeNative: RegistrationCodeNative
 ) {
     companion object {
-        // 功能限制
+        // 免费用户成员上限
         const val FREE_MEMBER_LIMIT = 2
-        const val FREE_AI_DAILY_LIMIT = 3
-
-        private const val AI_PREFS_NAME = "ai_usage_prefs"
-        private const val KEY_AI_COUNT = "ai_daily_count"
-        private const val KEY_AI_DATE = "ai_last_date"
-    }
-
-    private val aiPrefs: SharedPreferences = context.getSharedPreferences(
-        AI_PREFS_NAME, Context.MODE_PRIVATE
-    )
-
-    /**
-     * 获取今日 AI 使用次数
-     */
-    fun getTodayAiCount(): Int {
-        val savedDate = aiPrefs.getString(KEY_AI_DATE, null)
-        val today = LocalDate.now().toString()
-        return if (savedDate == today) {
-            aiPrefs.getInt(KEY_AI_COUNT, 0)
-        } else {
-            0
-        }
-    }
-
-    /**
-     * 增加今日 AI 使用次数
-     */
-    fun incrementAiUsage() {
-        val savedDate = aiPrefs.getString(KEY_AI_DATE, null)
-        val today = LocalDate.now().toString()
-        val currentCount = if (savedDate == today) aiPrefs.getInt(KEY_AI_COUNT, 0) else 0
-        aiPrefs.edit()
-            .putInt(KEY_AI_COUNT, currentCount + 1)
-            .putString(KEY_AI_DATE, today)
-            .apply()
     }
 
     /**
@@ -100,14 +61,6 @@ class PremiumManager @Inject constructor(
     }
 
     /**
-     * 检查今日 AI 识别次数是否用完
-     */
-    fun canUseAiToday(todayCount: Int): Boolean {
-        if (isPremiumActive()) return true
-        return todayCount < FREE_AI_DAILY_LIMIT
-    }
-
-    /**
      * 检查是否可以使用某功能
      */
     fun canUseFeature(feature: PremiumFeature): Boolean {
@@ -125,8 +78,9 @@ enum class PremiumFeature(val isFree: Boolean, val displayName: String, val desc
     SINGLE_MEMBER(true, "单成员", "管理一个家庭成员"),
     BASIC_REMINDER(true, "基本提醒", "设置简单提醒"),
     BASIC_SECURITY(true, "基本安全", "应用锁和 PIN"),
+    AI_USAGE(true, "AI 识别", "使用 AI 识别病历信息"),
     
-    // 付费功能
+    // 付费功能（需注册码激活）
     UNLIMITED_RECORDS(false, "无限记录", "无限制的就诊记录"),
     UNLIMITED_MEMBERS(false, "多成员", "管理多个家庭成员"),
     ADVANCED_REMINDER(false, "高级提醒", "复杂的重复提醒"),
@@ -134,6 +88,6 @@ enum class PremiumFeature(val isFree: Boolean, val displayName: String, val desc
     DATA_IMPORT(false, "数据导入", "从文件导入数据"),
     ENCRYPTED_BACKUP(false, "加密备份", "AES-256 加密备份"),
     GIST_SYNC(false, "云端同步", "同步到 GitHub Gist"),
-    AI_RECOGNITION(false, "AI 识别", "智能识别病历信息"),
+    AI_CONFIGURATION(false, "AI 配置", "配置 AI 识别服务"),
     FULL_SECURITY(false, "完整安全", "全部安全功能")
 }
