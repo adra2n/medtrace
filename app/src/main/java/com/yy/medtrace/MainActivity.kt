@@ -364,7 +364,7 @@ fun MainScreen(
                     navController = navController
                 )
             }
-            composable(Screen.Family.route) {
+            composable("family") {
                 val viewModel: FamilyViewModel = hiltViewModel()
                 FamilyScreen(viewModel, navController)
             }

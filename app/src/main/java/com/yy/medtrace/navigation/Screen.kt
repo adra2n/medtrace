@@ -18,8 +18,8 @@ sealed class Screen(
     object Home : Screen("home", "首页", { tint, size ->
         Icon(Icons.Filled.Home, "首页", tint = tint, modifier = Modifier.size(size))
     })
-    object Family : Screen("family", "家人", { tint, size ->
-        Icon(Icons.Filled.People, "家人", tint = tint, modifier = Modifier.size(size))
+    object MedicalRecords : Screen("medical_records", "病历", { tint, size ->
+        Icon(Icons.Filled.FolderOpen, "病历", tint = tint, modifier = Modifier.size(size))
     })
     object Reminders : Screen("reminders", "提醒", { tint, size ->
         Icon(Icons.Filled.AlarmOn, "提醒", tint = tint, modifier = Modifier.size(size))
@@ -32,6 +32,6 @@ sealed class Screen(
     })
     
     companion object {
-        val bottomBarScreens = listOf(Home, Family, Reminders, Profile)
+        val bottomBarScreens = listOf(Home, MedicalRecords, Reminders, Profile)
     }
 }

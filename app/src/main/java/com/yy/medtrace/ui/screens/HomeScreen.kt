@@ -126,7 +126,16 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             item {
-                SectionTitle(stringResource(R.string.screen_home_my_family))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SectionTitle(stringResource(R.string.screen_home_my_family))
+                    TextButton(onClick = { navController.navigate("family") }) {
+                        Text(stringResource(R.string.screen_home_family_manage))
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 val familyListState = rememberLazyListState()
                 Box {
