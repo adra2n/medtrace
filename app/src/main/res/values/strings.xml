@@ -276,6 +276,10 @@
     <string name="settings_title_ai_config">AI 配置</string>
     <string name="settings_ai_description">配置你自己的 OpenAI 兼容大模型（Base URL / Key / 模型名）。密钥仅保存在本机。</string>
     <string name="settings_ai_privacy_warning">⚠ AI 分析会将您输入的文字和拍摄的图片发送到上述端点，请确认您信任该服务提供商。</string>
+    <string name="settings_llm_test_btn">测试连通性</string>
+    <string name="settings_llm_test_success">✅ 连接成功，模型响应正常</string>
+    <string name="settings_llm_test_error">❌ 连接失败：%1$s</string>
+    <string name="settings_llm_test_error_incomplete">❌ 请先填写完整的 URL、Key 和模型名</string>
     <string name="settings_label_model_name">模型名（如 gpt-4o）</string>
     <string name="settings_cd_hide_key">隐藏 Key</string>
     <string name="settings_cd_show_key">显示 Key</string>

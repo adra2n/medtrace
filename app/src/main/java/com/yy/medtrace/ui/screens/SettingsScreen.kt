@@ -93,6 +93,8 @@ fun SettingsScreen(
     var backupError by remember { mutableStateOf<String?>(null) }
     var showToken by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
+    var testingLlm by remember { mutableStateOf(false) }
+    var llmTestResult by remember { mutableStateOf<String?>(null) }
     var appLockEnabled by remember { mutableStateOf(false) }
     var autoLockSeconds by remember { mutableStateOf(0) }
     var secureScreen by remember { mutableStateOf(false) }
@@ -166,6 +168,37 @@ fun SettingsScreen(
         val json = encodeBackup(backupRepository.exportAll())
         return if (encryptPassword.isNotBlank()) "ENC:" + CryptoUtil.encrypt(json, encryptPassword)
         else json
+    }
+
+    fun testLlmConnection() {
+        if (llmBaseUrl.isBlank() || llmApiKey.isBlank() || llmModel.isBlank()) {
+            llmTestResult = context.getString(R.string.settings_llm_test_error_incomplete)
+            return
+        }
+        testingLlm = true
+        llmTestResult = null
+        scope.launch(Dispatchers.IO) {
+            try {
+                val api = com.yy.medtrace.data.llm.LlmApi.create(llmBaseUrl.trim().removeSuffix("/").let {
+                    if (!it.endsWith("/")) "$it/" else it
+                })
+                val auth = "Bearer ${llmApiKey.trim()}"
+                val req = com.yy.medtrace.data.llm.ChatRequest(
+                    model = llmModel.trim(),
+                    messages = listOf(com.yy.medtrace.data.llm.Message("user", kotlinx.serialization.json.JsonPrimitive("Hi")))
+                )
+                api.chat(auth, req)
+                withContext(Dispatchers.Main) {
+                    llmTestResult = context.getString(R.string.settings_llm_test_success)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    llmTestResult = context.getString(R.string.settings_llm_test_error, e.message ?: e.javaClass.simpleName)
+                }
+            } finally {
+                testingLlm = false
+            }
+        }
     }
 
     // 将文件/网络内容解析为 BackupData：自动识别 ENC: 密文并按加密密码解密
@@ -763,6 +796,25 @@ fun SettingsScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true
                             )
+                            OutlinedButton(
+                                onClick = { testLlmConnection() },
+                                enabled = !testingLlm && llmBaseUrl.isNotBlank() && llmApiKey.isNotBlank() && llmModel.isNotBlank(),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (testingLlm) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    Spacer(Modifier.width(8.dp))
+                                }
+                                Text(stringResource(R.string.settings_llm_test_btn))
+                            }
+                            llmTestResult?.let { result ->
+                                val isError = result.startsWith("❌")
+                                Text(
+                                    result,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     } else {
                         // 未购买：显示锁定状态
