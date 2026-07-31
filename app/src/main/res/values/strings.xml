@@ -94,6 +94,7 @@
     <string name="screen_home_today_reminders">今日提醒（%1$d项待办）</string>
     <string name="screen_home_view_all">查看全部 %1$d 项待办</string>
     <string name="screen_home_recent_records">最近记录</string>
+    <string name="screen_home_view_all_records">查看全部</string>
     <string name="screen_home_quick_functions">快捷功能</string>
     <string name="screen_home_visit_record">就诊记录</string>
     <string name="screen_home_visit_record_desc">AI扫描或手动录入</string>

@@ -193,7 +193,7 @@ fun HomeScreen(
                                         )
                                     }
                                 }
-                                // 健康状态指示
+                                // 健康标签或待办数量（互斥显示）
                                 val tag = buildTag(member)
                                 if (tag.isNotBlank()) {
                                     Surface(
@@ -209,9 +209,7 @@ fun HomeScreen(
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                         )
                                     }
-                                }
-                                // 待办统计
-                                if (memberTodoCount > 0) {
+                                } else if (memberTodoCount > 0) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -298,7 +296,22 @@ fun HomeScreen(
 
             if (uiState.recentRecords.isNotEmpty()) {
                 item {
-                    SectionTitle(stringResource(R.string.screen_home_recent_records))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SectionTitle(stringResource(R.string.screen_home_recent_records))
+                        TextButton(onClick = {
+                            navController.navigate("medical_records") {
+                                popUpTo("home") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }) {
+                            Text(stringResource(R.string.screen_home_view_all_records))
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -353,7 +366,13 @@ fun HomeScreen(
                             title = stringResource(R.string.screen_home_medical_archive),
                             desc = stringResource(R.string.screen_home_medical_archive_desc),
                             color = Healthy,
-                            onClick = { navController.navigate("medical_records") }
+                            onClick = {
+                                navController.navigate("medical_records") {
+                                    popUpTo("home") { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
                         )
                     }
                     Row(
@@ -517,88 +536,82 @@ private fun TodayTodoItem(
                 color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 textDecoration = if (done) TextDecoration.LineThrough else null
             )
-            // 按类别显示不同统计
             if (todo != null) {
                 val today = java.time.LocalDate.now()
-                when (todo.category) {
-                    stringResource(R.string.screen_home_category_medication) -> {
-                        if (streak > 0) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(top = 2.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.LocalFireDepartment,
-                                    contentDescription = null,
-                                    tint = Urgent,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(Modifier.width(2.dp))
-                                Text(
-                                    stringResource(R.string.screen_home_streak_days, streak),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Urgent
-                                )
-                            }
-                        }
+                val categoryLabel = when (todo.category) {
+                    stringResource(R.string.screen_home_category_medication) -> stringResource(R.string.screen_home_category_medication)
+                    stringResource(R.string.screen_home_category_review) -> stringResource(R.string.screen_home_review_label)
+                    stringResource(R.string.screen_home_category_checkup) -> stringResource(R.string.screen_home_checkup_label)
+                    else -> stringResource(R.string.screen_home_category_other)
+                }
+                val daysUntil = java.time.temporal.ChronoUnit.DAYS.between(today, todo.dueDate)
+                val dateLabel = when {
+                    daysUntil < 0 -> stringResource(R.string.screen_home_overdue, "", -daysUntil.toInt()).trim()
+                    daysUntil == 0L -> stringResource(R.string.screen_home_today_label)
+                    daysUntil <= 7 -> stringResource(R.string.screen_home_days_later, "", daysUntil.toInt()).trim()
+                    else -> todo.dueDate.format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"))
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                    ) {
+                        Text(
+                            categoryLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
                     }
-                    stringResource(R.string.screen_home_category_review), stringResource(R.string.screen_home_category_checkup) -> {
-                        val label = if (todo.category == stringResource(R.string.screen_home_category_review)) stringResource(R.string.screen_home_review_label) else stringResource(R.string.screen_home_checkup_label)
-                        // 查找未来日期的待办
-                        val futureTodo = allTodos.filter {
-                            it.category == todo.category && !it.done && it.dueDate.isAfter(today)
-                        }.minByOrNull { it.dueDate }
-                        
-                        val displayDate = futureTodo?.dueDate ?: todo.dueDate
-                        val daysUntil = java.time.temporal.ChronoUnit.DAYS.between(today, displayDate)
-                        
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 2.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.DateRange,
-                                contentDescription = null,
-                            tint = if (daysUntil < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    Text(
+                        dateLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (daysUntil < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (todo.category == stringResource(R.string.screen_home_category_medication) && streak > 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.LocalFireDepartment,
+                            contentDescription = null,
+                            tint = Urgent,
                             modifier = Modifier.size(12.dp)
                         )
                         Spacer(Modifier.width(2.dp))
                         Text(
-                            when {
-                                daysUntil < 0 -> stringResource(R.string.screen_home_overdue, label, -daysUntil.toInt())
-                                daysUntil == 0L -> stringResource(R.string.screen_home_today, label)
-                                daysUntil <= 7 -> stringResource(R.string.screen_home_days_later, label, daysUntil.toInt())
-                                else -> "$label ${displayDate.format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"))}"
-                            },
+                            stringResource(R.string.screen_home_streak_days, streak),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (daysUntil < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                            )
-                        }
+                            color = Urgent
+                        )
                     }
-                    else -> {
-                        // 其他类别显示疗程进度
-                        if (todo.durationDays > 0) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.padding(top = 2.dp)
-                            ) {
-                                LinearProgressIndicator(
-                                    progress = { progress },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp)),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                )
-                                Text(
-                                    stringResource(R.string.screen_home_treatment_days, todo.durationDays),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                }
+                if (todo.category == stringResource(R.string.screen_home_category_other) && todo.durationDays > 0) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(top = 2.dp)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        )
+                        Text(
+                            stringResource(R.string.screen_home_treatment_days, todo.durationDays),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
