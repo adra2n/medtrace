@@ -18,8 +18,8 @@ sealed class Screen(
     object Home : Screen("home", "首页", { tint, size ->
         Icon(Icons.Filled.Home, "首页", tint = tint, modifier = Modifier.size(size))
     })
-    object MedicalRecords : Screen("medical_records", "病历", { tint, size ->
-        Icon(Icons.Filled.FolderOpen, "病历", tint = tint, modifier = Modifier.size(size))
+    object MedicalRecords : Screen("medical_records", "记录", { tint, size ->
+        Icon(Icons.Filled.FolderOpen, "记录", tint = tint, modifier = Modifier.size(size))
     })
     object Reminders : Screen("reminders", "提醒", { tint, size ->
         Icon(Icons.Filled.AlarmOn, "提醒", tint = tint, modifier = Modifier.size(size))

@@ -72,6 +72,7 @@ import com.yy.medtrace.viewmodel.HomeViewModel
 import com.yy.medtrace.navigation.Screen
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -84,6 +85,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddTodoDialog by remember { mutableStateOf(false) }
+    var showAddRecordSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -110,7 +112,7 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { navController.navigate("add_record") },
+                onClick = { showAddRecordSheet = true },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.screen_home_fab_add))
@@ -343,7 +345,7 @@ fun HomeScreen(
                             title = stringResource(R.string.screen_home_visit_record),
                             desc = stringResource(R.string.screen_home_visit_record_desc),
                             color = Info,
-                            onClick = { navController.navigate("add_record") }
+                            onClick = { showAddRecordSheet = true }
                         )
                         FunctionTile(
                             modifier = Modifier.weight(1f),
@@ -398,6 +400,18 @@ fun HomeScreen(
                 )
                 showAddTodoDialog = false
             }
+        )
+    }
+
+    // 添加就诊记录 BottomSheet
+    if (showAddRecordSheet) {
+        AddRecordBottomSheet(
+            onDismiss = { showAddRecordSheet = false },
+            onNext = { memberId, diagnosis, hospital, onsetTime ->
+                showAddRecordSheet = false
+                navController.navigate("add_record/-1?memberId=$memberId&diagnosis=$diagnosis&hospital=$hospital&onsetTime=$onsetTime")
+            },
+            members = uiState.members
         )
     }
 }
@@ -1049,6 +1063,151 @@ private fun RepeatPickerDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.screen_home_cancel)) }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddRecordBottomSheet(
+    onDismiss: () -> Unit,
+    onNext: (memberId: Long, diagnosis: String, hospital: String, onsetTime: String) -> Unit,
+    members: List<FamilyMember>
+) {
+    var selectedMemberId by remember { mutableStateOf(members.firstOrNull()?.id ?: 0L) }
+    var diagnosis by remember { mutableStateOf("") }
+    var hospital by remember { mutableStateOf("") }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    var selectedTime by remember { mutableStateOf(LocalTime.of(9, 0)) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.screen_add_record_title_add),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            // 成员选择
+            if (members.isNotEmpty()) {
+                Text(stringResource(R.string.screen_add_record_section_family_member), style = MaterialTheme.typography.labelMedium)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(members) { member ->
+                        FilterChip(
+                            selected = selectedMemberId == member.id,
+                            onClick = { selectedMemberId = member.id },
+                            label = { Text(member.name) }
+                        )
+                    }
+                }
+            }
+
+            // 诊断
+            OutlinedTextField(
+                value = diagnosis,
+                onValueChange = { diagnosis = it },
+                label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_type)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // 医院
+            OutlinedTextField(
+                value = hospital,
+                onValueChange = { hospital = it },
+                label = { Text(stringResource(R.string.screen_add_record_label_hospital)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // 就诊时间
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(stringResource(R.string.screen_add_record_label_visit_time, selectedDate.toString()))
+                }
+                OutlinedButton(
+                    onClick = { showTimePicker = true },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(selectedTime.format(DateTimeFormatter.ofPattern("HH:mm")))
+                }
+            }
+
+            // 下一步按钮
+            Button(
+                onClick = {
+                    val onsetTime = "${selectedDate}T${selectedTime}"
+                    onNext(selectedMemberId, diagnosis, hospital, onsetTime)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = diagnosis.isNotBlank()
+            ) {
+                Text(stringResource(R.string.screen_add_record_btn_save))
+            }
+
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+
+    // DatePicker
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate.toEpochDay() * 86400000L
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        selectedDate = LocalDate.ofEpochDay(millis / 86400000L)
+                    }
+                    showDatePicker = false
+                }) { Text(stringResource(R.string.screen_home_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.screen_home_cancel)) }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // TimePicker
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = selectedTime.hour,
+            initialMinute = selectedTime.minute
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                    showTimePicker = false
+                }) { Text(stringResource(R.string.screen_home_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.screen_home_cancel)) }
+            },
+            text = { TimePicker(state = timePickerState) }
+        )
+    }
 }
 
 @Composable

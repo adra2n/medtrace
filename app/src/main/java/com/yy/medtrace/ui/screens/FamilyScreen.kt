@@ -135,7 +135,7 @@ fun FamilyScreen(
                         onDelete = { pendingDelete = member },
                         onAddRecord = {
                             scope.launch { SelectedMemberHolder.select(member.id, viewModel.database) }
-                            navController.navigate("add_record")
+                            navController.navigate("add_record/-1?memberId=${member.id}")
                         },
                         onViewRecords = {
                             scope.launch { SelectedMemberHolder.select(member.id, viewModel.database) }

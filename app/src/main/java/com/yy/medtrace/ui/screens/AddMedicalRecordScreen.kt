@@ -18,8 +18,10 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -71,16 +73,28 @@ private fun encodeMetrics(metrics: List<Metric>): String =
 fun AddMedicalRecordScreen(
     viewModel: AddMedicalRecordViewModel = hiltViewModel(),
     navController: NavController,
-    recordId: Long = -1L
+    recordId: Long = -1L,
+    memberId: Long = -1L,
+    diagnosis: String = "",
+    hospital: String = "",
+    onsetTime: String = ""
 ) {
     val database = viewModel.database
     var selectedMemberId by remember { mutableStateOf<Long?>(null) }
     var members by remember { mutableStateOf<List<FamilyMember>>(emptyList()) }
-    var diagnosis by remember { mutableStateOf("") }
-    var hospital by remember { mutableStateOf("") }
+    var diagnosis by remember { mutableStateOf(diagnosis) }
+    var hospital by remember { mutableStateOf(hospital) }
     var medItems by remember { mutableStateOf<List<MedicationItem>>(emptyList()) }
     var notes by remember { mutableStateOf("") }
-    var onsetTime by remember { mutableStateOf(LocalDateTime.now()) }
+    var onsetTime by remember {
+        mutableStateOf(
+            if (onsetTime.isNotBlank()) {
+                runCatching { LocalDateTime.parse(onsetTime) }.getOrDefault(LocalDateTime.now())
+            } else {
+                LocalDateTime.now()
+            }
+        )
+    }
     var error by remember { mutableStateOf<String?>(null) }
     var existingId by remember { mutableStateOf<Long?>(null) }
     var existingMetricsJson by remember { mutableStateOf("") }
@@ -104,7 +118,7 @@ fun AddMedicalRecordScreen(
         database.familyMemberDao().getAllMembers().collect { list ->
             members = list
             if (selectedMemberId == null && list.isNotEmpty()) {
-                selectedMemberId = database.familyMemberDao().getDefaultMember()?.id ?: list.first().id
+                selectedMemberId = if (memberId != -1L) memberId else database.familyMemberDao().getDefaultMember()?.id ?: list.first().id
             }
         }
     }
@@ -203,7 +217,7 @@ fun AddMedicalRecordScreen(
             if (diagnosis.isBlank()) diagnosis = r.diagnosis ?: ""
             if (hospital.isBlank()) hospital = r.hospital ?: ""
             if (medItems.isEmpty() && r.medications.isNotEmpty()) {
-                medItems = r.medications.map { MedicationItem(it.name, it.dose, it.freq, it.duration) }
+                medItems = r.medications.map { MedicationItem(it.name, it.dose, freq = it.freq, duration = it.duration) }
             }
             r.preferredVisitDateTime()?.let { onsetTime = it }
             if (notes.isBlank()) {
@@ -264,7 +278,9 @@ fun AddMedicalRecordScreen(
                             }
 
                             val dosage = medItems.firstOrNull { it.dose.isNotBlank() }?.dose ?: ""
-                            val frequency = medItems.map { it.freq }.filter { it.isNotBlank() }
+                            val frequency = medItems
+                                .filter { it.dose.isNotBlank() || it.freqDays.isNotBlank() || it.freqTimes.isNotBlank() }
+                                .map { "${it.freqDays}天${it.freqTimes}次" }
                                 .distinct().joinToString("；")
 
                             val metricsJson = analysisResult?.metrics?.takeIf { it.isNotEmpty() }
@@ -433,14 +449,62 @@ fun AddMedicalRecordScreen(
                                         value = item.dose,
                                         onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
                                         label = { Text(stringResource(R.string.screen_add_record_label_dosage)) },
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.weight(1f),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                                     )
+                                    var unitExpanded by remember { mutableStateOf(false) }
+                                    val units = listOf("mg", "g", "ml", "L", "片", "粒", "袋", "支", "瓶")
+                                    ExposedDropdownMenuBox(
+                                        expanded = unitExpanded,
+                                        onExpandedChange = { unitExpanded = it },
+                                        modifier = Modifier.width(80.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = item.doseUnit,
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            label = { Text("单位") },
+                                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
+                                            modifier = Modifier.menuAnchor()
+                                        )
+                                        ExposedDropdownMenu(
+                                            expanded = unitExpanded,
+                                            onDismissRequest = { unitExpanded = false }
+                                        ) {
+                                            units.forEach { unit ->
+                                                DropdownMenuItem(
+                                                    text = { Text(unit) },
+                                                    onClick = {
+                                                        medItems = medItems.updateAt(index) { copy(doseUnit = unit) }
+                                                        unitExpanded = false
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text("每", style = MaterialTheme.typography.bodyMedium)
                                     OutlinedTextField(
-                                        value = item.freq,
-                                        onValueChange = { medItems = medItems.updateAt(index) { copy(freq = it) } },
-                                        label = { Text(stringResource(R.string.screen_add_record_label_frequency)) },
-                                        modifier = Modifier.weight(1f)
+                                        value = item.freqDays,
+                                        onValueChange = { medItems = medItems.updateAt(index) { copy(freqDays = it) } },
+                                        modifier = Modifier.width(50.dp),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        singleLine = true
                                     )
+                                    Text("天", style = MaterialTheme.typography.bodyMedium)
+                                    OutlinedTextField(
+                                        value = item.freqTimes,
+                                        onValueChange = { medItems = medItems.updateAt(index) { copy(freqTimes = it) } },
+                                        modifier = Modifier.width(50.dp),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        singleLine = true
+                                    )
+                                    Text("次", style = MaterialTheme.typography.bodyMedium)
                                 }
                                 OutlinedTextField(
                                     value = item.duration,

@@ -149,7 +149,7 @@ fun MedicalRecordScreen(
                             }
                         }
                     }
-                    IconButton(onClick = { navController.navigate("add_record") }) {
+                    IconButton(onClick = { navController.navigate("add_record/-1") }) {
                         Icon(Icons.Default.Add, stringResource(R.string.medical_record_cd_add), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }

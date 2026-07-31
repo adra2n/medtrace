@@ -374,17 +374,30 @@ fun MainScreen(
             composable(Screen.Profile.route) {
                 ProfileScreen(navController = navController)
             }
-            composable("add_record") {
-                val viewModel: AddMedicalRecordViewModel = hiltViewModel()
-                AddMedicalRecordScreen(viewModel, navController)
-            }
             composable(
-                "add_record/{recordId}",
-                arguments = listOf(navArgument("recordId") { type = NavType.StringType })
+                "add_record/{recordId}?memberId={memberId}&diagnosis={diagnosis}&hospital={hospital}&onsetTime={onsetTime}",
+                arguments = listOf(
+                    navArgument("recordId") { type = NavType.StringType },
+                    navArgument("memberId") { type = NavType.StringType; defaultValue = "-1" },
+                    navArgument("diagnosis") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("hospital") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("onsetTime") { type = NavType.StringType; defaultValue = "" }
+                )
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getString("recordId")?.toLongOrNull() ?: -1L
+                val memberId = backStackEntry.arguments?.getString("memberId")?.toLongOrNull() ?: -1L
+                val diagnosis = backStackEntry.arguments?.getString("diagnosis") ?: ""
+                val hospital = backStackEntry.arguments?.getString("hospital") ?: ""
+                val onsetTime = backStackEntry.arguments?.getString("onsetTime") ?: ""
                 val viewModel: AddMedicalRecordViewModel = hiltViewModel()
-                AddMedicalRecordScreen(viewModel, navController, recordId = id)
+                AddMedicalRecordScreen(
+                    viewModel, navController,
+                    recordId = id,
+                    memberId = memberId,
+                    diagnosis = diagnosis,
+                    hospital = hospital,
+                    onsetTime = onsetTime
+                )
             }
             composable("medical_records") {
                 val viewModel: MedicalRecordViewModel = hiltViewModel()
