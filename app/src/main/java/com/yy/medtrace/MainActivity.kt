@@ -339,10 +339,12 @@ fun MainScreen(
                             label = { Text(screen.label) },
                             selected = currentRoute == screen.route,
                             onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(Screen.Home.route) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                if (currentRoute != screen.route) {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(Screen.Home.route) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
                             }
                         )

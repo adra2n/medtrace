@@ -1,7 +1,7 @@
 package com.yy.medtrace.ui.screens
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
+import java.time.Instant
+import java.time.ZoneId
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
@@ -107,7 +109,11 @@ fun AddMedicalRecordScreen(
     var analysisJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     var analysisProgress by remember { mutableStateOf("") }
     var showConsent by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
     var attachmentPath by remember { mutableStateOf("") }
+
+    val isFromBottomSheet = memberId != -1L
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -314,8 +320,9 @@ fun AddMedicalRecordScreen(
                                     }
                                     SelectedMemberHolder.select(selectedMember.id, database)
                                     Toast.makeText(context, context.getString(R.string.screen_add_record_toast_save_success), Toast.LENGTH_SHORT).show()
+                                    // 清除返回栈，导航到就诊记录列表
                                     navController.navigate("medical_records") {
-                                        popUpTo("medical_records") { inclusive = true }
+                                        popUpTo(0) { inclusive = true }
                                         launchSingleTop = true
                                     }
                                 } catch (e: Exception) {
@@ -349,59 +356,49 @@ fun AddMedicalRecordScreen(
                 )
             }
 
-            // 家庭成员选择
-            SectionCard(title = stringResource(R.string.screen_add_record_section_family_member)) {
-                MemberSelector(
-                    members = members,
-                    selectedMemberId = selectedMemberId,
-                    onSelect = { selectedMemberId = it.id },
-                    emptyHint = stringResource(R.string.screen_add_record_empty_members)
-                )
-            }
+            if (isFromBottomSheet) {
+                SectionCard(title = stringResource(R.string.screen_add_record_section_basic_info)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val memberName = members.firstOrNull { it.id == selectedMemberId }?.name
+                        if (memberName != null) {
+                            Text("成员: $memberName")
+                        }
+                        Text("诊断: ${diagnosis.ifBlank { "待填写" }}")
+                        if (hospital.isNotBlank()) Text("医院: $hospital")
+                        Text("时间: ${onsetTime.format(dateTimeFormatter)}")
+                    }
+                }
+            } else {
+                SectionCard(title = stringResource(R.string.screen_add_record_section_family_member)) {
+                    MemberSelector(
+                        members = members,
+                        selectedMemberId = selectedMemberId,
+                        onSelect = { selectedMemberId = it.id },
+                        emptyHint = stringResource(R.string.screen_add_record_empty_members)
+                    )
+                }
 
-            // 基本信息
-            SectionCard(title = stringResource(R.string.screen_add_record_section_basic_info)) {
-                OutlinedTextField(
-                    value = diagnosis,
-                    onValueChange = { diagnosis = it },
-                    label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_type)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = hospital,
-                    onValueChange = { hospital = it },
-                    label = { Text(stringResource(R.string.screen_add_record_label_hospital)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedButton(
-                    onClick = {
-                        val currentDateTime = onsetTime
-                        DatePickerDialog(
-                            context,
-                            { _, year, month, dayOfMonth ->
-                                TimePickerDialog(
-                                    context,
-                                    { _, hourOfDay, minute ->
-                                        onsetTime = LocalDateTime.of(
-                                            year, month + 1, dayOfMonth,
-                                            hourOfDay, minute
-                                        )
-                                    },
-                                    currentDateTime.hour,
-                                    currentDateTime.minute,
-                                    true
-                                ).show()
-                            },
-                            currentDateTime.year,
-                            currentDateTime.monthValue - 1,
-                            currentDateTime.dayOfMonth
-                        ).show()
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.DateRange, stringResource(R.string.screen_add_record_icon_select_datetime))
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.screen_add_record_label_visit_time, onsetTime.format(dateTimeFormatter)))
+                SectionCard(title = stringResource(R.string.screen_add_record_section_basic_info)) {
+                    OutlinedTextField(
+                        value = diagnosis,
+                        onValueChange = { diagnosis = it },
+                        label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_type)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = hospital,
+                        onValueChange = { hospital = it },
+                        label = { Text(stringResource(R.string.screen_add_record_label_hospital)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedButton(
+                        onClick = { showDatePicker = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.DateRange, stringResource(R.string.screen_add_record_icon_select_datetime))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.screen_add_record_label_visit_time, onsetTime.format(dateTimeFormatter)))
+                    }
                 }
             }
 
@@ -449,7 +446,7 @@ fun AddMedicalRecordScreen(
                                         value = item.dose,
                                         onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
                                         label = { Text(stringResource(R.string.screen_add_record_label_dosage)) },
-                                        modifier = Modifier.weight(1f),
+                                        modifier = Modifier.weight(0.6f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                                     )
                                     var unitExpanded by remember { mutableStateOf(false) }
@@ -457,7 +454,7 @@ fun AddMedicalRecordScreen(
                                     ExposedDropdownMenuBox(
                                         expanded = unitExpanded,
                                         onExpandedChange = { unitExpanded = it },
-                                        modifier = Modifier.width(80.dp)
+                                        modifier = Modifier.weight(0.4f)
                                     ) {
                                         OutlinedTextField(
                                             value = item.doseUnit,
@@ -697,6 +694,50 @@ fun AddMedicalRecordScreen(
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
+        )
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = onsetTime.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val selectedDate = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                        onsetTime = LocalDateTime.of(selectedDate, onsetTime.toLocalTime())
+                    }
+                    showDatePicker = false
+                    showTimePicker = true
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = onsetTime.hour,
+            initialMinute = onsetTime.minute
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    onsetTime = LocalDateTime.of(onsetTime.toLocalDate(), java.time.LocalTime.of(timePickerState.hour, timePickerState.minute))
+                    showTimePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+            },
+            text = { TimePicker(state = timePickerState) }
         )
     }
 }

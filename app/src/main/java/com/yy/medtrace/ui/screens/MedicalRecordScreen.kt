@@ -57,6 +57,7 @@ fun MedicalRecordScreen(
     var showFilter by remember { mutableStateOf(false) }
     var showMemberMenu by remember { mutableStateOf(false) }
     var sortOrder by remember { mutableStateOf("time") }
+    var showAddRecordSheet by remember { mutableStateOf(false) }
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
     
     // 分页状态
@@ -149,7 +150,7 @@ fun MedicalRecordScreen(
                             }
                         }
                     }
-                    IconButton(onClick = { navController.navigate("add_record/-1") }) {
+                    IconButton(onClick = { showAddRecordSheet = true }) {
                         Icon(Icons.Default.Add, stringResource(R.string.medical_record_cd_add), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
@@ -419,6 +420,17 @@ fun MedicalRecordScreen(
                 loadMore()
             }
         }
+    }
+
+    if (showAddRecordSheet) {
+        AddRecordBottomSheet(
+            onDismiss = { showAddRecordSheet = false },
+            onNext = { memberId, diagnosis, hospital, onsetTime ->
+                showAddRecordSheet = false
+                navController.navigate("add_record/-1?memberId=$memberId&diagnosis=$diagnosis&hospital=$hospital&onsetTime=$onsetTime")
+            },
+            members = uiState.members
+        )
     }
 
     if (showDatePicker) {

@@ -1067,7 +1067,7 @@ private fun RepeatPickerDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddRecordBottomSheet(
+internal fun AddRecordBottomSheet(
     onDismiss: () -> Unit,
     onNext: (memberId: Long, diagnosis: String, hospital: String, onsetTime: String) -> Unit,
     members: List<FamilyMember>
@@ -1158,7 +1158,7 @@ private fun AddRecordBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = diagnosis.isNotBlank()
             ) {
-                Text(stringResource(R.string.screen_add_record_btn_save))
+                Text(stringResource(R.string.screen_add_record_btn_next))
             }
 
             Spacer(Modifier.height(16.dp))
