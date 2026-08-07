@@ -8,6 +8,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +22,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.*
@@ -42,6 +46,7 @@ import com.yy.medtrace.data.llm.preferredVisitDateTime
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.data.model.MedicationItem
+import com.yy.medtrace.data.model.VisitType
 import com.yy.medtrace.data.settings.LlmSettingsStore
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
@@ -79,7 +84,8 @@ fun AddMedicalRecordScreen(
     memberId: Long = -1L,
     diagnosis: String = "",
     hospital: String = "",
-    onsetTime: String = ""
+    onsetTime: String = "",
+    visitType: String = ""
 ) {
     val database = viewModel.database
     var selectedMemberId by remember { mutableStateOf<Long?>(null) }
@@ -100,6 +106,12 @@ fun AddMedicalRecordScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var existingId by remember { mutableStateOf<Long?>(null) }
     var existingMetricsJson by remember { mutableStateOf("") }
+    var visitType by remember {
+        mutableStateOf(
+            if (visitType.isNotBlank()) visitType else VisitType.OUTPATIENT.label
+        )
+    }
+    var customVisitType by remember { mutableStateOf("") }
 
     var noteText by remember { mutableStateOf("") }
     var images by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
@@ -141,6 +153,12 @@ fun AddMedicalRecordScreen(
                 onsetTime = r.onsetTime
                 existingMetricsJson = r.metricsJson
                 attachmentPath = r.attachmentPath
+                if (r.visitType.isNotBlank()) {
+                    visitType = if (VisitType.labels.contains(r.visitType)) r.visitType else VisitType.OTHER.label
+                    if (visitType == VisitType.OTHER.label) {
+                        customVisitType = r.visitType
+                    }
+                }
             }
         }
     }
@@ -237,7 +255,7 @@ fun AddMedicalRecordScreen(
         }
     }
 
-    val canSave = selectedMemberId != null
+    val canSave = selectedMemberId != null && visitType.isNotBlank()
 
     Scaffold(
         topBar = {
@@ -278,7 +296,12 @@ fun AddMedicalRecordScreen(
                                 error = context.getString(R.string.screen_add_record_error_select_member)
                                 return@Button
                             }
-                            if (diagnosis.isBlank() || medItems.isEmpty()) {
+                            val finalVisitType = if (visitType == VisitType.OTHER.label && customVisitType.isNotBlank()) {
+                                customVisitType
+                            } else {
+                                visitType
+                            }
+                            if (finalVisitType.isBlank() || medItems.isEmpty()) {
                                 error = context.getString(R.string.screen_add_record_error_fill_required)
                                 return@Button
                             }
@@ -293,11 +316,18 @@ fun AddMedicalRecordScreen(
                                 ?.let { encodeMetrics(it) }
                                 ?: existingMetricsJson
 
+                            // 诊断 = 就诊类型 + 病症记录
+                            val finalDiagnosis = if (diagnosis.isNotBlank()) {
+                                "$finalVisitType - $diagnosis"
+                            } else {
+                                finalVisitType
+                            }
+
                             val record = MedicalRecord(
                                 id = existingId ?: 0,
                                 patientId = selectedMember.id,
                                 patientName = selectedMember.name,
-                                diagnosis = diagnosis,
+                                diagnosis = finalDiagnosis,
                                 onsetTime = onsetTime,
                                 hospital = hospital,
                                 medItems = medItems,
@@ -305,7 +335,8 @@ fun AddMedicalRecordScreen(
                                 dosage = dosage,
                                 notes = notes,
                                 metricsJson = metricsJson,
-                                attachmentPath = attachmentPath
+                                attachmentPath = attachmentPath,
+                                visitType = finalVisitType
                             )
 
                             scope.launch {
@@ -379,10 +410,40 @@ fun AddMedicalRecordScreen(
                 }
 
                 SectionCard(title = stringResource(R.string.screen_add_record_section_basic_info)) {
+                    Text(
+                        text = stringResource(R.string.screen_add_record_label_visit_type),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(VisitType.labels) { type ->
+                            FilterChip(
+                                selected = visitType == type,
+                                onClick = {
+                                    visitType = type
+                                    if (type != VisitType.OTHER.label) {
+                                        customVisitType = ""
+                                    }
+                                },
+                                label = { Text(type) }
+                            )
+                        }
+                    }
+                    if (visitType == VisitType.OTHER.label) {
+                        OutlinedTextField(
+                            value = customVisitType,
+                            onValueChange = { customVisitType = it },
+                            label = { Text(stringResource(R.string.screen_add_record_label_custom_visit_type)) },
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        )
+                    }
                     OutlinedTextField(
                         value = diagnosis,
                         onValueChange = { diagnosis = it },
-                        label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_type)) },
+                        label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_detail)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(

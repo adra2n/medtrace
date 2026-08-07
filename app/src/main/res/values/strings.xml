@@ -64,6 +64,9 @@
     <string name="screen_add_record_consent_message">AI 分析会将您输入的文字和拍摄的图片发送到您配置的第三方端点。请确认您信任该服务提供商后再继续。</string>
     <string name="screen_add_record_disclaimer">识别结果仅供参考，请以实际病历为准</string>
     <string name="screen_add_record_label_diagnosis_type">就诊类型</string>
+    <string name="screen_add_record_label_visit_type">就诊类型</string>
+    <string name="screen_add_record_label_custom_visit_type">请输入就诊类型</string>
+    <string name="screen_add_record_label_diagnosis_detail">病症记录（可选）</string>
     <string name="screen_add_record_label_hospital">就诊医院（可选）</string>
     <string name="screen_add_record_icon_select_datetime">选择日期时间</string>
     <string name="screen_add_record_label_visit_time">就诊时间：%1$s</string>
@@ -79,7 +82,7 @@
     <string name="screen_add_record_label_notes">备注（可选）</string>
     <string name="screen_add_record_btn_cancel">取消</string>
     <string name="screen_add_record_error_select_member">请选择所属家庭成员</string>
-    <string name="screen_add_record_error_fill_required">请填写就诊类型与至少一项药品</string>
+    <string name="screen_add_record_error_fill_required">请选择就诊类型并添加至少一项药品</string>
     <string name="screen_add_record_toast_save_success">保存成功</string>
     <string name="screen_add_record_error_save_failed">保存失败</string>
     <string name="screen_add_record_btn_save">保存</string>

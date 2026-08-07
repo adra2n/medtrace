@@ -426,9 +426,9 @@ fun HomeScreen(
     if (showAddRecordSheet) {
         AddRecordBottomSheet(
             onDismiss = { showAddRecordSheet = false },
-            onNext = { memberId, diagnosis, hospital, onsetTime ->
+            onNext = { memberId, visitType, diagnosis, hospital, onsetTime ->
                 showAddRecordSheet = false
-                navController.navigate("add_record/-1?memberId=$memberId&diagnosis=$diagnosis&hospital=$hospital&onsetTime=$onsetTime")
+                navController.navigate("add_record/-1?memberId=$memberId&diagnosis=$diagnosis&hospital=$hospital&onsetTime=$onsetTime&visitType=$visitType")
             },
             members = uiState.members
         )
@@ -1082,7 +1082,7 @@ private fun RepeatPickerDialog(
 @Composable
 internal fun AddRecordBottomSheet(
     onDismiss: () -> Unit,
-    onNext: (memberId: Long, diagnosis: String, hospital: String, onsetTime: String) -> Unit,
+    onNext: (memberId: Long, visitType: String, diagnosis: String, hospital: String, onsetTime: String) -> Unit,
     members: List<FamilyMember>
 ) {
     var selectedMemberId by remember { mutableStateOf(members.firstOrNull()?.id ?: 0L) }
@@ -1092,6 +1092,8 @@ internal fun AddRecordBottomSheet(
     var showTimePicker by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var selectedTime by remember { mutableStateOf(LocalTime.of(9, 0)) }
+    var visitType by remember { mutableStateOf("门诊") }
+    var customVisitType by remember { mutableStateOf("") }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1125,11 +1127,38 @@ internal fun AddRecordBottomSheet(
                 }
             }
 
-            // 诊断
+            // 就诊类型
+            Text(stringResource(R.string.screen_add_record_label_visit_type), style = MaterialTheme.typography.labelMedium)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val visitTypes = listOf("门诊", "急诊", "体检", "复查", "自购药", "其他")
+                items(visitTypes) { type ->
+                    FilterChip(
+                        selected = visitType == type,
+                        onClick = {
+                            visitType = type
+                            if (type != "其他") {
+                                customVisitType = ""
+                            }
+                        },
+                        label = { Text(type) }
+                    )
+                }
+            }
+            if (visitType == "其他") {
+                OutlinedTextField(
+                    value = customVisitType,
+                    onValueChange = { customVisitType = it },
+                    label = { Text(stringResource(R.string.screen_add_record_label_custom_visit_type)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+
+            // 病症记录（可选）
             OutlinedTextField(
                 value = diagnosis,
                 onValueChange = { diagnosis = it },
-                label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_type)) },
+                label = { Text(stringResource(R.string.screen_add_record_label_diagnosis_detail)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -1166,10 +1195,11 @@ internal fun AddRecordBottomSheet(
             Button(
                 onClick = {
                     val onsetTime = "${selectedDate}T${selectedTime}"
-                    onNext(selectedMemberId, diagnosis, hospital, onsetTime)
+                    val finalVisitType = if (visitType == "其他" && customVisitType.isNotBlank()) customVisitType else visitType
+                    onNext(selectedMemberId, finalVisitType, diagnosis, hospital, onsetTime)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = diagnosis.isNotBlank()
+                enabled = visitType.isNotBlank()
             ) {
                 Text(stringResource(R.string.screen_add_record_btn_next))
             }

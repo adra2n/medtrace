@@ -21,7 +21,9 @@ data class MedicalRecord(
     @ColumnInfo(name = "metrics_json")
     val metricsJson: String = "",  // AI 解析的检查指标 JSON（Metric 列表），用于健康趋势
     @ColumnInfo(name = "attachmentPath")
-    val attachmentPath: String = ""  // 附件图片本地路径
+    val attachmentPath: String = "",  // 附件图片本地路径
+    @ColumnInfo(name = "visit_type", defaultValue = "")
+    val visitType: String = ""  // 就诊类型：门诊、急诊、体检、复查、自购药、其他
 )
 
 data class CountResult(

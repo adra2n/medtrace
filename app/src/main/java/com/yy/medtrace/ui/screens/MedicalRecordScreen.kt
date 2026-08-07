@@ -425,9 +425,9 @@ fun MedicalRecordScreen(
     if (showAddRecordSheet) {
         AddRecordBottomSheet(
             onDismiss = { showAddRecordSheet = false },
-            onNext = { memberId, diagnosis, hospital, onsetTime ->
+            onNext = { memberId, visitType, diagnosis, hospital, onsetTime ->
                 showAddRecordSheet = false
-                navController.navigate("add_record/-1?memberId=$memberId&diagnosis=$diagnosis&hospital=$hospital&onsetTime=$onsetTime")
+                navController.navigate("add_record/-1?memberId=$memberId&diagnosis=$diagnosis&hospital=$hospital&onsetTime=$onsetTime&visitType=$visitType")
             },
             members = uiState.members
         )

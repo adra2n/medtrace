@@ -377,13 +377,14 @@ fun MainScreen(
                 ProfileScreen(navController = navController)
             }
             composable(
-                "add_record/{recordId}?memberId={memberId}&diagnosis={diagnosis}&hospital={hospital}&onsetTime={onsetTime}",
+                "add_record/{recordId}?memberId={memberId}&diagnosis={diagnosis}&hospital={hospital}&onsetTime={onsetTime}&visitType={visitType}",
                 arguments = listOf(
                     navArgument("recordId") { type = NavType.StringType },
                     navArgument("memberId") { type = NavType.StringType; defaultValue = "-1" },
                     navArgument("diagnosis") { type = NavType.StringType; defaultValue = "" },
                     navArgument("hospital") { type = NavType.StringType; defaultValue = "" },
-                    navArgument("onsetTime") { type = NavType.StringType; defaultValue = "" }
+                    navArgument("onsetTime") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("visitType") { type = NavType.StringType; defaultValue = "" }
                 )
             ) { backStackEntry ->
                 val id = backStackEntry.arguments?.getString("recordId")?.toLongOrNull() ?: -1L
@@ -391,6 +392,7 @@ fun MainScreen(
                 val diagnosis = backStackEntry.arguments?.getString("diagnosis") ?: ""
                 val hospital = backStackEntry.arguments?.getString("hospital") ?: ""
                 val onsetTime = backStackEntry.arguments?.getString("onsetTime") ?: ""
+                val visitType = backStackEntry.arguments?.getString("visitType") ?: ""
                 val viewModel: AddMedicalRecordViewModel = hiltViewModel()
                 AddMedicalRecordScreen(
                     viewModel, navController,
@@ -398,7 +400,8 @@ fun MainScreen(
                     memberId = memberId,
                     diagnosis = diagnosis,
                     hospital = hospital,
-                    onsetTime = onsetTime
+                    onsetTime = onsetTime,
+                    visitType = visitType
                 )
             }
             composable("medical_records") {
