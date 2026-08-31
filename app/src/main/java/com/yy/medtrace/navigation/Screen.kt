@@ -33,5 +33,6 @@ sealed class Screen(
     
     companion object {
         val bottomBarScreens = listOf(Home, MedicalRecords, Reminders, Profile)
+        val elderlyBottomBarScreens = listOf(Home, Profile)
     }
 }

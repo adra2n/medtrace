@@ -8,7 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private val MED_COLUMNS = listOf(
-    "成员", "诊断", "发病时间", "医院", "药品", "剂量", "频率", "疗程", "备注"
+    "成员", "诊断", "就诊时间", "医院", "药品", "备注"
 )
 
 private fun escapeCsv(value: String): String {
@@ -29,7 +29,7 @@ suspend fun buildRecordsCsv(database: AppDatabase): String = withContext(Dispatc
 
 private fun recordToCsvRow(r: MedicalRecord, memberName: String): String {
     val meds = r.medItems.joinToString("; ") { med ->
-        listOf(med.name, med.dose, med.freq, med.duration).filter { it.isNotBlank() }
+        listOf(med.name, med.dosage, med.frequency, med.usage).filter { it.isNotBlank() }
             .joinToString(" ")
     }
     return listOf(
@@ -38,9 +38,6 @@ private fun recordToCsvRow(r: MedicalRecord, memberName: String): String {
         r.onsetTime.toString(),
         r.hospital,
         meds,
-        r.dosage,
-        r.frequency,
-        "",
         r.notes
     ).joinToString(",") { escapeCsv(it) }
 }

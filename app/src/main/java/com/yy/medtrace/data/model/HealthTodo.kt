@@ -13,36 +13,7 @@ data class HealthTodo(
     val content: String,
     val dueDate: LocalDate,
     val done: Boolean = false,
-    val notifiedDate: String = "",
-    val repeatType: String = "none",
-    val repeatInterval: Int = 1,
-    val startDate: LocalDate = LocalDate.now(),
-    val durationDays: Int = 0,
-    val completedDates: String = "",
-    val category: String = "其他",  // 服药/复查/检查/其他
+    val repeatType: String = "none",  // none、day、week
+    val category: String = "其他",    // 吃药、其他
     val reminderTime: String = "09:00"  // HH:mm 格式，默认 9 点
-) {
-    fun getStreak(): Int {
-        if (completedDates.isBlank()) return 0
-        val dates = completedDates.split(",").mapNotNull { 
-            try { LocalDate.parse(it.trim()) } catch (e: Exception) { null }
-        }.sorted()
-        if (dates.isEmpty()) return 0
-        
-        var streak = 1
-        for (i in dates.size - 1 downTo 1) {
-            if (dates[i].minusDays(1) == dates[i-1]) {
-                streak++
-            } else {
-                break
-            }
-        }
-        return streak
-    }
-    
-    fun getProgress(): Float {
-        if (durationDays <= 0) return 0f
-        val completedCount = completedDates.split(",").filter { it.isNotBlank() }.size
-        return (completedCount.toFloat() / durationDays).coerceIn(0f, 1f)
-    }
-}
+)
