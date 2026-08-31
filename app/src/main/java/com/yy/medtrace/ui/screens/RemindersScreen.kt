@@ -111,13 +111,6 @@ fun RemindersScreen(
             verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 20.dp else 16.dp),
             contentPadding = PaddingValues(vertical = 12.dp)
         ) {
-            // 月度统计 - 长辈版隐藏
-            if (!isElderlyMode) {
-                item {
-                    MonthlyStatsCard(stats = stats)
-                }
-            }
-
             // 快速添加 - 长辈版隐藏
             if (!isElderlyMode) {
                 item {

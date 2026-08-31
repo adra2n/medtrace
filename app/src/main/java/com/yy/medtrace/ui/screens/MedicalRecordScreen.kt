@@ -174,62 +174,6 @@ fun MedicalRecordScreen(
             contentPadding = PaddingValues(if (isElderlyMode) 24.dp else 16.dp),
             verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 20.dp else 16.dp)
         ) {
-            // 统计概览卡片 - 长辈版隐藏
-            if (!isElderlyMode && uiState.records.isNotEmpty()) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = AppShapes.large,
-                        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Default.MedicalServices,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(R.string.medical_record_overview),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                StatItem(
-                                    value = uiState.records.size.toString(),
-                                    label = stringResource(R.string.medical_record_stat_total) + stringResource(R.string.medical_record_stat_current_list),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                StatItem(
-                                    value = uiState.records.count {
-                                        it.onsetTime.month == java.time.Month.from(java.time.LocalDate.now())
-                                    }.toString(),
-                                    label = stringResource(R.string.medical_record_stat_month) + stringResource(R.string.medical_record_stat_current_list),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                StatItem(
-                                    value = uiState.records.sumOf { it.medItems.size }.toString(),
-                                    label = stringResource(R.string.medical_record_stat_medications) + stringResource(R.string.medical_record_stat_current_list),
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
             // 搜索筛选 - 长辈版简化
             item {
                 Card(
