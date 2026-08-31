@@ -7,20 +7,36 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class PrivacyConsentStore(private val context: Context) {
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    private val prefs by lazy {
+        createPrefs()
+    }
 
-    private val prefs = EncryptedSharedPreferences.create(
-        context,
-        "privacy_consent_prefs",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    private fun createPrefs(): EncryptedSharedPreferences {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        return try {
+            EncryptedSharedPreferences.create(
+                context,
+                "privacy_consent_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            ) as EncryptedSharedPreferences
+        } catch (e: Exception) {
+            context.deleteSharedPreferences("privacy_consent_prefs")
+            EncryptedSharedPreferences.create(
+                context,
+                "privacy_consent_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            ) as EncryptedSharedPreferences
+        }
+    }
 
     suspend fun isGranted(): Boolean = withContext(Dispatchers.IO) {
-        prefs.getBoolean(KEY_GRANTED, false)
+        runCatching { prefs.getBoolean(KEY_GRANTED, false) }.getOrDefault(false)
     }
 
     suspend fun setGranted() = withContext(Dispatchers.IO) {

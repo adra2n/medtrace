@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
         FamilyMember::class,
         HealthTodo::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = true
 )
 @TypeConverters(
@@ -145,6 +145,51 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // medical_records: recreate table without metrics_json, attachment_path, visit_type
+                database.execSQL(
+                    """CREATE TABLE medical_records_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        patientId INTEGER NOT NULL DEFAULT 0,
+                        patientName TEXT NOT NULL DEFAULT '',
+                        diagnosis TEXT NOT NULL DEFAULT '',
+                        onsetTime TEXT NOT NULL DEFAULT '',
+                        hospital TEXT NOT NULL DEFAULT '',
+                        medItems TEXT NOT NULL DEFAULT '[]',
+                        notes TEXT NOT NULL DEFAULT ''
+                    )"""
+                )
+                database.execSQL(
+                    """INSERT INTO medical_records_new (id, patientId, patientName, diagnosis, onsetTime, hospital, medItems, notes)
+                       SELECT id, patientId, patientName, diagnosis, onsetTime, hospital, medItems, notes FROM medical_records"""
+                )
+                database.execSQL("DROP TABLE medical_records")
+                database.execSQL("ALTER TABLE medical_records_new RENAME TO medical_records")
+
+                // health_todos: recreate table without notified_date, repeatInterval, startDate, durationDays, completedDates
+                database.execSQL(
+                    """CREATE TABLE health_todos_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        memberId INTEGER NOT NULL DEFAULT 0,
+                        memberName TEXT NOT NULL DEFAULT '',
+                        content TEXT NOT NULL DEFAULT '',
+                        dueDate TEXT NOT NULL DEFAULT '',
+                        done INTEGER NOT NULL DEFAULT 0,
+                        repeatType TEXT NOT NULL DEFAULT 'none',
+                        category TEXT NOT NULL DEFAULT '其他',
+                        reminderTime TEXT NOT NULL DEFAULT '09:00'
+                    )"""
+                )
+                database.execSQL(
+                    """INSERT INTO health_todos_new (id, memberId, memberName, content, dueDate, done, repeatType, category, reminderTime)
+                       SELECT id, memberId, memberName, content, dueDate, done, repeatType, category, reminderTime FROM health_todos"""
+                )
+                database.execSQL("DROP TABLE health_todos")
+                database.execSQL("ALTER TABLE health_todos_new RENAME TO health_todos")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -176,7 +221,7 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 "app_database"
             )
-                .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+                .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)

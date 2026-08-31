@@ -7,20 +7,36 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class OnboardingStore(private val context: Context) {
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    private val prefs by lazy {
+        createPrefs()
+    }
 
-    private val prefs = EncryptedSharedPreferences.create(
-        context,
-        "onboarding_prefs",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    private fun createPrefs(): EncryptedSharedPreferences {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        return try {
+            EncryptedSharedPreferences.create(
+                context,
+                "onboarding_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            ) as EncryptedSharedPreferences
+        } catch (e: Exception) {
+            context.deleteSharedPreferences("onboarding_prefs")
+            EncryptedSharedPreferences.create(
+                context,
+                "onboarding_prefs",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            ) as EncryptedSharedPreferences
+        }
+    }
 
     suspend fun isDone(): Boolean = withContext(Dispatchers.IO) {
-        prefs.getBoolean(KEY_DONE, false)
+        runCatching { prefs.getBoolean(KEY_DONE, false) }.getOrDefault(false)
     }
 
     suspend fun setDone() = withContext(Dispatchers.IO) {
