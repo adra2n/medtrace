@@ -36,7 +36,7 @@ fun EmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(32.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -44,19 +44,19 @@ fun EmptyState(
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            modifier = Modifier.size(100.dp)
+            modifier = Modifier.size(72.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(36.dp),
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                 )
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
         // 标题
         Text(
@@ -79,7 +79,7 @@ fun EmptyState(
         
         // 操作按钮
         if (actionText != null && onAction != null) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = onAction,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -93,17 +93,30 @@ fun EmptyState(
 }
 
 /**
- * 首页空状态
+ * 首页空状态 - 紧凑版
  */
 @Composable
 fun EmptyHomeState(onAdd: () -> Unit) {
-    EmptyState(
-        icon = Icons.Default.EventNote,
-        title = "今天暂无就诊计划",
-        hint = "点击下方按钮添加第一条记录",
-        actionText = "立即添加",
-        onAction = onAdd
-    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.EventNote,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "今日暂无待办，点击 + 添加",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+    }
 }
 
 /**

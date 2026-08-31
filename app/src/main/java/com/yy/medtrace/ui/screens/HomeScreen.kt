@@ -156,8 +156,8 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = if (isElderlyMode) 24.dp else 16.dp),
-            verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 24.dp else 16.dp),
+                .padding(horizontal = if (isElderlyMode) 20.dp else 14.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 16.dp else 12.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             item {
@@ -176,102 +176,59 @@ fun HomeScreen(
                         }
                     }
                 }
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 val familyListState = rememberLazyListState()
                 Box {
                     LazyRow(
                         state = familyListState,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
                         items(uiState.members) { member ->
                         val (bg, content) = memberCardColors(member.relation, member.gender)
                         val age = computeAge(member.birthday)
-                        val memberTodoCount = uiState.todos.count { it.memberId == member.id && !it.done }
                         Card(
                             modifier = Modifier
-                                .width(if (isElderlyMode) 200.dp else 180.dp)
+                                .width(if (isElderlyMode) 180.dp else 150.dp)
                                 .clickable { navController.navigate("member_detail/${member.id}") },
                             shape = AppShapes.large,
                             colors = CardDefaults.cardColors(containerColor = bg),
                             elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
                         ) {
-                            Column(
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                MemberAvatar(
+                                    member = member,
+                                    modifier = Modifier.size(if (isElderlyMode) 44.dp else 36.dp),
+                                    fallbackBackground = content.copy(alpha = 0.18f),
+                                    fallbackContent = content
+                                )
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
                                 ) {
-                                    MemberAvatar(
-                                        member = member,
-                                        modifier = Modifier.size(if (isElderlyMode) 52.dp else 44.dp),
-                                        fallbackBackground = content.copy(alpha = 0.18f),
-                                        fallbackContent = content
+                                    Text(
+                                        member.name,
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontSize = if (isElderlyMode) 18.sp else MaterialTheme.typography.titleSmall.fontSize
+                                        ),
+                                        color = content,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
                                     )
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                                    ) {
-                                        Text(
-                                            member.name,
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
-                                            ),
-                                            color = content,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                            Text(
-                                            stringResource(R.string.screen_home_member_info, member.relation, age ?: 0),
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                fontSize = if (isElderlyMode) 16.sp else MaterialTheme.typography.bodySmall.fontSize
-                                            ),
-                                            color = content.copy(alpha = 0.8f),
-                                            maxLines = 1
-                                        )
-                                    }
-                                }
-                                // 健康标签或待办数量（互斥显示）
-                                val tag = buildTag(member)
-                                if (tag.isNotBlank()) {
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = content.copy(alpha = 0.12f)
-                                    ) {
-                                        Text(
-                                            tag,
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
-                                            ),
-                                            color = content.copy(alpha = 0.9f),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        )
-                                    }
-                                } else if (memberTodoCount > 0) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Text(
-                                            "💊",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = if (isElderlyMode) 16.sp else MaterialTheme.typography.labelSmall.fontSize
-                                            )
-                                        )
-                                        Text(
-                                            stringResource(R.string.screen_home_todo_count, memberTodoCount),
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
-                                            ),
-                                            color = content.copy(alpha = 0.7f)
-                                        )
-                                    }
+                                    Text(
+                                        stringResource(R.string.screen_home_member_info, member.relation, age ?: 0),
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.bodySmall.fontSize
+                                        ),
+                                        color = content.copy(alpha = 0.7f),
+                                        maxLines = 1
+                                    )
                                 }
                             }
                         }
@@ -299,7 +256,7 @@ fun HomeScreen(
                     text = stringResource(R.string.screen_home_today_reminders, pendingCount),
                     fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = AppShapes.large,
@@ -309,8 +266,8 @@ fun HomeScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         if (uiState.todos.isEmpty()) {
                             EmptyHomeState(
@@ -366,7 +323,7 @@ fun HomeScreen(
                             Text(stringResource(R.string.screen_home_view_all_records))
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = AppShapes.large,
@@ -376,8 +333,8 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             uiState.recentRecords.forEach { record ->
                                 RecentRecordItem(
