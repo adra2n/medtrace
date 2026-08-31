@@ -367,69 +367,6 @@ fun HomeScreen(
                 }
             }
 
-            if (!isElderlyMode) {
-                item {
-                    // 快捷功能标题
-                    SectionTitle(stringResource(R.string.screen_home_quick_functions))
-                    Spacer(Modifier.height(8.dp))
-                    
-                    // 2x2 功能网格
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            FunctionTile(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.CameraAlt,
-                                title = stringResource(R.string.screen_home_visit_record),
-                                desc = stringResource(R.string.screen_home_visit_record_desc),
-                                color = Info,
-                                onClick = { showAddRecordSheet = true }
-                            )
-                            FunctionTile(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.MedicalInformation,
-                                title = stringResource(R.string.screen_home_medical_archive),
-                                desc = stringResource(R.string.screen_home_medical_archive_desc),
-                                color = Healthy,
-                                onClick = {
-                                    navController.navigate("reminders") {
-                                        popUpTo("home") { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            FunctionTile(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.InsertChart,
-                                title = stringResource(R.string.screen_home_data_statistics),
-                                desc = stringResource(R.string.screen_home_data_statistics_desc),
-                                color = Reminder,
-                                onClick = { navController.navigate("trends") }
-                            )
-                            FunctionTile(
-                                modifier = Modifier.weight(1f),
-                                icon = Icons.Default.Settings,
-                                title = stringResource(R.string.screen_home_settings),
-                                desc = stringResource(R.string.screen_home_settings_desc),
-                                color = NoStatus,
-                                onClick = { navController.navigate(Screen.Settings.route) }
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 
