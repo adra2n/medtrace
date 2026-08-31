@@ -90,6 +90,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showAddTodoDialog by remember { mutableStateOf(false) }
     var showAddRecordSheet by remember { mutableStateOf(false) }
+    var showFabMenu by remember { mutableStateOf(false) }
     
     val context = LocalContext.current
     val userModeStore = remember { UserModeStore(context) }
@@ -120,11 +121,34 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddRecordSheet = true },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.screen_home_fab_add))
+            Box {
+                FloatingActionButton(
+                    onClick = { showFabMenu = !showFabMenu },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.screen_home_fab_add))
+                }
+                DropdownMenu(
+                    expanded = showFabMenu,
+                    onDismissRequest = { showFabMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.screen_home_visit_record)) },
+                        onClick = {
+                            showFabMenu = false
+                            showAddRecordSheet = true
+                        },
+                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.screen_home_medical_archive)) },
+                        onClick = {
+                            showFabMenu = false
+                            showAddTodoDialog = true
+                        },
+                        leadingIcon = { Icon(Icons.Default.MedicalInformation, contentDescription = null) }
+                    )
+                }
             }
         }
     ) { padding ->
@@ -433,121 +457,46 @@ private fun TodayTodoItem(
     allTodos: List<HealthTodo> = emptyList(),
     isElderlyMode: Boolean = false
 ) {
-    var showCelebration by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (showCelebration) 1.2f else 1f,
-        animationSpec = tween(durationMillis = 300),
-        label = "scale"
-    )
-    
-    LaunchedEffect(done) {
-        if (done && todo != null) {
-            showCelebration = true
-            kotlinx.coroutines.delay(500)
-            showCelebration = false
-        }
-    }
-    
-    // 类别图标
     val categoryIcon = when (todo?.category) {
         stringResource(R.string.screen_home_category_medication) -> "💊"
         stringResource(R.string.screen_home_category_review) -> "🏥"
         stringResource(R.string.screen_home_category_checkup) -> "🔬"
         else -> "📋"
     }
-    
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier.scale(scale)
-        ) {
-            Checkbox(
-                checked = done,
-                onCheckedChange = { onToggle() },
-                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
-            )
-            if (showCelebration) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Healthy,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .align(Alignment.Center)
-                )
-            }
-        }
-        // 类别图标
-        Text(
-            categoryIcon,
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(start = 4.dp)
+        Checkbox(
+            checked = done,
+            onCheckedChange = { onToggle() },
+            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
+            modifier = Modifier.size(if (isElderlyMode) 32.dp else 24.dp)
         )
-        Spacer(Modifier.width(6.dp))
         if (member != null) {
             val (bg, content) = memberCardColors(member.relation, member.gender)
             MemberAvatar(
                 member = member,
-                size = 24.dp,
+                size = if (isElderlyMode) 32.dp else 24.dp,
                 fallbackBackground = bg,
                 fallbackContent = content
             )
         }
-        Spacer(Modifier.width(6.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = if (isElderlyMode) 18.sp else MaterialTheme.typography.bodyMedium.fontSize
-                ),
-                color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                textDecoration = if (done) TextDecoration.LineThrough else null
-            )
-            if (todo != null) {
-                val today = java.time.LocalDate.now()
-                val categoryLabel = when (todo.category) {
-                    stringResource(R.string.screen_home_category_medication) -> stringResource(R.string.screen_home_category_medication)
-                    stringResource(R.string.screen_home_category_review) -> stringResource(R.string.screen_home_review_label)
-                    stringResource(R.string.screen_home_category_checkup) -> stringResource(R.string.screen_home_checkup_label)
-                    else -> stringResource(R.string.screen_home_category_other)
-                }
-                val daysUntil = java.time.temporal.ChronoUnit.DAYS.between(today, todo.dueDate)
-                val dateLabel = when {
-                    daysUntil < 0 -> stringResource(R.string.screen_home_overdue, "", -daysUntil.toInt()).trim()
-                    daysUntil == 0L -> stringResource(R.string.screen_home_today_label)
-                    daysUntil <= 7 -> stringResource(R.string.screen_home_days_later, "", daysUntil.toInt()).trim()
-                    else -> todo.dueDate.format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"))
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(top = 2.dp)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                    ) {
-                        Text(
-                            categoryLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
-                            ),
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                    Text(
-                        dateLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
-                        ),
-                        color = if (daysUntil < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = "$categoryIcon $text",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = if (isElderlyMode) 18.sp else MaterialTheme.typography.bodyMedium.fontSize
+            ),
+            color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            textDecoration = if (done) TextDecoration.LineThrough else null,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
