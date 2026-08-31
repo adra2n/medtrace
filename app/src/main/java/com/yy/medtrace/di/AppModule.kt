@@ -15,7 +15,6 @@ import com.yy.medtrace.data.settings.LlmSettingsStore
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.data.settings.PrivacyConsentStore
 import com.yy.medtrace.data.settings.SecuritySettingsStore
-import com.yy.medtrace.data.settings.SyncSettingsStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -76,12 +75,6 @@ object AppModule {
     @Singleton
     fun provideSecuritySettingsStore(@ApplicationContext context: Context): SecuritySettingsStore {
         return SecuritySettingsStore(context)
-    }
-    
-    @Provides
-    @Singleton
-    fun provideSyncSettingsStore(@ApplicationContext context: Context): SyncSettingsStore {
-        return SyncSettingsStore(context)
     }
     
     @Provides

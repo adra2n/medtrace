@@ -177,7 +177,7 @@ fun RemindersScreen(
             members = members,
             initialCategory = selectedCategory,
             onDismiss = { showAddDialog = false },
-            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval, category, reminderTime ->
+            onSave = { memberId, memberName, content, dueDate, repeatType, category, reminderTime ->
                 viewModel.insertTodo(
                     HealthTodo(
                         memberId = memberId,
@@ -185,7 +185,6 @@ fun RemindersScreen(
                         content = content,
                         dueDate = dueDate,
                         repeatType = repeatType,
-                        repeatInterval = repeatInterval,
                         category = category,
                         reminderTime = reminderTime
                     )
@@ -199,13 +198,12 @@ fun RemindersScreen(
         EditTodoDialog(
             todo = todo,
             onDismiss = { editingTodo = null },
-            onUpdate = { content, category, dueDate, repeatType, repeatInterval, reminderTime ->
+            onUpdate = { content, category, dueDate, repeatType, reminderTime ->
                 viewModel.updateTodo(todo.copy(
                     content = content,
                     category = category,
                     dueDate = dueDate,
                     repeatType = repeatType,
-                    repeatInterval = repeatInterval,
                     reminderTime = reminderTime
                 ))
                 editingTodo = null
@@ -397,7 +395,7 @@ private fun ReminderItem(
     isElderlyMode: Boolean = false
 ) {
     val isOverdue = todo.dueDate.isBefore(LocalDate.now()) && !todo.done
-    val repeatLabel = RemindersViewModel.repeatLabel(todo.repeatType, todo.repeatInterval)
+    val repeatLabel = RemindersViewModel.repeatLabel(todo.repeatType)
     var showActions by remember { mutableStateOf(false) }
 
     Row(
@@ -411,7 +409,7 @@ private fun ReminderItem(
             checked = todo.done,
             onCheckedChange = { onToggle() },
             colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
-            modifier = Modifier.size(if (isElderlyMode) 32.dp else CheckboxDefaults.size)
+            modifier = Modifier.size(if (isElderlyMode) 32.dp else 24.dp)
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -502,14 +500,13 @@ private fun ReminderItem(
 private fun EditTodoDialog(
     todo: HealthTodo,
     onDismiss: () -> Unit,
-    onUpdate: (content: String, category: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int, reminderTime: String) -> Unit
+    onUpdate: (content: String, category: String, dueDate: LocalDate, repeatType: String, reminderTime: String) -> Unit
 ) {
     var content by remember { mutableStateOf(todo.content) }
     var category by remember { mutableStateOf(todo.category) }
     var dueDate by remember { mutableStateOf(todo.dueDate) }
     var repeatEnabled by remember { mutableStateOf(todo.repeatType != "none") }
     var selectedType by remember { mutableStateOf(if (todo.repeatType == "none") "day" else todo.repeatType) }
-    var interval by remember { mutableIntStateOf(if (todo.repeatInterval < 1) 1 else todo.repeatInterval) }
     var showDatePicker by remember { mutableStateOf(false) }
     var reminderTime by remember { mutableStateOf(todo.reminderTime) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -522,9 +519,7 @@ private fun EditTodoDialog(
     )
     val units = listOf(
         "day" to stringResource(R.string.screen_reminders_unit_day),
-        "week" to stringResource(R.string.screen_reminders_unit_week),
-        "month" to stringResource(R.string.screen_reminders_unit_month),
-        "year" to stringResource(R.string.screen_reminders_unit_year)
+        "week" to stringResource(R.string.screen_reminders_unit_week)
     )
 
     if (showDatePicker) {
@@ -727,25 +722,6 @@ private fun EditTodoDialog(
                             )
                         }
                     }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.screen_reminders_every))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "$interval",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = units.firstOrNull { it.first == selectedType }?.second ?: "",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
                 }
             }
         },
@@ -753,7 +729,7 @@ private fun EditTodoDialog(
             Button(
                 onClick = {
                     val repeatType = if (repeatEnabled) selectedType else "none"
-                    onUpdate(content, category, dueDate, repeatType, interval, reminderTime)
+                    onUpdate(content, category, dueDate, repeatType, reminderTime)
                 },
                 enabled = content.isNotBlank()
             ) { Text(stringResource(R.string.screen_reminders_save)) }

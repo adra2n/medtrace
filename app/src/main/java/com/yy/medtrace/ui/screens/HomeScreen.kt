@@ -438,14 +438,13 @@ fun HomeScreen(
         AddTodoDialog(
             members = uiState.members,
             onDismiss = { showAddTodoDialog = false },
-            onSave = { memberId, memberName, content, dueDate, repeatType, repeatInterval, category, reminderTime ->
+            onSave = { memberId, memberName, content, dueDate, repeatType, category, reminderTime ->
                 viewModel.addTodo(
                     memberId = memberId,
                     memberName = memberName,
                     content = content,
                     dueDate = dueDate,
                     repeatType = repeatType,
-                    repeatInterval = repeatInterval,
                     category = category,
                     reminderTime = reminderTime
                 )
@@ -497,8 +496,6 @@ private fun TodayTodoItem(
     allTodos: List<HealthTodo> = emptyList(),
     isElderlyMode: Boolean = false
 ) {
-    val streak = todo?.getStreak() ?: 0
-    val progress = todo?.getProgress() ?: 0f
     var showCelebration by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (showCelebration) 1.2f else 1f,
@@ -612,47 +609,6 @@ private fun TodayTodoItem(
                         color = if (daysUntil < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                if (todo.category == stringResource(R.string.screen_home_category_medication) && streak > 0) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.LocalFireDepartment,
-                            contentDescription = null,
-                            tint = Urgent,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(Modifier.width(2.dp))
-                        Text(
-                            stringResource(R.string.screen_home_streak_days, streak),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Urgent
-                        )
-                    }
-                }
-                if (todo.category == stringResource(R.string.screen_home_category_other) && todo.durationDays > 0) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(top = 2.dp)
-                    ) {
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                        )
-                        Text(
-                            stringResource(R.string.screen_home_treatment_days, todo.durationDays),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             }
         }
     }
@@ -757,7 +713,7 @@ internal fun AddTodoDialog(
     members: List<FamilyMember>,
     initialCategory: String = stringResource(R.string.screen_home_category_other),
     onDismiss: () -> Unit,
-    onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, repeatInterval: Int, category: String, reminderTime: String) -> Unit
+    onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, category: String, reminderTime: String) -> Unit
 ) {
     var content by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(initialCategory) }
@@ -767,7 +723,6 @@ internal fun AddTodoDialog(
     var dueDate by remember { mutableStateOf(LocalDate.now()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var repeatType by remember { mutableStateOf("none") }
-    var repeatInterval by remember { mutableIntStateOf(1) }
     var showRepeatDialog by remember { mutableStateOf(false) }
     var reminderTime by remember { mutableStateOf("09:00") }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -799,10 +754,8 @@ internal fun AddTodoDialog(
     if (showRepeatDialog) {
         RepeatPickerDialog(
             currentType = repeatType,
-            currentInterval = repeatInterval,
-            onConfirm = { type, interval ->
+            onConfirm = { type ->
                 repeatType = type
-                repeatInterval = interval
                 showRepeatDialog = false
             },
             onDismiss = { showRepeatDialog = false }
@@ -958,7 +911,7 @@ internal fun AddTodoDialog(
                 ),
                 enabled = false
             )
-            val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(repeatType, repeatInterval) ?: stringResource(R.string.screen_home_no_repeat)
+            val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(repeatType) ?: stringResource(R.string.screen_home_no_repeat)
             OutlinedTextField(
                 value = repeatLabel,
                 onValueChange = {},
@@ -1000,7 +953,7 @@ internal fun AddTodoDialog(
                 Button(
                     onClick = {
                         val m = selectedMember ?: return@Button
-                        onSave(m.id, m.name, content.trim(), dueDate, repeatType, repeatInterval, category, reminderTime)
+                        onSave(m.id, m.name, content.trim(), dueDate, repeatType, category, reminderTime)
                     },
                     modifier = Modifier.weight(1f),
                     enabled = content.isNotBlank() && selectedMemberId != null
@@ -1014,15 +967,13 @@ internal fun AddTodoDialog(
 @Composable
 private fun RepeatPickerDialog(
     currentType: String,
-    currentInterval: Int,
-    onConfirm: (type: String, interval: Int) -> Unit,
+    onConfirm: (type: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var repeatEnabled by remember { mutableStateOf(currentType != "none") }
     var selectedType by remember { mutableStateOf(if (currentType == "none") "day" else currentType) }
-    var interval by remember { mutableIntStateOf(if (currentInterval < 1) 1 else currentInterval) }
 
-    val units = listOf("day" to stringResource(R.string.screen_home_unit_day), "week" to stringResource(R.string.screen_home_unit_week), "month" to stringResource(R.string.screen_home_unit_month), "year" to stringResource(R.string.screen_home_unit_year))
+    val units = listOf("day" to stringResource(R.string.screen_home_unit_day), "week" to stringResource(R.string.screen_home_unit_week))
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1072,43 +1023,13 @@ private fun RepeatPickerDialog(
                             )
                         }
                     }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(R.string.screen_home_interval_label))
-                        Spacer(Modifier.width(8.dp))
-                        IconButton(
-                            onClick = { if (interval > 1) interval-- },
-                            enabled = interval > 1
-                        ) {
-                            Icon(Icons.Default.Remove, stringResource(R.string.screen_home_decrease), tint = MaterialTheme.colorScheme.primary)
-                        }
-                        Text(
-                            text = "$interval",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                        IconButton(
-                            onClick = { if (interval < 99) interval++ }
-                        ) {
-                            Icon(Icons.Default.Add, stringResource(R.string.screen_home_increase), tint = MaterialTheme.colorScheme.primary)
-                        }
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = units.firstOrNull { it.first == selectedType }?.second ?: "",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
                 }
             }
         },
         confirmButton = {
             Button(onClick = {
                 val type = if (repeatEnabled) selectedType else "none"
-                onConfirm(type, interval)
+                onConfirm(type)
             }) { Text(stringResource(R.string.screen_home_confirm)) }
         },
         dismissButton = {

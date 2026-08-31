@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.model.UserSettings
-import com.yy.medtrace.data.settings.PremiumManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,8 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
 class SettingsViewModel @Inject constructor(
-    val database: AppDatabase,
-    val premiumManager: PremiumManager
+    val database: AppDatabase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())

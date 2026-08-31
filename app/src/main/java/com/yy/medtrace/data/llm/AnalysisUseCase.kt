@@ -25,7 +25,7 @@ data class AnalysisResult(
 )
 
 @Serializable
-data class Medication(val name: String, val dose: String, val freq: String, val duration: String)
+data class Medication(val name: String, val dosage: String, val frequency: String, val usage: String)
 @Serializable
 data class Metric(val name: String, val value: String, val unit: String, val range: String, val abnormal: Boolean)
 @Serializable
@@ -63,7 +63,7 @@ class AnalysisUseCase(settings: LlmSettingsStore) : BaseLlmUseCase(settings) {
 你是一名医疗与健康信息整理助手。用户会随手拍下处方、药品或医疗单据（图片或文字），请提取重要信息并整理为结构化 JSON。
 字段说明：
 - diagnosis: 诊断 / 主诉（无则空）。
-- medications: 用药数组 [{name, dose, freq, duration}]，例如 {name:"阿莫西林", dose:"0.5g", freq:"每日3次", duration:"7天"}。
+- medications: 用药数组 [{name, dosage, frequency, usage}]，例如 {name:"阿莫西林", dosage:"0.5g", frequency:"每日3次", usage:"饭后服用"}。
 - metrics: 检查指标数组 [{name, value, unit, range, abnormal}]（无则空数组）。
 - allergies: 过敏史字符串数组（无则空数组）。
 - items: 物品 / 项目数组 [{name, dose, note}]（如药品、器械，无则空数组）。

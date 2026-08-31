@@ -47,7 +47,6 @@ import com.yy.medtrace.ui.theme.NoStatus
 import com.yy.medtrace.ui.theme.Healthy
 import com.yy.medtrace.ui.components.MemberEditDialog
 import com.yy.medtrace.viewmodel.FamilyViewModel
-import com.yy.medtrace.data.settings.PremiumManager
 import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
@@ -67,7 +66,6 @@ fun FamilyScreen(
     var pendingDelete by remember { mutableStateOf<FamilyMember?>(null) }
     var expandedMemberId by remember { mutableStateOf<Long?>(null) }
     val scope = rememberCoroutineScope()
-    val showPremiumDialog by viewModel.showPremiumDialog.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadMembers()
@@ -175,23 +173,6 @@ fun FamilyScreen(
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.screen_family_cancel_button)) }
-            }
-        )
-    }
-
-    if (showPremiumDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissPremiumDialog() },
-            title = { Text("升级高级版") },
-            text = { Text("免费版最多支持 ${PremiumManager.FREE_MEMBER_LIMIT} 个成员，升级后可无限添加") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.dismissPremiumDialog()
-                    navController.navigate("premium")
-                }) { Text("去升级") }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.dismissPremiumDialog() }) { Text("取消") }
             }
         )
     }

@@ -39,17 +39,8 @@ class ComprehensiveAnalysisUseCase(settings: LlmSettingsStore) : BaseLlmUseCase(
                     if (r.hospital.isNotBlank()) append("；医院：${r.hospital}")
                     if (r.medItems.isNotEmpty()) {
                         append("；用药：" + r.medItems.joinToString("、") {
-                            listOf(it.name, it.dose, it.freq).filter { v -> v.isNotBlank() }.joinToString(" ")
+                            listOf(it.name, it.dosage, it.frequency).filter { v -> v.isNotBlank() }.joinToString(" ")
                         })
-                    }
-                    if (r.metricsJson.isNotBlank()) {
-                        runCatching { json.decodeFromString<List<Metric>>(r.metricsJson) }.getOrNull()
-                            ?.takeIf { it.isNotEmpty() }
-                            ?.let { metrics ->
-                                append("；检查指标：" + metrics.joinToString("、") {
-                                    "${it.name}=${it.value}${it.unit}（参考${it.range}${if (it.abnormal) "，异常" else ""}）"
-                                })
-                            }
                     }
                     if (r.notes.isNotBlank()) append("；备注：${r.notes}")
                 }

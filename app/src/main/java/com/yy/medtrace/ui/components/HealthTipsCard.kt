@@ -16,28 +16,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.yy.medtrace.data.llm.Metric
 import com.yy.medtrace.data.model.FamilyMember
-import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.theme.AppShapes
-import com.yy.medtrace.ui.theme.SoftElevation
-import kotlinx.serialization.json.Json
-
-private fun parseMetrics(records: List<MedicalRecord>): List<Metric> {
-    val result = mutableListOf<Metric>()
-    for (r in records) {
-        if (r.metricsJson.isBlank()) continue
-        runCatching { Json.decodeFromString<List<Metric>>(r.metricsJson) }
-            .getOrElse { emptyList() }
-            .let { result.addAll(it) }
-    }
-    return result
-}
 
 @Composable
 fun HealthTipsCard(
     member: FamilyMember? = null,
-    recentRecords: List<MedicalRecord> = emptyList(),
+    recentRecords: List<com.yy.medtrace.data.model.MedicalRecord> = emptyList(),
     aiAdvice: String? = null
 ) {
     val tips = buildList {
@@ -55,17 +40,6 @@ fun HealthTipsCard(
             if (m.bloodType.isBlank()) {
                 add("建议补全血型信息，便于紧急情况快速处置。")
             }
-        }
-
-        // 基于 AI 解析的检查指标
-        val metrics = parseMetrics(recentRecords)
-        val abnormal = metrics.filter { it.abnormal }
-        if (abnormal.isNotEmpty()) {
-            val names = abnormal.map { it.name }.distinct().joinToString("、")
-            add("近期检查中 $names 超出参考范围，建议复查并咨询医生。")
-        }
-        if (metrics.isNotEmpty() && abnormal.isEmpty()) {
-            add("近期 AI 识别的检查指标均在参考范围内，继续保持。")
         }
 
         // 通用提醒

@@ -1,6 +1,5 @@
 package com.yy.medtrace.data.repository
 
-import androidx.room.withTransaction
 import com.yy.medtrace.data.AppDatabase
 import com.yy.medtrace.data.dao.HealthTodoDao
 import com.yy.medtrace.data.model.HealthTodo
@@ -28,10 +27,6 @@ class TodoRepositoryImpl(
         return healthTodoDao.getPendingByDate(date)
     }
     
-    override suspend fun markNotified(ids: List<Long>, date: String) {
-        healthTodoDao.markNotified(ids, date)
-    }
-    
     override suspend fun insert(todo: HealthTodo): Long {
         return healthTodoDao.insert(todo)
     }
@@ -49,20 +44,7 @@ class TodoRepositoryImpl(
     }
     
     override suspend fun toggleTodoDone(id: Long, done: Boolean) {
-        database.withTransaction {
-            val todo = healthTodoDao.getById(id) ?: return@withTransaction
-            val today = LocalDate.now().toString()
-            val existingDates = todo.completedDates.split(",")
-                .map { it.trim() }.filter { it.isNotBlank() }
-            val newCompletedDates = if (done) {
-                if (today !in existingDates) (existingDates + today).joinToString(",")
-                else existingDates.joinToString(",")
-            } else {
-                existingDates.filter { it != today }.joinToString(",")
-            }
-            healthTodoDao.updateCompletedDates(id, newCompletedDates)
-            healthTodoDao.setDone(id, done)
-        }
+        healthTodoDao.setDone(id, done)
     }
     
     override suspend fun getById(id: Long): HealthTodo? {

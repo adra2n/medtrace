@@ -90,14 +90,6 @@ fun MedicalRecordCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (record.attachmentPath.isNotBlank()) {
-                    Icon(
-                        Icons.Default.Image,
-                        contentDescription = "有附件",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -162,7 +154,7 @@ fun MedicalRecordCard(
                             )
                         }
                         record.medItems.forEach { med ->
-                            val parts = listOf(med.name, med.dose, med.freq, med.duration)
+                            val parts = listOf(med.name, med.dosage, med.frequency, med.usage)
                                 .filter { it.isNotBlank() }
                                 .joinToString(" ")
                             Row(

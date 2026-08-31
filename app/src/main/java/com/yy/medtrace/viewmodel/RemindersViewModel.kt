@@ -49,29 +49,9 @@ class RemindersViewModel @Inject constructor(
     fun setTodoDone(todoId: Long, done: Boolean) {
         viewModelScope.launch {
             val todo = todoRepository.getById(todoId) ?: return@launch
-            val today = LocalDate.now().toString()
-            val newCompletedDates = if (done) {
-                if (todo.completedDates.isBlank()) today
-                else "${todo.completedDates},$today"
-            } else {
-                todo.completedDates.split(",").filter { it.trim() != today }.joinToString(",")
-            }
             todoRepository.update(todo.copy(
-                done = done,
-                completedDates = newCompletedDates
+                done = done
             ))
-            if (done && todo.repeatType != "none") {
-                val nextDate = calculateNextDueDate(todo.dueDate, todo.repeatType, todo.repeatInterval)
-                todoRepository.insert(
-                    todo.copy(
-                        id = 0,
-                        dueDate = nextDate,
-                        done = false,
-                        notifiedDate = "",
-                        completedDates = ""
-                    )
-                )
-            }
         }
     }
 
@@ -91,7 +71,7 @@ class RemindersViewModel @Inject constructor(
         viewModelScope.launch {
             val todo = todoRepository.getById(todoId) ?: return@launch
             todoRepository.update(
-                todo.copy(repeatType = repeatType, repeatInterval = repeatInterval)
+                todo.copy(repeatType = repeatType)
             )
         }
     }
@@ -158,12 +138,10 @@ class RemindersViewModel @Inject constructor(
             else -> current
         }
 
-        fun repeatLabel(type: String, interval: Int): String? = when (type) {
+        fun repeatLabel(type: String): String? = when (type) {
             "none" -> null
-            "day" -> if (interval == 1) "每天" else "每 $interval 天"
-            "week" -> if (interval == 1) "每周" else "每 $interval 周"
-            "month" -> if (interval == 1) "每月" else "每 $interval 月"
-            "year" -> if (interval == 1) "每年" else "每 $interval 年"
+            "day" -> "每天"
+            "week" -> "每周"
             else -> null
         }
     }

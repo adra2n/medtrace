@@ -77,26 +77,7 @@ private fun expandMetric(m: Metric): List<Metric> {
 }
 
 fun buildSeries(records: List<MedicalRecord>): List<MetricSeries> {
-    val byName = LinkedHashMap<String, MetricSeries>()
-    for (r in records) {
-        if (r.metricsJson.isBlank()) continue
-        val metrics = runCatching {
-            kotlinx.serialization.json.Json.decodeFromString<List<Metric>>(r.metricsJson)
-        }.getOrElse { emptyList() }
-        for (m in metrics) {
-            expandMetric(m).forEach { em ->
-                val v = parseNumeric(em.value) ?: return@forEach
-                val series = byName.getOrPut(em.name) {
-                    MetricSeries(em.name, em.unit, em.range, emptyList())
-                }
-                byName[em.name] = series.copy(
-                    points = (series.points + MetricPoint(r.onsetTime, v, em.abnormal, em.value))
-                        .sortedBy { it.time }
-                )
-            }
-        }
-    }
-    return byName.values.filter { it.points.size >= 1 }
+    return emptyList()
 }
 
 @Composable

@@ -117,7 +117,6 @@ class HomeViewModel @Inject constructor(
         content: String,
         dueDate: LocalDate,
         repeatType: String = "none",
-        repeatInterval: Int = 1,
         category: String = "其他",
         reminderTime: String = "09:00"
     ) {
@@ -129,7 +128,6 @@ class HomeViewModel @Inject constructor(
                     content = content,
                     dueDate = dueDate,
                     repeatType = repeatType,
-                    repeatInterval = repeatInterval,
                     category = category,
                     reminderTime = reminderTime
                 )

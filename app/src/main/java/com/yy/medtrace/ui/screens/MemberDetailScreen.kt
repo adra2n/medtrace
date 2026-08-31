@@ -78,7 +78,7 @@ fun MemberDetailScreen(
     }
 
     val medicationRecords = remember(records) { records.filter { it.medItems.isNotEmpty() } }
-    val examRecords = remember(records) { records.filter { it.metricsJson.isNotBlank() } }
+    val examRecords = remember(records) { records }
     val visitRecords = remember(records) { records }
     val metricPoints = remember(records) {
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm")

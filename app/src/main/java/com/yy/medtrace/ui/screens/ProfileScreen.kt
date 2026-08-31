@@ -43,7 +43,6 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val isPremiumActive = remember { viewModel.premiumManager.isPremiumActive() }
     val appVersion = remember {
         try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: ""
@@ -133,58 +132,6 @@ fun ProfileScreen(
                         StatItem(count = "${uiState.recordCount}", label = stringResource(R.string.profile_stat_records))
                         StatItem(count = "${uiState.memberCount}", label = stringResource(R.string.profile_stat_members))
                         StatItem(count = "${uiState.todoCount}", label = stringResource(R.string.profile_stat_todos))
-                    }
-                }
-            }
-
-            // 解锁高级版（未购买时显示）
-            if (!isPremiumActive) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    onClick = { navController.navigate("premium") }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                stringResource(R.string.profile_premium_title),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                stringResource(R.string.profile_premium_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                            )
-                        }
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                        )
                     }
                 }
             }

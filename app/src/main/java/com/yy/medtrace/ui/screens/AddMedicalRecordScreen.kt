@@ -46,7 +46,6 @@ import com.yy.medtrace.data.llm.preferredVisitDateTime
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.data.model.MedicationItem
-import com.yy.medtrace.data.model.VisitType
 import com.yy.medtrace.data.settings.LlmSettingsStore
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
@@ -72,9 +71,6 @@ private fun List<MedicationItem>.updateAt(
     transform: MedicationItem.() -> MedicationItem
 ): List<MedicationItem> = mapIndexed { i, m -> if (i == index) m.transform() else m }
 
-private fun encodeMetrics(metrics: List<Metric>): String =
-    Json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Metric.serializer()), metrics)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMedicalRecordScreen(
@@ -84,8 +80,7 @@ fun AddMedicalRecordScreen(
     memberId: Long = -1L,
     diagnosis: String = "",
     hospital: String = "",
-    onsetTime: String = "",
-    visitType: String = ""
+    onsetTime: String = ""
 ) {
     val database = viewModel.database
     var selectedMemberId by remember { mutableStateOf<Long?>(null) }
@@ -105,13 +100,6 @@ fun AddMedicalRecordScreen(
     }
     var error by remember { mutableStateOf<String?>(null) }
     var existingId by remember { mutableStateOf<Long?>(null) }
-    var existingMetricsJson by remember { mutableStateOf("") }
-    var visitType by remember {
-        mutableStateOf(
-            if (visitType.isNotBlank()) visitType else VisitType.OUTPATIENT.label
-        )
-    }
-    var customVisitType by remember { mutableStateOf("") }
 
     var noteText by remember { mutableStateOf("") }
     var images by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
@@ -123,7 +111,6 @@ fun AddMedicalRecordScreen(
     var showConsent by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    var attachmentPath by remember { mutableStateOf("") }
 
     val isFromBottomSheet = memberId != -1L
 
@@ -151,14 +138,6 @@ fun AddMedicalRecordScreen(
                 medItems = r.medItems
                 notes = r.notes
                 onsetTime = r.onsetTime
-                existingMetricsJson = r.metricsJson
-                attachmentPath = r.attachmentPath
-                if (r.visitType.isNotBlank()) {
-                    visitType = if (VisitType.labels.contains(r.visitType)) r.visitType else VisitType.OTHER.label
-                    if (visitType == VisitType.OTHER.label) {
-                        customVisitType = r.visitType
-                    }
-                }
             }
         }
     }
@@ -188,25 +167,10 @@ fun AddMedicalRecordScreen(
         }
     }
 
-    fun saveAttachment(uri: Uri): String {
-        val dir = File(context.filesDir, "attachments")
-        if (!dir.exists()) dir.mkdirs()
-        val file = File(dir, "record_${System.currentTimeMillis()}.jpg")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            file.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
-        return file.absolutePath
-    }
-
     fun handleImage(uri: Uri) {
         scope.launch(Dispatchers.IO) {
             uriToBitmap(context, uri)?.let { bmp ->
                 images = images + bmp
-                if (attachmentPath.isBlank()) {
-                    attachmentPath = saveAttachment(uri)
-                }
                 showConsent = true
             }
         }
@@ -241,7 +205,7 @@ fun AddMedicalRecordScreen(
             if (diagnosis.isBlank()) diagnosis = r.diagnosis ?: ""
             if (hospital.isBlank()) hospital = r.hospital ?: ""
             if (medItems.isEmpty() && r.medications.isNotEmpty()) {
-                medItems = r.medications.map { MedicationItem(it.name, it.dose, freq = it.freq, duration = it.duration) }
+                medItems = r.medications.map { MedicationItem(it.name, dosage = it.dosage, frequency = it.frequency, usage = it.usage) }
             }
             r.preferredVisitDateTime()?.let { onsetTime = it }
             if (notes.isBlank()) {
@@ -255,7 +219,7 @@ fun AddMedicalRecordScreen(
         }
     }
 
-    val canSave = selectedMemberId != null && visitType.isNotBlank()
+    val canSave = selectedMemberId != null
 
     Scaffold(
         topBar = {
@@ -296,47 +260,20 @@ fun AddMedicalRecordScreen(
                                 error = context.getString(R.string.screen_add_record_error_select_member)
                                 return@Button
                             }
-                            val finalVisitType = if (visitType == VisitType.OTHER.label && customVisitType.isNotBlank()) {
-                                customVisitType
-                            } else {
-                                visitType
-                            }
-                            if (finalVisitType.isBlank() || medItems.isEmpty()) {
+                            if (medItems.isEmpty()) {
                                 error = context.getString(R.string.screen_add_record_error_fill_required)
                                 return@Button
-                            }
-
-                            val dosage = medItems.firstOrNull { it.dose.isNotBlank() }?.dose ?: ""
-                            val frequency = medItems
-                                .filter { it.dose.isNotBlank() || it.freqDays.isNotBlank() || it.freqTimes.isNotBlank() }
-                                .map { "${it.freqDays}天${it.freqTimes}次" }
-                                .distinct().joinToString("；")
-
-                            val metricsJson = analysisResult?.metrics?.takeIf { it.isNotEmpty() }
-                                ?.let { encodeMetrics(it) }
-                                ?: existingMetricsJson
-
-                            // 诊断 = 就诊类型 + 病症记录
-                            val finalDiagnosis = if (diagnosis.isNotBlank()) {
-                                "$finalVisitType - $diagnosis"
-                            } else {
-                                finalVisitType
                             }
 
                             val record = MedicalRecord(
                                 id = existingId ?: 0,
                                 patientId = selectedMember.id,
                                 patientName = selectedMember.name,
-                                diagnosis = finalDiagnosis,
+                                diagnosis = diagnosis,
                                 onsetTime = onsetTime,
                                 hospital = hospital,
                                 medItems = medItems,
-                                frequency = frequency,
-                                dosage = dosage,
-                                notes = notes,
-                                metricsJson = metricsJson,
-                                attachmentPath = attachmentPath,
-                                visitType = finalVisitType
+                                notes = notes
                             )
 
                             scope.launch {
@@ -410,36 +347,6 @@ fun AddMedicalRecordScreen(
                 }
 
                 SectionCard(title = stringResource(R.string.screen_add_record_section_basic_info)) {
-                    Text(
-                        text = stringResource(R.string.screen_add_record_label_visit_type),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(VisitType.labels) { type ->
-                            FilterChip(
-                                selected = visitType == type,
-                                onClick = {
-                                    visitType = type
-                                    if (type != VisitType.OTHER.label) {
-                                        customVisitType = ""
-                                    }
-                                },
-                                label = { Text(type) }
-                            )
-                        }
-                    }
-                    if (visitType == VisitType.OTHER.label) {
-                        OutlinedTextField(
-                            value = customVisitType,
-                            onValueChange = { customVisitType = it },
-                            label = { Text(stringResource(R.string.screen_add_record_label_custom_visit_type)) },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                        )
-                    }
                     OutlinedTextField(
                         value = diagnosis,
                         onValueChange = { diagnosis = it },
@@ -499,75 +406,22 @@ fun AddMedicalRecordScreen(
                                     label = { Text(stringResource(R.string.screen_add_record_label_medication_name)) },
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = item.dose,
-                                        onValueChange = { medItems = medItems.updateAt(index) { copy(dose = it) } },
-                                        label = { Text(stringResource(R.string.screen_add_record_label_dosage)) },
-                                        modifier = Modifier.weight(0.6f),
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                                    )
-                                    var unitExpanded by remember { mutableStateOf(false) }
-                                    val units = listOf("mg", "g", "ml", "L", "片", "粒", "袋", "支", "瓶")
-                                    ExposedDropdownMenuBox(
-                                        expanded = unitExpanded,
-                                        onExpandedChange = { unitExpanded = it },
-                                        modifier = Modifier.weight(0.4f)
-                                    ) {
-                                        OutlinedTextField(
-                                            value = item.doseUnit,
-                                            onValueChange = {},
-                                            readOnly = true,
-                                            label = { Text("单位") },
-                                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
-                                            modifier = Modifier.menuAnchor()
-                                        )
-                                        ExposedDropdownMenu(
-                                            expanded = unitExpanded,
-                                            onDismissRequest = { unitExpanded = false }
-                                        ) {
-                                            units.forEach { unit ->
-                                                DropdownMenuItem(
-                                                    text = { Text(unit) },
-                                                    onClick = {
-                                                        medItems = medItems.updateAt(index) { copy(doseUnit = unit) }
-                                                        unitExpanded = false
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text("每", style = MaterialTheme.typography.bodyMedium)
-                                    OutlinedTextField(
-                                        value = item.freqDays,
-                                        onValueChange = { medItems = medItems.updateAt(index) { copy(freqDays = it) } },
-                                        modifier = Modifier.width(50.dp),
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        singleLine = true
-                                    )
-                                    Text("天", style = MaterialTheme.typography.bodyMedium)
-                                    OutlinedTextField(
-                                        value = item.freqTimes,
-                                        onValueChange = { medItems = medItems.updateAt(index) { copy(freqTimes = it) } },
-                                        modifier = Modifier.width(50.dp),
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        singleLine = true
-                                    )
-                                    Text("次", style = MaterialTheme.typography.bodyMedium)
-                                }
                                 OutlinedTextField(
-                                    value = item.duration,
-                                    onValueChange = { medItems = medItems.updateAt(index) { copy(duration = it) } },
+                                    value = item.dosage,
+                                    onValueChange = { medItems = medItems.updateAt(index) { copy(dosage = it) } },
+                                    label = { Text(stringResource(R.string.screen_add_record_label_dosage)) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = item.frequency,
+                                    onValueChange = { medItems = medItems.updateAt(index) { copy(frequency = it) } },
                                     label = { Text(stringResource(R.string.screen_add_record_label_duration)) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = item.usage,
+                                    onValueChange = { medItems = medItems.updateAt(index) { copy(usage = it) } },
+                                    label = { Text("用法") },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }

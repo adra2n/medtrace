@@ -28,9 +28,6 @@ interface HealthTodoDao {
     @Query("SELECT * FROM health_todos WHERE id = :id")
     suspend fun getById(id: Long): HealthTodo?
 
-    @Query("UPDATE health_todos SET notifiedDate = :date WHERE id IN (:ids)")
-    suspend fun markNotified(ids: List<Long>, date: String)
-
     @Insert
     suspend fun insert(todo: HealthTodo): Long
 
@@ -42,9 +39,6 @@ interface HealthTodoDao {
 
     @Query("UPDATE health_todos SET done = :done WHERE id = :id")
     suspend fun setDone(id: Long, done: Boolean)
-
-    @Query("UPDATE health_todos SET completedDates = :completedDates WHERE id = :id")
-    suspend fun updateCompletedDates(id: Long, completedDates: String)
 
     @Delete
     suspend fun delete(todo: HealthTodo)
