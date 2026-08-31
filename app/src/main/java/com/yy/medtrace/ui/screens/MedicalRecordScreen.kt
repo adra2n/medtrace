@@ -22,11 +22,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
+import com.yy.medtrace.data.settings.UserMode
+import com.yy.medtrace.data.settings.UserModeStore
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.MedicalRecordCard
 import com.yy.medtrace.ui.state.SelectedMemberHolder
@@ -59,6 +62,10 @@ fun MedicalRecordScreen(
     var sortOrder by remember { mutableStateOf("time") }
     var showAddRecordSheet by remember { mutableStateOf(false) }
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
+    
+    val userModeStore = remember { UserModeStore(context) }
+    val currentMode by userModeStore.currentMode.collectAsState()
+    val isElderlyMode = currentMode == UserMode.ELDERLY
     
     // 分页状态
     val pageSize = 20
@@ -164,11 +171,11 @@ fun MedicalRecordScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(if (isElderlyMode) 24.dp else 16.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 20.dp else 16.dp)
         ) {
-            // 统计概览卡片
-            if (uiState.records.isNotEmpty()) {
+            // 统计概览卡片 - 长辈版隐藏
+            if (!isElderlyMode && uiState.records.isNotEmpty()) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -223,7 +230,7 @@ fun MedicalRecordScreen(
                 }
             }
 
-            // 搜索筛选
+            // 搜索筛选 - 长辈版简化
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -234,7 +241,7 @@ fun MedicalRecordScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(if (isElderlyMode) 20.dp else 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Row(
@@ -245,12 +252,14 @@ fun MedicalRecordScreen(
                                 Icons.Default.Search,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(if (isElderlyMode) 24.dp else 20.dp)
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = stringResource(R.string.medical_record_search_filter),
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
+                                ),
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -258,7 +267,12 @@ fun MedicalRecordScreen(
                             value = keyword,
                             onValueChange = { keyword = it },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text(stringResource(R.string.medical_record_search_placeholder)) },
+                            placeholder = { 
+                                Text(
+                                    stringResource(R.string.medical_record_search_placeholder),
+                                    style = if (isElderlyMode) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium
+                                ) 
+                            },
                             singleLine = true,
                             trailingIcon = {
                                 Row {
@@ -267,18 +281,21 @@ fun MedicalRecordScreen(
                                             Icon(Icons.Default.Close, stringResource(R.string.medical_record_cd_clear))
                                         }
                                     }
-                                    IconButton(onClick = { showFilter = !showFilter }) {
-                                        Icon(
-                                            Icons.Default.Settings,
-                                            stringResource(R.string.medical_record_cd_filter),
-                                            tint = if (showFilter || fromDate != null || toDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                    if (!isElderlyMode) {
+                                        IconButton(onClick = { showFilter = !showFilter }) {
+                                            Icon(
+                                                Icons.Default.Settings,
+                                                stringResource(R.string.medical_record_cd_filter),
+                                                tint = if (showFilter || fromDate != null || toDate != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                             },
-                            leadingIcon = { Icon(Icons.Default.Search, stringResource(R.string.medical_record_cd_search)) }
+                            leadingIcon = { Icon(Icons.Default.Search, stringResource(R.string.medical_record_cd_search)) },
+                            textStyle = if (isElderlyMode) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium
                         )
-                        if (showFilter) {
+                        if (!isElderlyMode && showFilter) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -330,20 +347,22 @@ fun MedicalRecordScreen(
                             Icons.Default.MedicalServices,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(if (isElderlyMode) 24.dp else 20.dp)
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.medical_record_list_title),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
+                            ),
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
 
-            // 排序选项
-            if (uiState.records.isNotEmpty()) {
+            // 排序选项 - 长辈版隐藏
+            if (!isElderlyMode && uiState.records.isNotEmpty()) {
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
