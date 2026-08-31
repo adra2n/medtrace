@@ -71,47 +71,47 @@ fun MedicalRecordCard(
         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // 卡片头部：成员名称 + 诊断 + 时间（可点击展开）
+            // 卡片头部：可点击展开
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { expanded = !expanded }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     Icons.Default.People,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = record.patientName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    text = record.diagnosis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = record.onsetTime.format(dateFormatter),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Icon(
-                    Icons.Default.ArrowDropDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .padding(start = 2.dp)
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = record.patientName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = record.diagnosis,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = record.onsetTime.format(dateFormatter),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Icon(
+                        Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
             // 展开内容
@@ -126,8 +126,8 @@ fun MedicalRecordCard(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // 医院
                         if (record.hospital.isNotBlank()) {
@@ -136,12 +136,12 @@ fun MedicalRecordCard(
                                     Icons.Default.LocalHospital,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text(
                                     text = record.hospital,
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -149,10 +149,10 @@ fun MedicalRecordCard(
 
                         // 药品列表
                         if (record.medItems.isNotEmpty()) {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(
-                                    text = "${record.medItems.size}种药品",
-                                    style = MaterialTheme.typography.labelMedium,
+                                    text = "开具药品（${record.medItems.size}种）",
+                                    style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 record.medItems.forEach { med ->
@@ -161,8 +161,8 @@ fun MedicalRecordCard(
                                         .joinToString(" ")
                                     Text(
                                         text = "· $parts",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.padding(start = 4.dp)
                                     )
                                 }
@@ -173,7 +173,7 @@ fun MedicalRecordCard(
                         if (record.notes.isNotBlank()) {
                             Text(
                                 text = record.notes,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis
@@ -186,29 +186,29 @@ fun MedicalRecordCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 6.dp),
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(
                                 onClick = onEdit,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                                modifier = Modifier.defaultMinSize(minHeight = 32.dp)
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                                modifier = Modifier.defaultMinSize(minHeight = 36.dp)
                             ) {
-                                Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text(stringResource(R.string.btn_edit), style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.btn_edit))
                             }
-                            Spacer(Modifier.width(4.dp))
+                            Spacer(Modifier.width(8.dp))
                             TextButton(
                                 onClick = onDelete,
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                                modifier = Modifier.defaultMinSize(minHeight = 32.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                                modifier = Modifier.defaultMinSize(minHeight = 36.dp),
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                             ) {
-                                Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text(stringResource(R.string.btn_delete), style = MaterialTheme.typography.bodySmall)
+                                Text(stringResource(R.string.btn_delete))
                             }
                         }
                     }
