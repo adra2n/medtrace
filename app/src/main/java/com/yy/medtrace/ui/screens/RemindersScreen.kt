@@ -32,11 +32,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yy.medtrace.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
+import com.yy.medtrace.data.settings.UserMode
+import com.yy.medtrace.data.settings.UserModeStore
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.SectionCard
 import com.yy.medtrace.ui.theme.AppShapes
@@ -60,6 +63,10 @@ fun RemindersScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var editingTodo by remember { mutableStateOf<HealthTodo?>(null) }
     var expandedTypes by remember { mutableStateOf(setOf<String>()) }
+    
+    val userModeStore = remember { UserModeStore(context) }
+    val currentMode by userModeStore.currentMode.collectAsState()
+    val isElderlyMode = currentMode == UserMode.ELDERLY
 
     LaunchedEffect(Unit) {
         viewModel.loadReminders()
@@ -100,38 +107,44 @@ fun RemindersScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = if (isElderlyMode) 24.dp else 16.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 20.dp else 16.dp),
             contentPadding = PaddingValues(vertical = 12.dp)
         ) {
-            // 月度统计
-            item {
-                MonthlyStatsCard(stats = stats)
+            // 月度统计 - 长辈版隐藏
+            if (!isElderlyMode) {
+                item {
+                    MonthlyStatsCard(stats = stats)
+                }
             }
 
-            // 快速添加
-            item {
-                QuickAddSection(
-                    onAdd = { category ->
-                        selectedCategory = category
-                        showAddDialog = true
-                    }
-                )
+            // 快速添加 - 长辈版隐藏
+            if (!isElderlyMode) {
+                item {
+                    QuickAddSection(
+                        onAdd = { category ->
+                            selectedCategory = category
+                            showAddDialog = true
+                        }
+                    )
+                }
             }
 
-            // 本周计划
-            item {
-                WeeklyPlanSection(todos = todos)
+            // 本周计划 - 长辈版隐藏
+            if (!isElderlyMode) {
+                item {
+                    WeeklyPlanSection(todos = todos)
+                }
             }
 
-            // 按类型分组的提醒列表
+            // 按类型分组的提醒列表 - 长辈版简化
             if (groupedByType.isEmpty()) {
                 item {
                     EmptyReminders(onAdd = { showAddDialog = true })
                 }
             } else {
                 groupedByType.forEach { (type, typeTodos) ->
-                    val isExpanded = expandedTypes.contains(type)
+                    val isExpanded = if (isElderlyMode) true else expandedTypes.contains(type)
                     item(key = "type_$type") {
                         ReminderTypeGroup(
                             type = type,
@@ -150,7 +163,8 @@ fun RemindersScreen(
                             },
                             onEdit = { todo ->
                                 editingTodo = todo
-                            }
+                            },
+                            isElderlyMode = isElderlyMode
                         )
                     }
                 }
@@ -306,7 +320,8 @@ private fun ReminderTypeGroup(
     onToggleExpand: () -> Unit,
     onToggle: (HealthTodo, Boolean) -> Unit,
     onDelete: (HealthTodo) -> Unit,
-    onEdit: (HealthTodo) -> Unit
+    onEdit: (HealthTodo) -> Unit,
+    isElderlyMode: Boolean = false
 ) {
     val pendingCount = todos.count { !it.done }
 
@@ -320,31 +335,37 @@ private fun ReminderTypeGroup(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onToggleExpand() }
-                .padding(16.dp)
+                .padding(if (isElderlyMode) 20.dp else 16.dp)
         ) {
             // 头部
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(icon, style = MaterialTheme.typography.titleMedium)
+                Text(icon, style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = if (isElderlyMode) 24.sp else MaterialTheme.typography.titleMedium.fontSize
+                ))
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         type,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleSmall.fontSize
+                        ),
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         stringResource(R.string.screen_reminders_pending_count, todos.size, pendingCount),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = if (isElderlyMode) 16.sp else MaterialTheme.typography.labelSmall.fontSize
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(if (isElderlyMode) 28.dp else 20.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -357,7 +378,8 @@ private fun ReminderTypeGroup(
                         todo = todo,
                         onToggle = { onToggle(todo, !todo.done) },
                         onDelete = { onDelete(todo) },
-                        onEdit = { onEdit(todo) }
+                        onEdit = { onEdit(todo) },
+                        isElderlyMode = isElderlyMode
                     )
                 }
             }
@@ -371,7 +393,8 @@ private fun ReminderItem(
     todo: HealthTodo,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    isElderlyMode: Boolean = false
 ) {
     val isOverdue = todo.dueDate.isBefore(LocalDate.now()) && !todo.done
     val repeatLabel = RemindersViewModel.repeatLabel(todo.repeatType, todo.repeatInterval)
@@ -381,18 +404,21 @@ private fun ReminderItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { showActions = !showActions }
-            .padding(vertical = 4.dp),
+            .padding(vertical = if (isElderlyMode) 8.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Checkbox(
             checked = todo.done,
             onCheckedChange = { onToggle() },
-            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
+            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
+            modifier = Modifier.size(if (isElderlyMode) 32.dp else CheckboxDefaults.size)
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 todo.content,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = if (isElderlyMode) 18.sp else MaterialTheme.typography.bodyMedium.fontSize
+                ),
                 color = if (todo.done) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.onSurface,
                 textDecoration = if (todo.done) TextDecoration.LineThrough else null
@@ -404,13 +430,15 @@ private fun ReminderItem(
                 Icon(
                     Icons.Default.DateRange,
                     contentDescription = null,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(if (isElderlyMode) 16.dp else 12.dp),
                     tint = if (isOverdue) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     todo.dueDate.format(DateTimeFormatter.ofPattern("MM-dd")),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
+                    ),
                     color = if (isOverdue) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -421,7 +449,9 @@ private fun ReminderItem(
                     ) {
                         Text(
                             repeatLabel,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
+                            ),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
@@ -429,7 +459,9 @@ private fun ReminderItem(
                 }
                 Text(
                     todo.memberName,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
