@@ -2,6 +2,10 @@ package com.yy.medtrace.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -102,19 +106,6 @@ fun FamilyScreen(
             if (members.isEmpty()) {
                 item { EmptyFamily() }
             } else {
-                item {
-                    HealthDashboard(
-                        members = members,
-                        recentRecordCount = recentRecordCount
-                    )
-                }
-                item {
-                    Text(
-                        stringResource(R.string.screen_family_member_list),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
                 items(members, key = { it.id }) { member ->
                     val recordCount = recordCounts[member.id] ?: 0
                     val recentRecords = recentRecordsMap[member.id] ?: emptyList()
@@ -232,27 +223,30 @@ private fun MemberCard(
         elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // 头部：头像 + 姓名 + 关系/年龄（可点击展开）
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleExpand() }
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 MemberAvatar(
                     member = member,
-                    size = if (isExpanded) 48.dp else 36.dp,
+                    size = 40.dp,
                     fallbackBackground = cardContent.copy(alpha = 0.18f),
                     fallbackContent = cardContent
                 )
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             member.name,
-                            style = if (isExpanded) MaterialTheme.typography.titleMedium
-                                   else MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.titleMedium,
                             color = cardContent,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold
                         )
                         if (member.isDefault) {
                             Spacer(Modifier.width(6.dp))
@@ -269,88 +263,50 @@ private fun MemberCard(
                             }
                         }
                     }
-                    if (!isExpanded) {
-                        val sub = buildList {
-                            if (member.relation.isNotBlank()) add(member.relation)
-                            age?.let { add(stringResource(R.string.screen_family_age_format, it)) }
-                        }.joinToString(" · ")
-                        if (sub.isNotBlank()) {
-                            Text(
-                                sub,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = cardContent.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                    if (isExpanded) {
-                        val sub = buildList {
-                            if (member.relation.isNotBlank()) add(member.relation)
-                            age?.let { add(stringResource(R.string.screen_family_age_format, it)) }
-                            if (member.gender.isNotBlank()) add(member.gender)
-                            if (member.bloodType.isNotBlank()) add(stringResource(R.string.screen_family_blood_type_format, member.bloodType))
-                        }.joinToString(" · ")
-                        if (sub.isNotBlank()) {
-                            Text(
-                                sub,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = cardContent.copy(alpha = 0.8f)
-                            )
-                        }
+                    val sub = buildList {
+                        if (member.relation.isNotBlank()) add(member.relation)
+                        age?.let { add("${it}岁") }
+                    }.joinToString(" · ")
+                    if (sub.isNotBlank()) {
+                        Text(
+                            sub,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = cardContent.copy(alpha = 0.7f)
+                        )
                     }
                 }
-                IconButton(onClick = onToggleExpand) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess
-                                     else Icons.Default.ExpandMore,
-                        contentDescription = stringResource(if (isExpanded) R.string.screen_family_collapse else R.string.screen_family_expand),
-                        tint = cardContent.copy(alpha = 0.6f)
-                    )
-                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess
+                                 else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = cardContent.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
-            if (!isExpanded) {
-                val healthTags = buildList {
-                    member.allergy.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                        .forEach { add(stringResource(R.string.screen_family_allergy_tag_format, it)) }
-                    member.chronic.split(",").map { it.trim() }.filter { it.isNotBlank() }
-                        .forEach { add(it) }
-                }
-                if (healthTags.isNotEmpty()) {
-                    val tagColors = healthTagColorSets()
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        healthTags.forEach { tag ->
-                            val isAllergy = tag.startsWith("过敏:")
-                            val colorSet = if (isAllergy) tagColors["allergy"]!! else tagColors["chronic"]!!
-                            Surface(
-                                shape = AppShapes.small,
-                                color = colorSet.bg
-                            ) {
-                                Text(
-                                    tag,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = colorSet.content,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            // 展开内容
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    HorizontalDivider(color = cardContent.copy(alpha = 0.1f), thickness = 0.5.dp)
+                    Spacer(Modifier.height(4.dp))
 
-            if (isExpanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // 健康信息
                     if (member.allergy.isNotBlank()) {
-                        Row(modifier = Modifier.fillMaxWidth()) {
+                        Row {
                             Text(
-                                stringResource(R.string.screen_family_allergy_label),
-                                style = MaterialTheme.typography.labelSmall,
+                                "过敏: ",
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = cardContent,
-                                modifier = Modifier.width(56.dp)
+                                color = cardContent
                             )
                             Text(
                                 member.allergy,
@@ -360,13 +316,12 @@ private fun MemberCard(
                         }
                     }
                     if (member.chronic.isNotBlank()) {
-                        Row(modifier = Modifier.fillMaxWidth()) {
+                        Row {
                             Text(
-                                stringResource(R.string.screen_family_chronic_label),
-                                style = MaterialTheme.typography.labelSmall,
+                                "慢病: ",
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = cardContent,
-                                modifier = Modifier.width(56.dp)
+                                color = cardContent
                             )
                             Text(
                                 member.chronic,
@@ -375,84 +330,60 @@ private fun MemberCard(
                             )
                         }
                     }
-                    if (member.medicationNote.isNotBlank()) {
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                stringResource(R.string.screen_family_medication_label),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = cardContent,
-                                modifier = Modifier.width(56.dp)
-                            )
-                            Text(
-                                member.medicationNote,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = cardContent.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                }
 
-                if (recentRecords.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    // 最近就诊
+                    if (recentRecords.isNotEmpty()) {
                         Text(
-                            stringResource(R.string.screen_family_recent_visits),
-                            style = MaterialTheme.typography.labelSmall,
+                            "最近就诊",
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = cardContent
                         )
                         recentRecords.take(2).forEach { record ->
                             Text(
                                 "${record.onsetTime.format(DateTimeFormatter.ofPattern("MM-dd"))} ${record.diagnosis}",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = cardContent.copy(alpha = 0.8f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                maxLines = 1
                             )
                         }
                     }
-                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(R.string.screen_family_record_count_format, recordCount),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = cardContent.copy(alpha = 0.7f)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        IconButton(
+                    // 操作按钮
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
                             onClick = onEdit,
-                            modifier = Modifier.size(48.dp)
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            modifier = Modifier.defaultMinSize(minHeight = 32.dp)
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.screen_family_edit_content_desc), modifier = Modifier.size(16.dp), tint = cardContent)
+                            Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("编辑", style = MaterialTheme.typography.bodySmall)
                         }
-                        IconButton(
+                        Spacer(Modifier.width(4.dp))
+                        TextButton(
                             onClick = onAddRecord,
-                            modifier = Modifier.size(48.dp)
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            modifier = Modifier.defaultMinSize(minHeight = 32.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.screen_family_add_record_content_desc), modifier = Modifier.size(16.dp), tint = cardContent)
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("添加记录", style = MaterialTheme.typography.bodySmall)
                         }
-                        IconButton(
-                            onClick = onViewRecords,
-                            modifier = Modifier.size(48.dp)
+                        Spacer(Modifier.width(4.dp))
+                        TextButton(
+                            onClick = onDelete,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            modifier = Modifier.defaultMinSize(minHeight = 32.dp),
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                         ) {
-                            Icon(Icons.Default.FavoriteBorder, contentDescription = stringResource(R.string.screen_family_view_records_content_desc), modifier = Modifier.size(16.dp), tint = cardContent)
+                            Icon(Icons.Default.Delete, null, modifier = Modifier.size(14.dp))
                         }
                     }
-                }
-
-                TextButton(
-                    onClick = onDelete,
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(vertical = 12.dp)
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.screen_family_delete_member_button), style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
