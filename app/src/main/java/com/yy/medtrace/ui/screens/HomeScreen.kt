@@ -41,17 +41,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.yy.medtrace.R
 import androidx.navigation.NavController
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.data.model.MedicalRecord
+import com.yy.medtrace.data.settings.UserMode
+import com.yy.medtrace.data.settings.UserModeStore
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.EmptyHomeState
 import com.yy.medtrace.ui.theme.AppShapes
@@ -86,6 +90,11 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showAddTodoDialog by remember { mutableStateOf(false) }
     var showAddRecordSheet by remember { mutableStateOf(false) }
+    
+    val context = LocalContext.current
+    val userModeStore = remember { UserModeStore(context) }
+    val currentMode by userModeStore.currentMode.collectAsState()
+    val isElderlyMode = currentMode == UserMode.ELDERLY
 
     Scaffold(
         topBar = {
@@ -123,8 +132,8 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = if (isElderlyMode) 24.dp else 16.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 24.dp else 16.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             item {
@@ -133,9 +142,14 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SectionTitle(stringResource(R.string.screen_home_my_family))
-                    TextButton(onClick = { navController.navigate("family") }) {
-                        Text(stringResource(R.string.screen_home_family_manage))
+                    SectionTitle(
+                        text = stringResource(R.string.screen_home_my_family),
+                        fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
+                    )
+                    if (!isElderlyMode) {
+                        TextButton(onClick = { navController.navigate("family") }) {
+                            Text(stringResource(R.string.screen_home_family_manage))
+                        }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -152,7 +166,7 @@ fun HomeScreen(
                         val memberTodoCount = uiState.todos.count { it.memberId == member.id && !it.done }
                         Card(
                             modifier = Modifier
-                                .width(180.dp)
+                                .width(if (isElderlyMode) 200.dp else 180.dp)
                                 .clickable { navController.navigate("member_detail/${member.id}") },
                             shape = AppShapes.large,
                             colors = CardDefaults.cardColors(containerColor = bg),
@@ -171,7 +185,7 @@ fun HomeScreen(
                                 ) {
                                     MemberAvatar(
                                         member = member,
-                                        modifier = Modifier.size(44.dp),
+                                        modifier = Modifier.size(if (isElderlyMode) 52.dp else 44.dp),
                                         fallbackBackground = content.copy(alpha = 0.18f),
                                         fallbackContent = content
                                     )
@@ -181,13 +195,17 @@ fun HomeScreen(
                                     ) {
                                         Text(
                                             member.name,
-                                            style = MaterialTheme.typography.titleMedium,
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
+                                            ),
                                             color = content,
                                             fontWeight = FontWeight.SemiBold
                                         )
                                             Text(
                                             stringResource(R.string.screen_home_member_info, member.relation, age ?: 0),
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontSize = if (isElderlyMode) 16.sp else MaterialTheme.typography.bodySmall.fontSize
+                                            ),
                                             color = content.copy(alpha = 0.8f),
                                             maxLines = 1
                                         )
@@ -202,7 +220,9 @@ fun HomeScreen(
                                     ) {
                                         Text(
                                             tag,
-                                            style = MaterialTheme.typography.labelSmall,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
+                                            ),
                                             color = content.copy(alpha = 0.9f),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
@@ -216,11 +236,15 @@ fun HomeScreen(
                                     ) {
                                         Text(
                                             "💊",
-                                            style = MaterialTheme.typography.labelSmall
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = if (isElderlyMode) 16.sp else MaterialTheme.typography.labelSmall.fontSize
+                                            )
                                         )
                                         Text(
                                             stringResource(R.string.screen_home_todo_count, memberTodoCount),
-                                            style = MaterialTheme.typography.labelSmall,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
+                                            ),
                                             color = content.copy(alpha = 0.7f)
                                         )
                                     }
@@ -247,7 +271,10 @@ fun HomeScreen(
 
             item {
                 val pendingCount = uiState.todos.count { !it.done }
-                SectionTitle(stringResource(R.string.screen_home_today_reminders, pendingCount))
+                SectionTitle(
+                    text = stringResource(R.string.screen_home_today_reminders, pendingCount),
+                    fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
+                )
                 Spacer(Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -275,13 +302,16 @@ fun HomeScreen(
                                     done = todo.done,
                                     onToggle = { viewModel.toggleTodoDone(todo.id, !todo.done) },
                                     todo = todo,
-                                    allTodos = uiState.todos
+                                    allTodos = uiState.todos,
+                                    isElderlyMode = isElderlyMode
                                 )
                             }
                             if (uiState.todos.size > 5) {
                                 Text(
                                     stringResource(R.string.screen_home_view_all, uiState.pendingCount),
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontSize = if (isElderlyMode) 16.sp else MaterialTheme.typography.labelMedium.fontSize
+                                    ),
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -294,7 +324,7 @@ fun HomeScreen(
                 }
             }
 
-            if (uiState.recentRecords.isNotEmpty()) {
+            if (!isElderlyMode && uiState.recentRecords.isNotEmpty()) {
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -337,64 +367,66 @@ fun HomeScreen(
                 }
             }
 
-            item {
-                // 快捷功能标题
-                SectionTitle(stringResource(R.string.screen_home_quick_functions))
-                Spacer(Modifier.height(8.dp))
-                
-                // 2x2 功能网格
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            if (!isElderlyMode) {
+                item {
+                    // 快捷功能标题
+                    SectionTitle(stringResource(R.string.screen_home_quick_functions))
+                    Spacer(Modifier.height(8.dp))
+                    
+                    // 2x2 功能网格
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        FunctionTile(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.CameraAlt,
-                            title = stringResource(R.string.screen_home_visit_record),
-                            desc = stringResource(R.string.screen_home_visit_record_desc),
-                            color = Info,
-                            onClick = { showAddRecordSheet = true }
-                        )
-                        FunctionTile(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.MedicalInformation,
-                            title = stringResource(R.string.screen_home_medical_archive),
-                            desc = stringResource(R.string.screen_home_medical_archive_desc),
-                            color = Healthy,
-                            onClick = {
-                                navController.navigate("medical_records") {
-                                    popUpTo("home") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            FunctionTile(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Default.CameraAlt,
+                                title = stringResource(R.string.screen_home_visit_record),
+                                desc = stringResource(R.string.screen_home_visit_record_desc),
+                                color = Info,
+                                onClick = { showAddRecordSheet = true }
+                            )
+                            FunctionTile(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Default.MedicalInformation,
+                                title = stringResource(R.string.screen_home_medical_archive),
+                                desc = stringResource(R.string.screen_home_medical_archive_desc),
+                                color = Healthy,
+                                onClick = {
+                                    navController.navigate("medical_records") {
+                                        popUpTo("home") { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
-                            }
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        FunctionTile(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.InsertChart,
-                            title = stringResource(R.string.screen_home_data_statistics),
-                            desc = stringResource(R.string.screen_home_data_statistics_desc),
-                            color = Reminder,
-                            onClick = { navController.navigate("trends") }
-                        )
-                        FunctionTile(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.Settings,
-                            title = stringResource(R.string.screen_home_settings),
-                            desc = stringResource(R.string.screen_home_settings_desc),
-                            color = NoStatus,
-                            onClick = { navController.navigate(Screen.Settings.route) }
-                        )
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            FunctionTile(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Default.InsertChart,
+                                title = stringResource(R.string.screen_home_data_statistics),
+                                desc = stringResource(R.string.screen_home_data_statistics_desc),
+                                color = Reminder,
+                                onClick = { navController.navigate("trends") }
+                            )
+                            FunctionTile(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Default.Settings,
+                                title = stringResource(R.string.screen_home_settings),
+                                desc = stringResource(R.string.screen_home_settings_desc),
+                                color = NoStatus,
+                                onClick = { navController.navigate(Screen.Settings.route) }
+                            )
+                        }
                     }
                 }
             }
@@ -436,10 +468,10 @@ fun HomeScreen(
 }
 
 @Composable
-private fun SectionTitle(text: String) {
+private fun SectionTitle(text: String, fontSize: androidx.compose.ui.unit.TextUnit = MaterialTheme.typography.titleMedium.fontSize) {
     Text(
         text = text,
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.titleMedium.copy(fontSize = fontSize),
         color = MaterialTheme.colorScheme.onSurface,
         fontWeight = FontWeight.SemiBold
     )
@@ -462,7 +494,8 @@ private fun TodayTodoItem(
     done: Boolean,
     onToggle: () -> Unit,
     todo: HealthTodo? = null,
-    allTodos: List<HealthTodo> = emptyList()
+    allTodos: List<HealthTodo> = emptyList(),
+    isElderlyMode: Boolean = false
 ) {
     val streak = todo?.getStreak() ?: 0
     val progress = todo?.getProgress() ?: 0f
@@ -532,7 +565,9 @@ private fun TodayTodoItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = if (isElderlyMode) 18.sp else MaterialTheme.typography.bodyMedium.fontSize
+                ),
                 color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 textDecoration = if (done) TextDecoration.LineThrough else null
             )
@@ -562,14 +597,18 @@ private fun TodayTodoItem(
                     ) {
                         Text(
                             categoryLabel,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
+                            ),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                     Text(
                         dateLabel,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = if (isElderlyMode) 14.sp else MaterialTheme.typography.labelSmall.fontSize
+                        ),
                         color = if (daysUntil < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
