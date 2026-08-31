@@ -99,10 +99,10 @@
     <string name="screen_home_recent_records">最近记录</string>
     <string name="screen_home_view_all_records">查看全部</string>
     <string name="screen_home_quick_functions">快捷功能</string>
-    <string name="screen_home_visit_record">就诊记录</string>
+    <string name="screen_home_visit_record">添加就诊记录</string>
     <string name="screen_home_visit_record_desc">AI扫描或手动录入</string>
-    <string name="screen_home_medical_archive">病历档案</string>
-    <string name="screen_home_medical_archive_desc">病史与用药归档</string>
+    <string name="screen_home_medical_archive">添加提醒管理</string>
+    <string name="screen_home_medical_archive_desc">用药与复诊提醒</string>
     <string name="screen_home_data_statistics">数据统计</string>
     <string name="screen_home_data_statistics_desc">长期指标追踪</string>
     <string name="screen_home_settings">功能设置</string>

@@ -398,7 +398,7 @@ fun HomeScreen(
                                 desc = stringResource(R.string.screen_home_medical_archive_desc),
                                 color = Healthy,
                                 onClick = {
-                                    navController.navigate("medical_records") {
+                                    navController.navigate("reminders") {
                                         popUpTo("home") { saveState = true }
                                         launchSingleTop = true
                                         restoreState = true
