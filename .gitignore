@@ -53,3 +53,9 @@ app/src/main/cpp/key.h
 
 # License Generator Tool
 tools/license-generator/
+
+# Kotlin compiler session / daemon temp files
+.kotlin/
+
+# WorkBuddy project working memory (tool-specific, not source)
+.workbuddy/
