@@ -130,7 +130,7 @@ fun MainScreen(
     }
 
     val activity = LocalContext.current as? ComponentActivity
-    BackHandler(enabled = showBottomBar) {
+    BackHandler {
         if (currentRoute == Screen.Home.route) {
             activity?.finish()
         } else {
