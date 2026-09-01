@@ -1,0 +1,31 @@
+# Baseline Profile（初始占位版）
+#
+# 本文件为手写起始规则，覆盖医迹冷启动与核心路径的热类，使 release 包在装包时
+# 即对这些类做 AOT 编译，获得初步冷启动收益。
+#
+# 在已连接真机（Android 9+）上执行以下命令，可采集真实运行时的热方法并自动回写本文件，
+# 生成更精确的 Profile（覆盖 Compose 运行时、material3 等内部热路径）：
+#     ./gradlew :app:generateBaselineProfile
+#
+# 规则格式（HRF）：
+#   [H|S|P][S][L]com/package/Class;->method(args)ret
+#   H=hot  S=startup  P=post-startup  L=含 <init>/<clinit>
+# 类级规则（无方法）表示保留该类并编译其初始化，注意：类规则【不能】带 H/S/P 标志，
+# 只能是 L<class>; 形式；标志仅用于方法级规则。
+
+Lcom/yy/medtrace/SplashActivity;
+Lcom/yy/medtrace/MainActivity;
+Lcom/yy/medtrace/MedTraceApplication;
+Lcom/yy/medtrace/ui/screens/HomeScreen;
+Lcom/yy/medtrace/ui/screens/MedicalRecordScreen;
+Lcom/yy/medtrace/ui/screens/RemindersScreen;
+Lcom/yy/medtrace/ui/screens/FamilyScreen;
+Lcom/yy/medtrace/viewmodel/HomeViewModel;
+Lcom/yy/medtrace/viewmodel/MedicalRecordViewModel;
+Lcom/yy/medtrace/viewmodel/RemindersViewModel;
+Lcom/yy/medtrace/data/AppDatabase;
+Lcom/yy/medtrace/data/repository/RecordRepositoryImpl;
+Lcom/yy/medtrace/data/repository/MemberRepository;
+Lcom/yy/medtrace/ui/theme/ThemeKt;
+Lcom/yy/medtrace/ui/theme/ColorKt;
+Lcom/yy/medtrace/ui/theme/DesignKt;

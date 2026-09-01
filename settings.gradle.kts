@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "medtrace"
 include(":app")
+include(":baselineprofile")
  

@@ -98,6 +98,14 @@ android {
             // 开发版：VIP功能免费
             buildConfigField("boolean", "VIP_ENABLED", "true")
         }
+
+        // Baseline Profile 采集专用变体：不混淆、可调试，供 :baselineprofile 模块插桩生成启动 Profile
+        create("benchmark") {
+            isMinifyEnabled = false
+            isDebuggable = true
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("debug")
+        }
     }
 
     compileOptions {
@@ -116,7 +124,8 @@ android {
     lint {
         checkReleaseBuilds = true
         abortOnError = true
-        disable += "MissingTranslation"
+        // MissingTranslation 不再屏蔽：所有面向用户的文案必须进 strings.xml，
+        // 否则多语言与文案统一收口会失真。
     }
     
     // 配置 packagingOptions
@@ -157,9 +166,14 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    // 不引入 appcompat：本应用为纯 Compose，appcompat 只会增加启动开销与包体。
+    // 仅保留 fragment，因为 BiometricHelper 的 BiometricPrompt 需要 FragmentActivity。
+    implementation("androidx.fragment:fragment-ktx:1.8.8")
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     
+    // 图片加载（成员头像）：自带内存 / 磁盘缓存与降采样，替代手写 BitmapFactory.decodeFile
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
     // Room
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
@@ -181,6 +195,10 @@ dependencies {
 
     // EncryptedSharedPreferences for PIN hash storage
     implementation(libs.androidx.security.crypto)
+
+    // Baseline Profile：在 Android 9+ 上把编译好的启动 Profile 安装进 ART，
+    // 配合 app/src/main/baseline-prof.txt 让冷启动路径在装包时即 AOT 编译。
+    implementation(libs.androidx.profileinstaller)
     
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
