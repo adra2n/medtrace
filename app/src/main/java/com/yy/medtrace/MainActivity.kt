@@ -121,7 +121,7 @@ fun MainScreen(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute in screens.map { it.route }
+    val showBottomBar = currentRoute !in listOf("splash", "onboarding", "privacy_consent")
 
     // 从数据库加载上次选中的成员（仅首次）
     val database = remember { AppDatabase.getDatabase(context.applicationContext) }
@@ -165,12 +165,10 @@ fun MainScreen(
                             label = { Text(screen.label) },
                             selected = currentRoute == screen.route,
                             onClick = {
-                                if (currentRoute != screen.route) {
-                                    navController.navigate(screen.route) {
-                                        popUpTo(Screen.Home.route) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
+                                navController.navigate(screen.route) {
+                                    popUpTo(Screen.Home.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
                             }
                         )
