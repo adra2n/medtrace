@@ -5,11 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -106,7 +106,7 @@ fun EmptyHomeState(onAdd: () -> Unit) {
         horizontalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Default.EventNote,
+            imageVector = Icons.AutoMirrored.Filled.EventNote,
             contentDescription = null,
             modifier = Modifier.size(20.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
@@ -140,7 +140,7 @@ fun EmptyFamilyState(onAdd: () -> Unit) {
 @Composable
 fun EmptyStatsState() {
     EmptyState(
-        icon = Icons.Default.ShowChart,
+        icon = Icons.AutoMirrored.Filled.ShowChart,
         title = "暂无数据统计",
         hint = "添加就诊记录后，这里会显示数据统计"
     )
@@ -178,7 +178,7 @@ fun EmptySearchState() {
 @Composable
 fun EmptyRecordsState(onAdd: (() -> Unit)? = null) {
     EmptyState(
-        icon = Icons.Default.EventNote,
+        icon = Icons.AutoMirrored.Filled.EventNote,
         title = stringResource(R.string.empty_records_title),
         hint = stringResource(R.string.empty_records_hint),
         actionText = if (onAdd != null) stringResource(R.string.empty_records_action) else null,

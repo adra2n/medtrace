@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.ui.theme.AppShapes
+import com.yy.medtrace.ui.theme.SoftElevation
 
 @Composable
 fun HealthTipsCard(
@@ -55,7 +56,7 @@ fun HealthTipsCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
     ) {
         Column(
             modifier = Modifier

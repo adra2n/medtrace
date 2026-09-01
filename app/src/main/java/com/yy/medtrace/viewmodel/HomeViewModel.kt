@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -32,13 +33,30 @@ class HomeViewModel @Inject constructor(
     
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
-    
+
+    /** 下拉刷新指示；refresh() 拉取快照后复位，不新增常驻 collector。 */
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    /** 首页首屏依赖三路数据，全部到位后才解除加载态（避免空白一闪）。 */
+    private val loadedSources = java.util.concurrent.atomic.AtomicInteger(0)
+
+    private fun markSourceLoaded() {
+        if (loadedSources.incrementAndGet() >= TOTAL_SOURCES) {
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
     init {
         loadMembers()
         loadTodos()
         loadRecentRecords()
     }
-    
+
+    companion object {
+        private const val TOTAL_SOURCES = 3
+    }
+
     private fun loadMembers() {
         viewModelScope.launch {
             memberRepository.getAllMembers()
@@ -53,18 +71,20 @@ class HomeViewModel @Inject constructor(
                             } else {
                                 _uiState.update { it.copy(members = result.data) }
                             }
+                            markSourceLoaded()
                         }
                         is Result.Error -> {
                             _uiState.update { it.copy(error = result.message) }
+                            markSourceLoaded()
                         }
                         is Result.Loading -> {
-                            // 不需要处理加载状态
+                            // asResultWithoutLoading 不产生 Loading，仅保留分支完整性
                         }
                     }
                 }
         }
     }
-    
+
     private fun loadTodos() {
         viewModelScope.launch {
             todoRepository.getByDate(LocalDate.now())
@@ -73,12 +93,14 @@ class HomeViewModel @Inject constructor(
                     when (result) {
                         is Result.Success -> {
                             _uiState.update { it.copy(todos = result.data, pendingCount = result.data.count { !it.done }) }
+                            markSourceLoaded()
                         }
                         is Result.Error -> {
                             _uiState.update { it.copy(error = result.message) }
+                            markSourceLoaded()
                         }
                         is Result.Loading -> {
-                            // 不需要处理加载状态
+                            // asResultWithoutLoading 不产生 Loading，仅保留分支完整性
                         }
                     }
                 }
@@ -93,12 +115,14 @@ class HomeViewModel @Inject constructor(
                     when (result) {
                         is Result.Success -> {
                             _uiState.update { it.copy(recentRecords = result.data) }
+                            markSourceLoaded()
                         }
                         is Result.Error -> {
                             _uiState.update { it.copy(error = result.message) }
+                            markSourceLoaded()
                         }
                         is Result.Loading -> {
-                            // 不需要处理加载状态
+                            // asResultWithoutLoading 不产生 Loading，仅保留分支完整性
                         }
                     }
                 }
@@ -154,6 +178,30 @@ class HomeViewModel @Inject constructor(
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+
+    /** 手动下拉刷新：重新拉取三路数据快照（避免重复常驻 collector 造成泄漏）。 */
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val members = memberRepository.getAllMembers().first().also {
+                    if (it.isEmpty()) memberRepository.insert(FamilyMember.DEFAULT)
+                }
+                val todos = todoRepository.getByDate(LocalDate.now()).first()
+                val records = recordRepository.getRecentRecords(3).first()
+                _uiState.update {
+                    it.copy(
+                        members = members,
+                        todos = todos,
+                        recentRecords = records,
+                        pendingCount = todos.count { !it.done }
+                    )
+                }
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
 }
 
 data class HomeUiState(
@@ -162,7 +210,8 @@ data class HomeUiState(
     val recentRecords: List<MedicalRecord> = emptyList(),
     val pendingCount: Int = 0,
     val error: String? = null,
-    val isLoading: Boolean = false,
+    /** 首屏三路数据是否仍在加载中 */
+    val isLoading: Boolean = true,
     val todayLabel: String = LocalDate.now().let { today ->
         val week = listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六")[today.dayOfWeek.value % 7]
         today.format(DateTimeFormatter.ofPattern("M月d日")) + " · " + week

@@ -47,29 +47,28 @@ data class MemberCardColorSet(
     val content: Color
 )
 
-// 家庭成员卡片配色映射
-@Composable
-fun memberCardColorSets(): Map<String, MemberCardColorSet> {
-    val isDark = LocalIsDark.current
-    return mapOf(
-        "self" to MemberCardColorSet(
-            bg = if (isDark) Primary.copy(alpha = 0.15f) else CardSecondary,
-            content = Primary
-        ),
-        "child" to MemberCardColorSet(
-            bg = if (isDark) Healthy.copy(alpha = 0.15f) else Color(0xFFD6F0D8),
-            content = Healthy
-        ),
-        "female" to MemberCardColorSet(
-            bg = if (isDark) Color(0xFFB03A6E).copy(alpha = 0.15f) else Color(0xFFF8DCEA),
-            content = Color(0xFFB03A6E)
-        ),
-        "elderMale" to MemberCardColorSet(
-            bg = if (isDark) Color(0xFF9E9E9E).copy(alpha = 0.15f) else Color(0xFFE2E2E2),
-            content = Color(0xFF444444)
-        )
+// 家庭成员卡片配色映射。
+// 此前是 @Composable 函数，每次调用都新建 Map —— 而它在 LazyRow 的每个 item 里都会被调用，
+// 滚动时持续分配对象。改为顶层常量后只在明暗切换时选择一次。
+private val LightMemberCardColors = mapOf(
+    "self" to MemberCardColorSet(bg = CardSecondary, content = Primary),
+    "child" to MemberCardColorSet(bg = Color(0xFFD6F0D8), content = Healthy),
+    "female" to MemberCardColorSet(bg = Color(0xFFF8DCEA), content = Color(0xFFB03A6E)),
+    "elderMale" to MemberCardColorSet(bg = Color(0xFFE2E2E2), content = Color(0xFF444444))
+)
+
+private val DarkMemberCardColors = mapOf(
+    "self" to MemberCardColorSet(bg = Primary.copy(alpha = 0.15f), content = Primary),
+    "child" to MemberCardColorSet(bg = Healthy.copy(alpha = 0.15f), content = Healthy),
+    "female" to MemberCardColorSet(
+        bg = Color(0xFFB03A6E).copy(alpha = 0.15f),
+        content = Color(0xFFB03A6E)
+    ),
+    "elderMale" to MemberCardColorSet(
+        bg = Color(0xFF9E9E9E).copy(alpha = 0.15f),
+        content = Color(0xFF444444)
     )
-}
+)
 
 // 健康标签颜色
 data class HealthTagColorSet(
@@ -77,28 +76,38 @@ data class HealthTagColorSet(
     val content: Color
 )
 
-@Composable
-fun healthTagColorSets(): Map<String, HealthTagColorSet> {
-    val isDark = LocalIsDark.current
-    return mapOf(
-        "allergy" to HealthTagColorSet(
-            bg = if (isDark) Color(0xFFD32F2F).copy(alpha = 0.15f) else Color(0xFFFFEBEE),
-            content = Color(0xFFD32F2F)
-        ),
-        "chronic" to HealthTagColorSet(
-            bg = if (isDark) Color(0xFFF57C00).copy(alpha = 0.15f) else Color(0xFFFFF3E0),
-            content = Color(0xFFF57C00)
-        ),
-        "medication" to HealthTagColorSet(
-            bg = if (isDark) Primary.copy(alpha = 0.15f) else CardSecondary,
-            content = Primary
-        ),
-        "default" to HealthTagColorSet(
-            bg = if (isDark) Color(0xFF757575).copy(alpha = 0.15f) else Color(0xFFF5F5F5),
-            content = Color(0xFF757575)
-        )
+private val LightHealthTagColors = mapOf(
+    "allergy" to HealthTagColorSet(bg = Color(0xFFFFEBEE), content = Color(0xFFD32F2F)),
+    "chronic" to HealthTagColorSet(bg = Color(0xFFFFF3E0), content = Color(0xFFF57C00)),
+    "medication" to HealthTagColorSet(bg = CardSecondary, content = Primary),
+    "default" to HealthTagColorSet(bg = Color(0xFFF5F5F5), content = Color(0xFF757575))
+)
+
+private val DarkHealthTagColors = mapOf(
+    "allergy" to HealthTagColorSet(
+        bg = Color(0xFFD32F2F).copy(alpha = 0.15f),
+        content = Color(0xFFD32F2F)
+    ),
+    "chronic" to HealthTagColorSet(
+        bg = Color(0xFFF57C00).copy(alpha = 0.15f),
+        content = Color(0xFFF57C00)
+    ),
+    "medication" to HealthTagColorSet(bg = Primary.copy(alpha = 0.15f), content = Primary),
+    "default" to HealthTagColorSet(
+        bg = Color(0xFF757575).copy(alpha = 0.15f),
+        content = Color(0xFF757575)
     )
-}
+)
+
+/** 按明暗主题取当前健康标签配色表（常量表，不产生额外分配）。 */
+@Composable
+fun healthTagColorSets(): Map<String, HealthTagColorSet> =
+    if (LocalIsDark.current) DarkHealthTagColors else LightHealthTagColors
+
+/** 按明暗主题取当前成员卡片配色表（常量表，不产生额外分配）。 */
+@Composable
+fun memberCardColorSets(): Map<String, MemberCardColorSet> =
+    if (LocalIsDark.current) DarkMemberCardColors else LightMemberCardColors
 
 // 语义扩展
 val androidx.compose.material3.ColorScheme.caption

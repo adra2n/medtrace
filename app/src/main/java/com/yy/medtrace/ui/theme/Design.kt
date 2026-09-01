@@ -24,8 +24,23 @@ import androidx.compose.ui.text.font.FontWeight
 // 卡片形状（圆角更大）
 val CardShape = RoundedCornerShape(20.dp)
 
-// 卡片阴影
+// 卡片阴影（ui.md：统一 0 6px 18px rgba(0,0,0,.08) 的柔和投影）
 val SoftElevation = 8.dp
+
+/**
+ * 全应用统一的卡片阴影。
+ *
+ * 之前各屏幕直接写 `CardDefaults.cardElevation(defaultElevation = SoftElevation)`，
+ * 一旦需要调整就会出现漂移；统一从这里取，保证所有卡片投影一致。
+ */
+@Composable
+fun appCardElevation(): CardElevation = CardDefaults.cardElevation(
+    defaultElevation = SoftElevation,
+    pressedElevation = SoftElevation,
+    focusedElevation = SoftElevation,
+    hoveredElevation = SoftElevation,
+    draggedElevation = SoftElevation
+)
 
 val PrimaryGradient: Brush
     @Composable

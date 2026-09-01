@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -151,7 +152,7 @@ fun ProfileScreen(
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     ProfileMenuItem(
-                        icon = Icons.Default.Help,
+                        icon = Icons.AutoMirrored.Filled.Help,
                         title = stringResource(R.string.profile_menu_help),
                         subtitle = stringResource(R.string.profile_menu_help_desc),
                         onClick = { showHelpDialog = true }
@@ -292,7 +293,7 @@ private fun HelpDialog(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                Icons.Default.Help,
+                Icons.AutoMirrored.Filled.Help,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )

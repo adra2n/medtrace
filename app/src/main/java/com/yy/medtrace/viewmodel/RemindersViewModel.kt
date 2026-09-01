@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -27,6 +28,10 @@ class RemindersViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(RemindersUiState())
     val uiState: StateFlow<RemindersUiState> = _uiState.asStateFlow()
+
+    /** 下拉刷新指示；refresh() 拉取快照后复位。 */
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     fun loadReminders() {
         _uiState.update { it.copy(isLoading = true) }
@@ -86,6 +91,28 @@ class RemindersViewModel @Inject constructor(
         _uiState.update { it.copy(error = null) }
     }
 
+    /** 手动下拉刷新：重新拉取成员与待办快照（避免重复常驻 collector 造成泄漏）。 */
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                val m = memberRepository.getAllMembers().first()
+                val t = todoRepository.getAll().first()
+                val sorted = t.sortedWith(compareBy({ it.done }, { it.dueDate }))
+                _uiState.update {
+                    it.copy(
+                        members = m,
+                        todos = sorted,
+                        monthlyStats = calculateMonthlyStats(sorted),
+                        isLoading = false
+                    )
+                }
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+
     private fun calculateMonthlyStats(todos: List<HealthTodo>): MonthlyStats {
         val today = LocalDate.now()
         val monthStart = today.withDayOfMonth(1)
@@ -130,19 +157,16 @@ class RemindersViewModel @Inject constructor(
     }
 
     companion object {
+        /**
+         * 计算下一个到期日。支持 day / week / month / year —— UI 侧已通过
+         * [com.yy.medtrace.ui.components.RepeatType] 暴露全部四种周期。
+         */
         fun calculateNextDueDate(current: LocalDate, type: String, interval: Int): LocalDate = when (type) {
             "day" -> current.plusDays(interval.toLong())
             "week" -> current.plusWeeks(interval.toLong())
             "month" -> current.plusMonths(interval.toLong())
             "year" -> current.plusYears(interval.toLong())
             else -> current
-        }
-
-        fun repeatLabel(type: String): String? = when (type) {
-            "none" -> null
-            "day" -> "每天"
-            "week" -> "每周"
-            else -> null
         }
     }
 }

@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
@@ -96,6 +97,9 @@ fun HomeScreen(
     var showAddTodoDialog by remember { mutableStateOf(false) }
     var showAddRecordSheet by remember { mutableStateOf(false) }
     var showFabMenu by remember { mutableStateOf(false) }
+
+    val medicationCategory = stringResource(R.string.todo_category_medication)
+    var todoInitialCategory by remember { mutableStateOf(medicationCategory) }
     
     val currentMode by userModeStore.currentMode.collectAsState()
     val isElderlyMode = currentMode == UserMode.ELDERLY
@@ -129,27 +133,28 @@ fun HomeScreen(
                     onClick = { showFabMenu = !showFabMenu },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.screen_home_fab_add))
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.screen_home_fab_add))
                 }
                 DropdownMenu(
                     expanded = showFabMenu,
                     onDismissRequest = { showFabMenu = false }
                 ) {
                     DropdownMenuItem(
+                        text = { Text(stringResource(R.string.screen_home_add_medication)) },
+                        onClick = {
+                            showFabMenu = false
+                            todoInitialCategory = medicationCategory
+                            showAddTodoDialog = true
+                        },
+                        leadingIcon = { Icon(Icons.Filled.Medication, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
                         text = { Text(stringResource(R.string.screen_home_visit_record)) },
                         onClick = {
                             showFabMenu = false
                             showAddRecordSheet = true
                         },
-                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.screen_home_medical_archive)) },
-                        onClick = {
-                            showFabMenu = false
-                            showAddTodoDialog = true
-                        },
-                        leadingIcon = { Icon(Icons.Default.MedicalInformation, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Filled.CameraAlt, contentDescription = null) }
                     )
                 }
             }
@@ -359,6 +364,7 @@ fun HomeScreen(
     if (showAddTodoDialog) {
         AddTodoDialog(
             members = uiState.members,
+            initialCategory = todoInitialCategory,
             onDismiss = { showAddTodoDialog = false },
             onSave = { memberId, memberName, content, dueDate, repeatType, category, reminderTime ->
                 viewModel.addTodo(
@@ -400,9 +406,9 @@ private fun TodayTodoItem(
     isElderlyMode: Boolean = false
 ) {
     val categoryIcon = when (todo?.category) {
-        stringResource(R.string.screen_home_category_medication) -> "💊"
-        stringResource(R.string.screen_home_category_review) -> "🏥"
-        stringResource(R.string.screen_home_category_checkup) -> "🔬"
+        stringResource(R.string.todo_category_medication) -> "💊"
+        stringResource(R.string.todo_category_followup) -> "🏥"
+        stringResource(R.string.todo_category_checkup) -> "🔬"
         else -> "📋"
     }
 
@@ -475,7 +481,7 @@ private fun RecentRecordItem(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.MedicalInformation,
+                    Icons.Filled.MedicalInformation,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -496,7 +502,7 @@ private fun RecentRecordItem(
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Icon(
-                    Icons.Default.DateRange,
+                    Icons.Filled.DateRange,
                     contentDescription = null,
                     modifier = Modifier.size(12.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -539,7 +545,7 @@ private fun getTimeAgo(dateTime: java.time.LocalDateTime): String {
 @Composable
 internal fun AddTodoDialog(
     members: List<FamilyMember>,
-    initialCategory: String = stringResource(R.string.screen_home_category_other),
+    initialCategory: String = stringResource(R.string.todo_category_other),
     onDismiss: () -> Unit,
     onSave: (memberId: Long, memberName: String, content: String, dueDate: LocalDate, repeatType: String, category: String, reminderTime: String) -> Unit
 ) {
@@ -555,7 +561,7 @@ internal fun AddTodoDialog(
     var reminderTime by remember { mutableStateOf("09:00") }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    val categories = listOf(stringResource(R.string.screen_home_category_medication) to "💊", stringResource(R.string.screen_home_category_review) to "🏥", stringResource(R.string.screen_home_category_checkup) to "🔬", stringResource(R.string.screen_home_category_other) to "📋")
+    val categories = listOf(stringResource(R.string.todo_category_medication) to "💊", stringResource(R.string.todo_category_followup) to "🏥", stringResource(R.string.todo_category_checkup) to "🔬", stringResource(R.string.todo_category_other) to "📋")
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -701,7 +707,7 @@ internal fun AddTodoDialog(
                     readOnly = true,
                     enabled = false,
                     label = { Text(stringResource(R.string.screen_home_related_member)) },
-                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_member), tint = MaterialTheme.colorScheme.primary) },
+                    trailingIcon = { Icon(Icons.Filled.ArrowDropDown, stringResource(R.string.screen_home_select_member), tint = MaterialTheme.colorScheme.primary) },
                     modifier = Modifier.menuAnchor().fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         disabledTextColor = MaterialTheme.colorScheme.onSurface,
@@ -729,7 +735,7 @@ internal fun AddTodoDialog(
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(stringResource(R.string.screen_home_planned_date)) },
-                trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_home_select_date), tint = MaterialTheme.colorScheme.primary) },
+                trailingIcon = { Icon(Icons.Filled.DateRange, stringResource(R.string.screen_home_select_date), tint = MaterialTheme.colorScheme.primary) },
                 modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
                 colors = OutlinedTextFieldDefaults.colors(
                     disabledTextColor = MaterialTheme.colorScheme.onSurface,
@@ -739,13 +745,19 @@ internal fun AddTodoDialog(
                 ),
                 enabled = false
             )
-            val repeatLabel = com.yy.medtrace.viewmodel.RemindersViewModel.repeatLabel(repeatType) ?: stringResource(R.string.screen_home_no_repeat)
+            val repeatLabel = when (repeatType) {
+                "day" -> stringResource(R.string.screen_home_repeat_day)
+                "week" -> stringResource(R.string.screen_home_repeat_week)
+                "month" -> stringResource(R.string.screen_home_repeat_month)
+                "year" -> stringResource(R.string.screen_home_repeat_year)
+                else -> stringResource(R.string.screen_home_no_repeat)
+            }
             OutlinedTextField(
                 value = repeatLabel,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(stringResource(R.string.screen_home_repeat)) },
-                trailingIcon = { Icon(Icons.Default.ArrowDropDown, stringResource(R.string.screen_home_select_repeat), tint = MaterialTheme.colorScheme.primary) },
+                trailingIcon = { Icon(Icons.Filled.ArrowDropDown, stringResource(R.string.screen_home_select_repeat), tint = MaterialTheme.colorScheme.primary) },
                 modifier = Modifier.fillMaxWidth().clickable { showRepeatDialog = true },
                 colors = OutlinedTextFieldDefaults.colors(
                     disabledTextColor = MaterialTheme.colorScheme.onSurface,
@@ -760,7 +772,7 @@ internal fun AddTodoDialog(
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(stringResource(R.string.screen_home_reminder_time)) },
-                trailingIcon = { Icon(Icons.Default.DateRange, stringResource(R.string.screen_home_select_time), tint = MaterialTheme.colorScheme.primary) },
+                trailingIcon = { Icon(Icons.Filled.DateRange, stringResource(R.string.screen_home_select_time), tint = MaterialTheme.colorScheme.primary) },
                 modifier = Modifier.fillMaxWidth().clickable { showTimePicker = true },
                 colors = OutlinedTextFieldDefaults.colors(
                     disabledTextColor = MaterialTheme.colorScheme.onSurface,

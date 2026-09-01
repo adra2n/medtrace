@@ -19,6 +19,7 @@ fun MemberSelector(
     selectedMemberId: Long?,
     onSelect: (FamilyMember) -> Unit,
     modifier: Modifier = Modifier,
+    isError: Boolean = false,
     emptyHint: String = "暂无家庭成员，请先在家庭中添加"
 ) {
     if (members.isEmpty()) {
@@ -95,5 +96,13 @@ fun MemberSelector(
                 }
             }
         }
+    }
+    if (isError) {
+        Text(
+            text = "请选择所属家庭成员",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = modifier.fillMaxWidth().padding(top = 4.dp)
+        )
     }
 }

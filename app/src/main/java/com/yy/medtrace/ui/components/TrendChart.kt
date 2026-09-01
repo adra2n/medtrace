@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yy.medtrace.data.llm.Metric
 import com.yy.medtrace.data.model.MedicalRecord
+import com.yy.medtrace.R
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -92,7 +94,7 @@ fun TrendSection(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (series.isEmpty()) {
             Text(
-                "该成员暂无 AI 解析的健康指标。\n添加记录时使用「拍照识别 / 文本分析」，AI 提取的检查指标（如血压、血糖）会自动生成趋势图；仅手动填写处方不会生成趋势。",
+                stringResource(R.string.trend_chart_empty_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

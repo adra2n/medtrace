@@ -10,17 +10,15 @@ fun memberCardColors(relation: String, gender: String): Pair<Color, Color> {
     val colors = memberCardColorSets()
     val rel = relation.trim()
     val g = gender.trim()
-    return when {
-        rel.contains("本人") || rel.contains("自己") || rel.contains("我") ->
-            colors["self"]!!.bg to colors["self"]!!.content
-        rel.contains("子") || rel.contains("儿") || rel.contains("宝") || rel.contains("婴") ->
-            colors["child"]!!.bg to colors["child"]!!.content
-        g == "女" || rel.contains("妈") || rel.contains("妻") || rel.contains("姐") || rel.contains("妹") || rel.contains("女") ->
-            colors["female"]!!.bg to colors["female"]!!.content
-        g == "男" ->
-            colors["elderMale"]!!.bg to colors["elderMale"]!!.content
-        else -> colors["female"]!!.bg to colors["female"]!!.content
+    val set = when {
+        rel.contains("本人") || rel.contains("自己") || rel.contains("我") -> colors.getValue("self")
+        rel.contains("子") || rel.contains("儿") || rel.contains("宝") || rel.contains("婴") -> colors.getValue("child")
+        g == "女" || rel.contains("妈") || rel.contains("妻") ||
+            rel.contains("姐") || rel.contains("妹") || rel.contains("女") -> colors.getValue("female")
+        g == "男" -> colors.getValue("elderMale")
+        else -> colors.getValue("female")
     }
+    return set.bg to set.content
 }
 
 fun computeAge(birthday: String): Int? {

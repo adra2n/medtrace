@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -27,8 +28,27 @@ class MedicalRecordViewModel @Inject constructor(
     private val recordRepository: RecordRepository
 ) : ViewModel() {
 
+    /** 单页条数。分页为增量追加，记录再多也不会被截断。 */
+    companion object {
+        const val PAGE_SIZE = 20
+    }
+
+    /** 最近一次查询条件，供「加载更多」与「删除后刷新」复用，避免刷新到错误的成员。 */
+    private data class RecordQuery(
+        val memberId: Long,
+        val keyword: String?,
+        val fromDate: Long?,
+        val toDate: Long?
+    )
+
+    private var lastQuery: RecordQuery? = null
+
     private val _uiState = MutableStateFlow(MedicalRecordUiState())
     val uiState: StateFlow<MedicalRecordUiState> = _uiState.asStateFlow()
+
+    /** 下拉刷新指示；refresh() 触发后由 loadRecords 在结束时复位。 */
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     fun loadMembers() {
         viewModelScope.launch {
@@ -44,87 +64,148 @@ class MedicalRecordViewModel @Inject constructor(
         }
     }
 
-    fun loadRecords(memberId: Long, keyword: String? = null, fromDate: Long? = null, toDate: Long? = null) {
-        _uiState.update { it.copy(isLoading = true) }
+    /**
+     * 加载记录。
+     *
+     * @param append true 时把本页数据追加到已有列表之后（分页加载），false 时替换列表。
+     */
+    fun loadRecords(
+        memberId: Long,
+        keyword: String? = null,
+        fromDate: Long? = null,
+        toDate: Long? = null,
+        offset: Int = 0,
+        append: Boolean = false
+    ) {
+        lastQuery = RecordQuery(memberId, keyword, fromDate, toDate)
+        _uiState.update {
+            it.copy(
+                isLoading = !append,
+                isLoadingMore = append,
+                error = null
+            )
+        }
         viewModelScope.launch {
             try {
                 val kw = keyword?.trim()?.takeIf { it.isNotEmpty() }
                 val likePattern = "%${kw ?: ""}%"
-                
-                // Convert Long timestamps to LocalDateTime
+
                 val from = if (fromDate != null) {
-                    java.time.Instant.ofEpochMilli(fromDate).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                    java.time.Instant.ofEpochMilli(fromDate)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDateTime()
                 } else {
-                    java.time.LocalDateTime.of(1970, 1, 1, 0, 0)
+                    LocalDateTime.of(1970, 1, 1, 0, 0)
                 }
-                
+
                 val to = if (toDate != null) {
-                    java.time.Instant.ofEpochMilli(toDate).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime().withHour(23).withMinute(59).withSecond(59)
+                    java.time.Instant.ofEpochMilli(toDate)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDateTime()
+                        .withHour(23).withMinute(59).withSecond(59)
                 } else {
-                    java.time.LocalDateTime.of(9999, 12, 31, 23, 59, 59)
+                    LocalDateTime.of(9999, 12, 31, 23, 59, 59)
                 }
-                
-                val records = recordRepository.searchByMemberPaged(
+
+                val page = recordRepository.searchByMemberPaged(
                     patientId = memberId,
                     keyword = kw,
                     likePattern = likePattern,
                     from = from,
                     to = to,
-                    limit = 100,
-                    offset = 0
+                    limit = PAGE_SIZE,
+                    offset = offset
                 )
-                _uiState.update { it.copy(records = records, isLoading = false) }
+
+                _uiState.update { state ->
+                    val merged = if (append) state.records + page else page
+                    state.copy(
+                        currentMemberId = memberId,
+                        keyword = keyword,
+                        fromDate = fromDate,
+                        toDate = toDate,
+                        records = merged,
+                        hasMore = page.size >= PAGE_SIZE,
+                        isLoading = false,
+                        isLoadingMore = false
+                    )
+                }
+                _isRefreshing.value = false
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message, isLoading = false) }
+                _uiState.update {
+                    it.copy(error = e.message, isLoading = false, isLoadingMore = false)
+                }
+                _isRefreshing.value = false
             }
         }
     }
 
-    fun deleteRecord(record: com.yy.medtrace.data.model.MedicalRecord) {
+    /** 加载下一页；已在加载中或无更多数据时直接返回。 */
+    fun loadMore() {
+        val query = lastQuery ?: return
+        val state = _uiState.value
+        if (state.isLoading || state.isLoadingMore || !state.hasMore) return
+        loadRecords(
+            memberId = query.memberId,
+            keyword = query.keyword,
+            fromDate = query.fromDate,
+            toDate = query.toDate,
+            offset = state.records.size,
+            append = true
+        )
+    }
+
+    fun deleteRecord(record: MedicalRecord) {
         viewModelScope.launch {
             recordRepository.delete(record)
-            loadRecords(_uiState.value.currentMemberId ?: 0, _uiState.value.keyword, _uiState.value.fromDate, _uiState.value.toDate)
+            // 用最近一次查询条件刷新，而不是 uiState.currentMemberId
+            // （后者在选择成员的流程里可能尚未更新，会刷新到错误的成员）
+            lastQuery?.let { query ->
+                loadRecords(
+                    memberId = query.memberId,
+                    keyword = query.keyword,
+                    fromDate = query.fromDate,
+                    toDate = query.toDate
+                )
+            }
         }
     }
 
     fun setFilter(memberId: Long, keyword: String?, fromDate: Long?, toDate: Long?) {
-        _uiState.update { it.copy(
-            currentMemberId = memberId,
-            keyword = keyword,
-            fromDate = fromDate,
-            toDate = toDate
-        ) }
         loadRecords(memberId, keyword, fromDate, toDate)
+    }
+
+    /** 手动下拉刷新：用最近一次查询条件重新加载第一页。 */
+    fun refresh() {
+        val query = lastQuery ?: return
+        _isRefreshing.value = true
+        loadRecords(query.memberId, query.keyword, query.fromDate, query.toDate)
     }
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
-    
-    suspend fun getDefaultMember(): FamilyMember? {
-        return memberRepository.getDefaultMember()
-    }
-    
-    suspend fun insertMember(member: FamilyMember): Long {
-        return memberRepository.insert(member)
-    }
-    
-    suspend fun getLatestRecord(): MedicalRecord? {
-        return recordRepository.getLatestRecord()
-    }
-    
-    suspend fun getMemberById(id: Long): FamilyMember? {
-        return memberRepository.getMemberById(id)
-    }
+
+    suspend fun getDefaultMember(): FamilyMember? = memberRepository.getDefaultMember()
+
+    suspend fun insertMember(member: FamilyMember): Long = memberRepository.insert(member)
+
+    suspend fun getLatestRecord(): MedicalRecord? = recordRepository.getLatestRecord()
+
+    suspend fun getMemberById(id: Long): FamilyMember? = memberRepository.getMemberById(id)
 }
 
 data class MedicalRecordUiState(
-    val members: List<com.yy.medtrace.data.model.FamilyMember> = emptyList(),
-    val records: List<com.yy.medtrace.data.model.MedicalRecord> = emptyList(),
+    val members: List<FamilyMember> = emptyList(),
+    val records: List<MedicalRecord> = emptyList(),
     val currentMemberId: Long = 0,
     val keyword: String? = null,
     val fromDate: Long? = null,
     val toDate: Long? = null,
     val error: String? = null,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    /** 是否正在加载下一页（与首次加载区分，用于底部指示器） */
+    val isLoadingMore: Boolean = false,
+    /** 是否还有下一页 */
+    val hasMore: Boolean = true
 )

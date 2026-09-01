@@ -19,7 +19,9 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -99,6 +101,8 @@ fun AddMedicalRecordScreen(
         )
     }
     var error by remember { mutableStateOf<String?>(null) }
+    var memberError by remember { mutableStateOf(false) }
+    var medError by remember { mutableStateOf(false) }
     var existingId by remember { mutableStateOf<Long?>(null) }
 
     var noteText by remember { mutableStateOf("") }
@@ -219,8 +223,6 @@ fun AddMedicalRecordScreen(
         }
     }
 
-    val canSave = selectedMemberId != null
-
     Scaffold(
         topBar = {
             GradientTopBar(
@@ -244,7 +246,8 @@ fun AddMedicalRecordScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .navigationBarsPadding(),
+                        .navigationBarsPadding()
+                        .imePadding(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedButton(
@@ -256,12 +259,10 @@ fun AddMedicalRecordScreen(
                     Button(
                         onClick = {
                             val selectedMember = members.firstOrNull { it.id == selectedMemberId }
-                            if (selectedMemberId == null || selectedMember == null) {
-                                error = context.getString(R.string.screen_add_record_error_select_member)
-                                return@Button
-                            }
-                            if (medItems.isEmpty()) {
-                                error = context.getString(R.string.screen_add_record_error_fill_required)
+                            // 内联校验：点保存时标记错误字段，随用户修正自动消失
+                            memberError = selectedMemberId == null || selectedMember == null
+                            medError = medItems.isEmpty()
+                            if (selectedMemberId == null || selectedMember == null || medItems.isEmpty()) {
                                 return@Button
                             }
 
@@ -280,11 +281,8 @@ fun AddMedicalRecordScreen(
                                 try {
                                     if (existingId != null) {
                                         database.medicalRecordDao().update(record)
-                                        android.util.Log.d("AddRecord", "updated id=${record.id}")
                                     } else {
-                                        val id = database.medicalRecordDao().insert(record)
-                                        val count = database.medicalRecordDao().count()
-                                        android.util.Log.d("AddRecord", "inserted id=$id, total=$count")
+                                        database.medicalRecordDao().insert(record)
                                     }
                                     SelectedMemberHolder.select(selectedMember.id, database)
                                     Toast.makeText(context, context.getString(R.string.screen_add_record_toast_save_success), Toast.LENGTH_SHORT).show()
@@ -295,12 +293,10 @@ fun AddMedicalRecordScreen(
                                     }
                                 } catch (e: Exception) {
                                     error = e.message ?: context.getString(R.string.screen_add_record_error_save_failed)
-                                    e.printStackTrace()
                                 }
                             }
                         },
-                        modifier = Modifier.weight(1f),
-                        enabled = canSave
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.screen_add_record_btn_save))
                     }
@@ -313,6 +309,7 @@ fun AddMedicalRecordScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp)
+                .imePadding()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -329,21 +326,22 @@ fun AddMedicalRecordScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         val memberName = members.firstOrNull { it.id == selectedMemberId }?.name
                         if (memberName != null) {
-                            Text("成员: $memberName")
+                            Text(stringResource(R.string.screen_add_record_summary_member, memberName))
                         }
-                        Text("诊断: ${diagnosis.ifBlank { "待填写" }}")
-                        if (hospital.isNotBlank()) Text("医院: $hospital")
-                        Text("时间: ${onsetTime.format(dateTimeFormatter)}")
+                        Text(stringResource(R.string.screen_add_record_summary_diagnosis, diagnosis.ifBlank { stringResource(R.string.screen_add_record_summary_blank) }))
+                        if (hospital.isNotBlank()) Text(stringResource(R.string.screen_add_record_summary_hospital, hospital))
+                        Text(stringResource(R.string.screen_add_record_summary_time, onsetTime.format(dateTimeFormatter)))
                     }
                 }
             } else {
                 SectionCard(title = stringResource(R.string.screen_add_record_section_family_member)) {
-                    MemberSelector(
-                        members = members,
-                        selectedMemberId = selectedMemberId,
-                        onSelect = { selectedMemberId = it.id },
-                        emptyHint = stringResource(R.string.screen_add_record_empty_members)
-                    )
+                MemberSelector(
+                    members = members,
+                    selectedMemberId = selectedMemberId,
+                    isError = memberError,
+                    onSelect = { selectedMemberId = it.id; memberError = false },
+                    emptyHint = stringResource(R.string.screen_add_record_empty_members)
+                )
                 }
 
                 SectionCard(title = stringResource(R.string.screen_add_record_section_basic_info)) {
@@ -421,14 +419,21 @@ fun AddMedicalRecordScreen(
                                 OutlinedTextField(
                                     value = item.usage,
                                     onValueChange = { medItems = medItems.updateAt(index) { copy(usage = it) } },
-                                    label = { Text("用法") },
+                                    label = { Text(stringResource(R.string.screen_add_record_label_usage)) },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         }
                     }
+                    if (medError) {
+                        Text(
+                            stringResource(R.string.screen_add_record_error_add_medication),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                     Button(
-                        onClick = { medItems = medItems + MedicationItem() },
+                        onClick = { medItems = medItems + MedicationItem(); medError = false },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(stringResource(R.string.screen_add_record_btn_add_medication))
@@ -459,9 +464,11 @@ fun AddMedicalRecordScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = "💡",
-                                style = MaterialTheme.typography.bodyMedium
+                            Icon(
+                                Icons.Default.Lightbulb,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
                             )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
@@ -563,9 +570,11 @@ fun AddMedicalRecordScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "⚠️",
-                                style = MaterialTheme.typography.labelSmall
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = stringResource(R.string.screen_add_record_disclaimer),
@@ -626,10 +635,10 @@ fun AddMedicalRecordScreen(
                     }
                     showDatePicker = false
                     showTimePicker = true
-                }) { Text("确定") }
+                }) { Text(stringResource(R.string.btn_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.btn_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -647,10 +656,10 @@ fun AddMedicalRecordScreen(
                 TextButton(onClick = {
                     onsetTime = LocalDateTime.of(onsetTime.toLocalDate(), java.time.LocalTime.of(timePickerState.hour, timePickerState.minute))
                     showTimePicker = false
-                }) { Text("确定") }
+                }) { Text(stringResource(R.string.btn_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.btn_cancel)) }
             },
             text = { TimePicker(state = timePickerState) }
         )

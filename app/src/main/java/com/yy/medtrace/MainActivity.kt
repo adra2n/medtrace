@@ -8,7 +8,6 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.activity.compose.setContent
 import androidx.compose.animation.fadeIn
@@ -21,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -54,8 +54,10 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// 纯 Compose 应用，无需 FragmentActivity（FragmentActivity 会额外拉起 fragment / appcompat 初始化，
+// 拖慢冷启动并增大包体）。生物识别相关代码如需 FragmentActivity，见 BiometricHelper。
 @AndroidEntryPoint
-class MainActivity : FragmentActivity() {
+class MainActivity : ComponentActivity() {
     
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -157,16 +159,31 @@ fun MainScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 ) {
                     screens.forEach { screen ->
+                        val selected = currentRoute == screen.route
                         NavigationBarItem(
                             icon = {
+                                // 图标尺寸固定，避免选中态缩放造成的布局跳动
                                 screen.icon(
-                                    if (currentRoute == screen.route) MaterialTheme.colorScheme.primary 
+                                    if (selected) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    if (currentRoute == screen.route) 24.dp else 22.dp
+                                    24.dp
                                 )
                             },
-                            label = { Text(screen.label) },
-                            selected = currentRoute == screen.route,
+                            label = {
+                                Text(
+                                    screen.label,
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                            },
+                            selected = selected,
+                            // 胶囊高亮：ui.md 要求选中态有明显底色，而非仅靠图标缩放
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
                             onClick = {
                                 if (screen.route == Screen.Home.route) {
                                     navController.navigate(Screen.Home.route) {
