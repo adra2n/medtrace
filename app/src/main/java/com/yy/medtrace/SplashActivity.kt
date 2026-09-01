@@ -10,9 +10,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
-import com.umeng.analytics.MobclickAgent
-import com.umeng.commonsdk.UMConfigure
-import com.yy.medtrace.common.Constants
 import com.yy.medtrace.data.settings.OnboardingStore
 import com.yy.medtrace.data.settings.PrivacyConsentStore
 import kotlinx.coroutines.launch
@@ -27,8 +24,9 @@ class SplashActivity : ComponentActivity() {
     private var navigated = false
 
     companion object {
-        private const val SKIP_DELAY = 3000L
-        private const val COUNT_DOWN_INTERVAL = 1000L
+        // 启动页最短展示时间。原先固定 3s，是冷启动链路中最长的一段无谓等待。
+        private const val SKIP_DELAY = 1200L
+        private const val COUNT_DOWN_INTERVAL = 400L
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,11 +55,12 @@ class SplashActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * 复用 [MedTraceApplication.initAnalytics]：UMConfigure.init 在 IO 线程执行，
+     * 不再阻塞启动页主线程（原先这里同步调用了三次友盟 API）。
+     */
     private fun initAnalytics() {
-        UMConfigure.preInit(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL)
-        UMConfigure.submitPolicyGrantResult(this, true)
-        UMConfigure.init(this, Constants.UMENG_APPKEY, Constants.UMENG_CHANNEL, UMConfigure.DEVICE_TYPE_PHONE, null)
-        MobclickAgent.setPageCollectionMode(MobclickAgent.PageMode.AUTO)
+        MedTraceApplication.initAnalytics(this)
     }
 
     private fun showSplash() {
@@ -72,10 +71,11 @@ class SplashActivity : ComponentActivity() {
 
     private fun startCountDown() {
         countDownTimer?.cancel()
+        skipTextView?.text = getString(R.string.splash_skip_countdown, (SKIP_DELAY / 1000).coerceAtLeast(1))
         countDownTimer = object : CountDownTimer(SKIP_DELAY, COUNT_DOWN_INTERVAL) {
             override fun onTick(millisUntilFinished: Long) {
-                val secondsLeft = millisUntilFinished / 1000
-                skipTextView?.text = "跳过 ${secondsLeft}s"
+                val secondsLeft = (millisUntilFinished / 1000).coerceAtLeast(1)
+                skipTextView?.text = getString(R.string.splash_skip_countdown, secondsLeft)
             }
 
             override fun onFinish() {
