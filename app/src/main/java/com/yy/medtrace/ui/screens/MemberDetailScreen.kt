@@ -24,7 +24,7 @@ import androidx.navigation.NavController
 import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
-import com.yy.medtrace.ui.components.EmptyRecords
+import com.yy.medtrace.ui.components.EmptyRecordsState
 import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.components.MemberEditDialog
 import com.yy.medtrace.ui.components.MedicalRecordCard
@@ -166,7 +166,7 @@ fun MemberDetailScreen(
             when (selectedTab) {
                 DetailTab.Medication -> {
                     if (medicationRecords.isEmpty()) {
-                        item { EmptyRecords() }
+                        item { EmptyRecordsState() }
                     } else {
                         items(medicationRecords, key = { it.id }) { record ->
                             MedicalRecordCard(record, showActions = false)
@@ -175,7 +175,7 @@ fun MemberDetailScreen(
                 }
                 DetailTab.Exam -> {
                     if (examRecords.isEmpty()) {
-                        item { EmptyRecords() }
+                        item { EmptyRecordsState() }
                     } else {
                         items(examRecords, key = { it.id }) { record ->
                             MedicalRecordCard(record, showActions = false)
@@ -184,7 +184,7 @@ fun MemberDetailScreen(
                 }
                 DetailTab.Metric -> {
                     if (metricPoints.isEmpty()) {
-                        item { EmptyRecords() }
+                        item { EmptyRecordsState() }
                     } else {
                         items(metricPoints, key = { "${it.name}-${it.time}" }) { point ->
                             Card(
@@ -217,7 +217,7 @@ fun MemberDetailScreen(
                 }
                 DetailTab.Visit -> {
                     if (visitRecords.isEmpty()) {
-                        item { EmptyRecords() }
+                        item { EmptyRecordsState() }
                     } else {
                         items(visitRecords, key = { it.id }) { record ->
                             MedicalRecordCard(record, showActions = false)

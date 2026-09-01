@@ -321,6 +321,11 @@
     <string name="settings_sort_by_time">按时间</string>
     <string name="settings_sort_by_hospital">按医院</string>
     <string name="settings_sort_by_diagnosis">按诊断</string>
+    <string name="settings_label_api_key">API Key</string>
+    <string name="settings_btn_save_api_key">保存 API Key</string>
+    <string name="settings_dialog_import_title">导入确认</string>
+    <string name="settings_dialog_import_message">导入将覆盖现有数据，确定继续吗？</string>
+    <string name="settings_btn_cancel">取消</string>
     <string name="trends_time_range_30days">30天</string>
     <string name="trends_time_range_90days">90天</string>
     <string name="trends_time_range_1year">1年</string>
@@ -390,6 +395,10 @@
     <string name="medical_record_empty_no_match">没有符合筛选条件的记录</string>
     <string name="medical_record_empty_no_records">该成员还没有就诊记录</string>
     <string name="medical_record_empty_hint">点击右上角 + 按钮添加第一条记录</string>
+    <string name="empty_home_hint">今日暂无待办，点击 + 添加</string>
+    <string name="empty_records_title">暂无就诊记录</string>
+    <string name="empty_records_hint">点击右下角按钮添加第一条记录</string>
+    <string name="empty_records_action">添加记录</string>
     <string name="medical_record_btn_load_more">加载更多</string>
     <string name="medical_record_dialog_delete_title">删除就诊记录</string>
     <string name="medical_record_dialog_delete_message">确定删除「%1$s」这条记录？此操作不可撤销。</string>

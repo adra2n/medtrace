@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 val CardShape = RoundedCornerShape(20.dp)
 
 // 卡片阴影
-val CardElevation = 8.dp
+val SoftElevation = 8.dp
 
 val PrimaryGradient: Brush
     @Composable
@@ -35,7 +35,12 @@ val PrimaryGradient: Brush
         endY = 400f
     )
 
-val SoftElevation = 8.dp
+// 全局间距常量
+val ScreenHorizontalPadding = 16.dp
+val ScreenHorizontalPaddingElderly = 20.dp
+val CardPadding = 16.dp
+val CardPaddingElderly = 20.dp
+val SectionGap = 12.dp
 
 @Composable
 fun GradientTopBar(

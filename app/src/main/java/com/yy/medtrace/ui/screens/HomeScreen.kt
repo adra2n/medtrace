@@ -66,6 +66,9 @@ import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.computeAge
 import com.yy.medtrace.ui.theme.memberCardColors
 import com.yy.medtrace.ui.theme.caption
+import com.yy.medtrace.ui.theme.CardPadding
+import com.yy.medtrace.ui.theme.CardPaddingElderly
+import com.yy.medtrace.ui.theme.SectionGap
 import com.yy.medtrace.ui.theme.Info
 import com.yy.medtrace.ui.theme.Healthy
 import com.yy.medtrace.ui.theme.Reminder
@@ -157,7 +160,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = if (isElderlyMode) 20.dp else 14.dp),
+                .padding(horizontal = if (isElderlyMode) CardPaddingElderly else CardPadding),
             verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 16.dp else 12.dp),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {

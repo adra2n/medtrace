@@ -111,11 +111,11 @@ fun SettingsScreen(
                     os.write(json.toByteArray(Charsets.UTF_8))
                 }
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "导出成功", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_exported), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -129,15 +129,15 @@ fun SettingsScreen(
             try {
                 val content = context.contentResolver.openInputStream(uri)
                     ?.bufferedReader(Charsets.UTF_8)?.readText()
-                    ?: throw IllegalStateException("无法读取文件")
+                    ?: throw IllegalStateException(context.getString(R.string.settings_error_cannot_read_file))
                 val data = decodeBackup(content)
                 backupRepository.importAll(data)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "导入成功", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_restored), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "导入失败: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.settings_toast_restore_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -311,7 +311,7 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = llmApiKey,
                                 onValueChange = { llmApiKey = it },
-                                label = { Text("API Key") },
+                                label = { Text(stringResource(R.string.settings_label_api_key)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 visualTransformation = if (showApiKey) androidx.compose.ui.text.input.VisualTransformation.None else androidx.compose.ui.text.input.PasswordVisualTransformation(),
@@ -319,7 +319,7 @@ fun SettingsScreen(
                                     IconButton(onClick = { showApiKey = !showApiKey }) {
                                         Icon(
                                             imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                            contentDescription = if (showApiKey) "隐藏" else "显示"
+                                            contentDescription = if (showApiKey) stringResource(R.string.settings_cd_hide_key) else stringResource(R.string.settings_cd_show_key)
                                         )
                                     }
                                 }
@@ -328,11 +328,11 @@ fun SettingsScreen(
                             Button(
                                 onClick = {
                                     aiServiceManager.setApiKey(currentAiService, llmApiKey)
-                                    Toast.makeText(context, "保存成功", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.settings_toast_saved), Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("保存API Key")
+                                Text(stringResource(R.string.settings_btn_save_api_key))
                             }
                         }
                     }
@@ -413,20 +413,20 @@ fun SettingsScreen(
                                                 context.startActivity(
                                                     android.content.Intent.createChooser(
                                                         shareCsvIntent(context, csv),
-                                                        "导出CSV"
+                                                        context.getString(R.string.settings_chooser_export_csv)
                                                     )
                                                 )
                                             }
                                         } catch (e: Exception) {
                                             withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, "导出失败: ${e.message}", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(context, context.getString(R.string.settings_toast_csv_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                                             }
                                         }
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("导出CSV")
+                                Text(stringResource(R.string.settings_btn_export_csv))
                             }
                         }
                     }
@@ -530,16 +530,16 @@ fun SettingsScreen(
     if (showImportConfirm) {
         AlertDialog(
             onDismissRequest = { showImportConfirm = false },
-            title = { Text("导入确认") },
-            text = { Text("导入将覆盖现有数据，确定继续吗？") },
+            title = { Text(stringResource(R.string.settings_dialog_import_title)) },
+            text = { Text(stringResource(R.string.settings_dialog_import_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showImportConfirm = false
                     importLauncher.launch(arrayOf("application/json"))
-                }) { Text("继续") }
+                }) { Text(stringResource(R.string.settings_btn_continue)) }
             },
             dismissButton = {
-                TextButton(onClick = { showImportConfirm = false }) { Text("取消") }
+                TextButton(onClick = { showImportConfirm = false }) { Text(stringResource(R.string.settings_btn_cancel)) }
             }
         )
     }

@@ -47,6 +47,8 @@ import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.ui.theme.Reminder
+import com.yy.medtrace.ui.theme.CardPadding
+import com.yy.medtrace.ui.theme.CardPaddingElderly
 import com.yy.medtrace.viewmodel.MonthlyStats
 import com.yy.medtrace.viewmodel.RemindersViewModel
 import java.time.LocalDate
@@ -108,7 +110,7 @@ fun RemindersScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = if (isElderlyMode) 24.dp else 16.dp),
-            verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 20.dp else 16.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) CardPaddingElderly else CardPadding),
             contentPadding = PaddingValues(vertical = 12.dp)
         ) {
             // 快速添加 - 长辈版隐藏
@@ -241,7 +243,7 @@ private fun ReminderTypeGroup(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onToggleExpand() }
-                .padding(if (isElderlyMode) 20.dp else 16.dp)
+                .padding(if (isElderlyMode) CardPaddingElderly else CardPadding)
         ) {
             // 头部
             Row(
@@ -350,7 +352,7 @@ private fun ReminderItem(
                 )
                 if (repeatLabel != null) {
                     Surface(
-                        shape = RoundedCornerShape(4.dp),
+                        shape = AppShapes.extraSmall,
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                     ) {
                         Text(

@@ -37,6 +37,10 @@ import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
+import com.yy.medtrace.ui.theme.ScreenHorizontalPadding
+import com.yy.medtrace.ui.theme.ScreenHorizontalPaddingElderly
+import com.yy.medtrace.ui.theme.CardPadding
+import com.yy.medtrace.ui.theme.CardPaddingElderly
 import com.yy.medtrace.viewmodel.MedicalRecordViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -171,8 +175,8 @@ fun MedicalRecordScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(if (isElderlyMode) 24.dp else 16.dp),
-            verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) 20.dp else 16.dp)
+            contentPadding = PaddingValues(if (isElderlyMode) ScreenHorizontalPaddingElderly else ScreenHorizontalPadding),
+            verticalArrangement = Arrangement.spacedBy(if (isElderlyMode) CardPaddingElderly else CardPadding),
         ) {
             // 搜索筛选 - 长辈版简化
             item {

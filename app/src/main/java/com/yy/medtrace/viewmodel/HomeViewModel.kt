@@ -162,6 +162,7 @@ data class HomeUiState(
     val recentRecords: List<MedicalRecord> = emptyList(),
     val pendingCount: Int = 0,
     val error: String? = null,
+    val isLoading: Boolean = false,
     val todayLabel: String = LocalDate.now().let { today ->
         val week = listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六")[today.dayOfWeek.value % 7]
         today.format(DateTimeFormatter.ofPattern("M月d日")) + " · " + week

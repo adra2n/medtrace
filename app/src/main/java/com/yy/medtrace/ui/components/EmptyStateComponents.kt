@@ -1,6 +1,5 @@
 package com.yy.medtrace.ui.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -17,8 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.yy.medtrace.R
 
 /**
  * 空状态组件
@@ -112,7 +113,7 @@ fun EmptyHomeState(onAdd: () -> Unit) {
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = "今日暂无待办，点击 + 添加",
+            text = stringResource(R.string.empty_home_hint),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
@@ -178,9 +179,9 @@ fun EmptySearchState() {
 fun EmptyRecordsState(onAdd: (() -> Unit)? = null) {
     EmptyState(
         icon = Icons.Default.EventNote,
-        title = "暂无就诊记录",
-        hint = "点击右下角按钮添加第一条记录",
-        actionText = if (onAdd != null) "添加记录" else null,
+        title = stringResource(R.string.empty_records_title),
+        hint = stringResource(R.string.empty_records_hint),
+        actionText = if (onAdd != null) stringResource(R.string.empty_records_action) else null,
         onAction = onAdd
     )
 }

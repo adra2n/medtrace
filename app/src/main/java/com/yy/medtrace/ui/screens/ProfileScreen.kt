@@ -149,14 +149,14 @@ fun ProfileScreen(
                         subtitle = stringResource(R.string.profile_menu_settings_desc),
                         onClick = { navController.navigate(Screen.Settings.route) }
                     )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     ProfileMenuItem(
                         icon = Icons.Default.Help,
                         title = stringResource(R.string.profile_menu_help),
                         subtitle = stringResource(R.string.profile_menu_help_desc),
                         onClick = { showHelpDialog = true }
                     )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     ProfileMenuItem(
                         icon = Icons.Default.Feedback,
                         title = stringResource(R.string.profile_menu_feedback),
@@ -169,21 +169,21 @@ fun ProfileScreen(
                             context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.profile_chooser_send_email)))
                         }
                     )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     ProfileMenuItem(
                         icon = Icons.Default.Policy,
                         title = stringResource(R.string.profile_menu_privacy),
                         subtitle = stringResource(R.string.profile_menu_privacy_desc),
                         onClick = { navController.navigate("privacy_policy") }
                     )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     ProfileMenuItem(
                         icon = Icons.Default.Description,
                         title = stringResource(R.string.profile_menu_terms),
                         subtitle = stringResource(R.string.profile_menu_terms_desc),
                         onClick = { navController.navigate("user_agreement") }
                     )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     ProfileMenuItem(
                         icon = Icons.Default.Info,
                         title = stringResource(R.string.profile_menu_about),
