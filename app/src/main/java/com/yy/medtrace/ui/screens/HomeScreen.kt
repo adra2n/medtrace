@@ -58,6 +58,7 @@ import com.yy.medtrace.data.settings.UserMode
 import com.yy.medtrace.data.settings.UserModeStore
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.EmptyHomeState
+import com.yy.medtrace.ui.theme.SectionTitle
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
 import com.yy.medtrace.ui.theme.SoftElevation
@@ -384,25 +385,7 @@ fun HomeScreen(
     }
 }
 
-@Composable
-private fun SectionTitle(text: String, fontSize: androidx.compose.ui.unit.TextUnit = MaterialTheme.typography.titleMedium.fontSize) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium.copy(fontSize = fontSize),
-        color = MaterialTheme.colorScheme.onSurface,
-        fontWeight = FontWeight.SemiBold
-    )
-}
 
-@Composable
-private fun buildTag(member: FamilyMember): String {
-    return when {
-        member.chronic.isNotBlank() -> member.chronic
-        member.allergy.isNotBlank() -> stringResource(R.string.screen_home_member_allergy, member.allergy)
-        member.medicationNote.isNotBlank() -> member.medicationNote
-        else -> ""
-    }
-}
 
 @Composable
 private fun TodayTodoItem(
@@ -1056,66 +1039,4 @@ internal fun AddRecordBottomSheet(
     }
 }
 
-@Composable
-private fun FunctionTile(
-    modifier: Modifier,
-    icon: ImageVector,
-    title: String,
-    desc: String,
-    color: Color = MaterialTheme.colorScheme.primary,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = modifier.clickable { onClick() }.height(100.dp),
-        shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(color.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(icon, title, tint = color, modifier = Modifier.size(20.dp))
-                }
-                Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-            }
-            Spacer(Modifier.weight(1f))
-            Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
 
-@Composable
-private fun TodayStatItem(
-    label: String,
-    value: String,
-    color: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}

@@ -185,8 +185,8 @@ fun MedicalRecordScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(if (isElderlyMode) 20.dp else 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(if (isElderlyMode) 16.dp else 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -196,13 +196,13 @@ fun MedicalRecordScreen(
                                 Icons.Default.Search,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(if (isElderlyMode) 24.dp else 20.dp)
+                                modifier = Modifier.size(if (isElderlyMode) 22.dp else 18.dp)
                             )
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(6.dp))
                             Text(
                                 text = stringResource(R.string.medical_record_search_filter),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontSize = if (isElderlyMode) 18.sp else MaterialTheme.typography.titleSmall.fontSize
                                 ),
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -296,8 +296,8 @@ fun MedicalRecordScreen(
                         Spacer(Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.medical_record_list_title),
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontSize = if (isElderlyMode) 18.sp else MaterialTheme.typography.titleSmall.fontSize
                             ),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -431,30 +431,6 @@ fun MedicalRecordScreen(
 }
 
 private enum class DateTarget { From, To }
-
-@Composable
-private fun StatItem(
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
 
 
 

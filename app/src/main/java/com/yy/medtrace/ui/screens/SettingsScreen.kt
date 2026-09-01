@@ -21,6 +21,10 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.animation.AnimatedVisibility
 import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -74,7 +78,6 @@ fun SettingsScreen(
     var showApiKey by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var showImportConfirm by remember { mutableStateOf(false) }
-    var backupError by remember { mutableStateOf<String?>(null) }
 
     val backupRepository = remember { BackupRepository(viewModel.database) }
 
@@ -176,7 +179,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Settings,
+                            Icons.Default.Palette,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
@@ -184,7 +187,7 @@ fun SettingsScreen(
                         Spacer(Modifier.width(10.dp))
                         Text(
                             "外观",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(Modifier.weight(1f))
@@ -235,7 +238,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Settings,
+                            Icons.Default.SmartToy,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
@@ -243,7 +246,7 @@ fun SettingsScreen(
                         Spacer(Modifier.width(10.dp))
                         Text(
                             "AI配置",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(Modifier.weight(1f))
@@ -352,7 +355,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Settings,
+                            Icons.Default.CloudUpload,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
@@ -360,7 +363,7 @@ fun SettingsScreen(
                         Spacer(Modifier.width(10.dp))
                         Text(
                             "数据备份",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(Modifier.weight(1f))
@@ -446,7 +449,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Settings,
+                            Icons.Default.PhoneAndroid,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
@@ -454,7 +457,7 @@ fun SettingsScreen(
                         Spacer(Modifier.width(10.dp))
                         Text(
                             "界面模式",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(Modifier.weight(1f))
@@ -537,17 +540,6 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showImportConfirm = false }) { Text("取消") }
-            }
-        )
-    }
-
-    backupError?.let { msg ->
-        AlertDialog(
-            onDismissRequest = { backupError = null },
-            title = { Text("提示") },
-            text = { Text(msg) },
-            confirmButton = {
-                TextButton(onClick = { backupError = null }) { Text("知道了") }
             }
         )
     }

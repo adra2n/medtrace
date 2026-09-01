@@ -1,7 +1,6 @@
 package com.yy.medtrace.ui.screens
 
 import android.os.Build
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -83,7 +82,7 @@ fun ProfileScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // 头像和名称（左对齐）
                     Row(
@@ -117,7 +116,7 @@ fun ProfileScreen(
                         }
                         Text(
                             defaultMember?.name ?: stringResource(R.string.profile_default_name),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -136,22 +135,7 @@ fun ProfileScreen(
                 }
             }
 
-            // 设置
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-            ) {
-                ProfileMenuItem(
-                    icon = Icons.Default.Settings,
-                    title = stringResource(R.string.profile_menu_settings),
-                    subtitle = stringResource(R.string.profile_menu_settings_desc),
-                    onClick = { navController.navigate(Screen.Settings.route) }
-                )
-            }
-
-            // 帮助与支持
+            // 功能菜单
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
@@ -159,6 +143,13 @@ fun ProfileScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
+                    ProfileMenuItem(
+                        icon = Icons.Default.Settings,
+                        title = stringResource(R.string.profile_menu_settings),
+                        subtitle = stringResource(R.string.profile_menu_settings_desc),
+                        onClick = { navController.navigate(Screen.Settings.route) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
                     ProfileMenuItem(
                         icon = Icons.Default.Help,
                         title = stringResource(R.string.profile_menu_help),
@@ -170,41 +161,15 @@ fun ProfileScreen(
                         icon = Icons.Default.Feedback,
                         title = stringResource(R.string.profile_menu_feedback),
                         subtitle = stringResource(R.string.profile_menu_feedback_desc),
-                    onClick = {
-                        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
-                            data = android.net.Uri.parse("mailto:cljkle@163.com")
-                            putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.profile_email_subject))
-                        }
-                        context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.profile_chooser_send_email)))
+                        onClick = {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                                data = android.net.Uri.parse("mailto:cljkle@163.com")
+                                putExtra(android.content.Intent.EXTRA_SUBJECT, context.getString(R.string.profile_email_subject))
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.profile_chooser_send_email)))
                         }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
-                    ProfileMenuItem(
-                        icon = Icons.Default.RateReview,
-                        title = stringResource(R.string.profile_menu_rate),
-                        subtitle = stringResource(R.string.profile_menu_rate_desc),
-                        onClick = { 
-                            try {
-                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                    data = android.net.Uri.parse("market://details?id=${context.packageName}")
-                                }
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                Toast.makeText(context, context.getString(R.string.profile_toast_cannot_open_store), Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    )
-                }
-            }
-
-            // 法律信息
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
                     ProfileMenuItem(
                         icon = Icons.Default.Policy,
                         title = stringResource(R.string.profile_menu_privacy),
@@ -218,22 +183,14 @@ fun ProfileScreen(
                         subtitle = stringResource(R.string.profile_menu_terms_desc),
                         onClick = { navController.navigate("user_agreement") }
                     )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 16.dp))
+                    ProfileMenuItem(
+                        icon = Icons.Default.Info,
+                        title = stringResource(R.string.profile_menu_about),
+                        subtitle = "版本 $appVersion",
+                        onClick = { }
+                    )
                 }
-            }
-
-            // 关于
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-            ) {
-                ProfileMenuItem(
-                    icon = Icons.Default.Info,
-                    title = stringResource(R.string.profile_menu_about),
-                    subtitle = "版本 $appVersion",
-                    onClick = { }
-                )
             }
 
             // 版权信息

@@ -207,98 +207,13 @@ fun RemindersScreen(
 
 @Composable
 private fun EmptyReminders(onAdd: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 60.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Surface(
-            shape = AppShapes.large,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-            modifier = Modifier.size(80.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text("📋", style = MaterialTheme.typography.headlineLarge)
-            }
-        }
-        EmptyState(
-            icon = Icons.Default.DateRange,
-            title = stringResource(R.string.screen_reminders_empty_title),
-            hint = stringResource(R.string.screen_reminders_empty_hint),
-            actionText = stringResource(R.string.screen_reminders_add_reminder),
-            onAction = onAdd
-        )
-    }
-}
-
-@Composable
-private fun MonthlyStatsCard(stats: MonthlyStats) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                stringResource(R.string.screen_reminders_monthly_stats),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // 完成率
-                Column {
-                    Text(
-                        "${(stats.completionRate * 100).toInt()}%",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(stringResource(R.string.screen_reminders_completion_rate), style = MaterialTheme.typography.labelSmall)
-                }
-
-                // 连续天数
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "${stats.streak}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Reminder
-                    )
-                    Text(stringResource(R.string.screen_reminders_streak_days), style = MaterialTheme.typography.labelSmall)
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // 进度条
-            LinearProgressIndicator(
-                progress = { stats.completionRate },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            // 统计详情
-            Text(
-                stringResource(R.string.screen_reminders_stats_detail, stats.total, stats.completed, stats.overdue),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
+    EmptyState(
+        icon = Icons.Default.DateRange,
+        title = stringResource(R.string.screen_reminders_empty_title),
+        hint = stringResource(R.string.screen_reminders_empty_hint),
+        actionText = stringResource(R.string.screen_reminders_add_reminder),
+        onAction = onAdd
+    )
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
