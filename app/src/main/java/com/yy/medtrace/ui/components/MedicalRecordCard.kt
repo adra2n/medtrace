@@ -54,10 +54,12 @@ import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import java.time.format.DateTimeFormatter
 
+private val DefaultDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
 @Composable
 fun MedicalRecordCard(
     record: MedicalRecord,
-    dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"),
+    dateFormatter: DateTimeFormatter = DefaultDateFormatter,
     showActions: Boolean = true,
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {}

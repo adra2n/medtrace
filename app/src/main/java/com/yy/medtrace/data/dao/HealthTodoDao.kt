@@ -48,4 +48,7 @@ interface HealthTodoDao {
 
     @Query("SELECT * FROM health_todos")
     suspend fun getAllList(): List<HealthTodo>
+
+    @Query("SELECT COUNT(*) FROM health_todos")
+    suspend fun count(): Int
 }

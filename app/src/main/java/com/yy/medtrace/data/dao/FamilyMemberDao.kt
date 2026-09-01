@@ -32,4 +32,7 @@ interface FamilyMemberDao {
 
     @Query("DELETE FROM family_members")
     suspend fun clear()
+
+    @Query("SELECT COUNT(*) FROM family_members")
+    suspend fun count(): Int
 }

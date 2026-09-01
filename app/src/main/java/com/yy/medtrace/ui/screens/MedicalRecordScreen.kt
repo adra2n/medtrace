@@ -363,7 +363,7 @@ fun MedicalRecordScreen(
                     "diagnosis" -> uiState.records.sortedBy { it.diagnosis.ifBlank { "zzz" } }
                     else -> uiState.records.sortedByDescending { it.onsetTime }
                 }
-                items(sortedRecords) { record ->
+                items(sortedRecords, key = { it.id }) { record ->
                     MedicalRecordCard(
                         record = record,
                         dateFormatter = dateFormatter,

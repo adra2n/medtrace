@@ -2,10 +2,17 @@ package com.yy.medtrace.data.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.LocalDateTime
 
-@Entity(tableName = "medical_records")
+@Entity(
+    tableName = "medical_records",
+    indices = [
+        Index(value = ["patientId"]),
+        Index(value = ["onsetTime"])
+    ]
+)
 data class MedicalRecord(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

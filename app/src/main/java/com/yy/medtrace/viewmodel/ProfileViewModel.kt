@@ -25,22 +25,20 @@ class ProfileViewModel @Inject constructor(
 
     fun loadProfile() {
         viewModelScope.launch {
-            database.familyMemberDao().getAllMembers().collect { members ->
-                _uiState.update { it.copy(
-                    defaultMember = members.find { m -> m.isDefault } ?: members.firstOrNull(),
-                    memberCount = members.size
-                ) }
-            }
+            val defaultMember = database.familyMemberDao().getDefaultMember()
+            val memberCount = database.familyMemberDao().count()
+            _uiState.update { it.copy(
+                defaultMember = defaultMember,
+                memberCount = memberCount
+            ) }
         }
         viewModelScope.launch {
-            database.medicalRecordDao().getAllRecords().collect { records ->
-                _uiState.update { it.copy(recordCount = records.size) }
-            }
+            val recordCount = database.medicalRecordDao().count()
+            _uiState.update { it.copy(recordCount = recordCount) }
         }
         viewModelScope.launch {
-            database.healthTodoDao().getAll().collect { todos ->
-                _uiState.update { it.copy(todoCount = todos.size) }
-            }
+            val todoCount = database.healthTodoDao().count()
+            _uiState.update { it.copy(todoCount = todoCount) }
         }
     }
 }

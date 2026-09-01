@@ -1,10 +1,18 @@
 package com.yy.medtrace.data.model
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.LocalDate
 
-@Entity(tableName = "health_todos")
+@Entity(
+    tableName = "health_todos",
+    indices = [
+        Index(value = ["dueDate"]),
+        Index(value = ["memberId"]),
+        Index(value = ["dueDate", "done"])
+    ]
+)
 data class HealthTodo(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

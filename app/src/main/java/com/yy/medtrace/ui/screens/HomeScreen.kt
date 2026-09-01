@@ -187,9 +187,9 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        items(uiState.members) { member ->
+                        items(uiState.members, key = { it.id }) { member ->
                         val (bg, content) = memberCardColors(member.relation, member.gender)
-                        val age = computeAge(member.birthday)
+                        val age = remember(member.birthday) { computeAge(member.birthday) }
                         Card(
                             modifier = Modifier
                                 .width(if (isElderlyMode) 180.dp else 150.dp)
@@ -254,9 +254,8 @@ fun HomeScreen(
             }
 
             item {
-                val pendingCount = remember(uiState.todos) { uiState.todos.count { !it.done } }
                 SectionTitle(
-                    text = stringResource(R.string.screen_home_today_reminders, pendingCount),
+                    text = stringResource(R.string.screen_home_today_reminders, uiState.pendingCount),
                     fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
                 )
                 Spacer(Modifier.height(6.dp))
@@ -289,7 +288,6 @@ fun HomeScreen(
                                     done = todo.done,
                                     onToggle = { viewModel.toggleTodoDone(todo.id, !todo.done) },
                                     todo = todo,
-                                    allTodos = uiState.todos,
                                     isElderlyMode = isElderlyMode
                                 )
                             }
@@ -399,7 +397,6 @@ private fun TodayTodoItem(
     done: Boolean,
     onToggle: () -> Unit,
     todo: HealthTodo? = null,
-    allTodos: List<HealthTodo> = emptyList(),
     isElderlyMode: Boolean = false
 ) {
     val categoryIcon = when (todo?.category) {
@@ -908,7 +905,7 @@ internal fun AddRecordBottomSheet(
             if (members.isNotEmpty()) {
                 Text(stringResource(R.string.screen_add_record_section_family_member), style = MaterialTheme.typography.labelMedium)
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(members) { member ->
+                    items(members, key = { it.id }) { member ->
                         FilterChip(
                             selected = selectedMemberId == member.id,
                             onClick = { selectedMemberId = member.id },
@@ -922,7 +919,7 @@ internal fun AddRecordBottomSheet(
             Text(stringResource(R.string.screen_add_record_label_visit_type), style = MaterialTheme.typography.labelMedium)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val visitTypes = listOf("门诊", "急诊", "体检", "复查", "自购药", "其他")
-                items(visitTypes) { type ->
+                items(visitTypes, key = { it }) { type ->
                     FilterChip(
                         selected = visitType == type,
                         onClick = {
