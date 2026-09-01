@@ -133,10 +133,8 @@ fun MainScreen(
     BackHandler {
         if (currentRoute == Screen.Home.route) {
             activity?.finish()
-        } else {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Home.route) { inclusive = true }
-            }
+        } else if (!navController.popBackStack()) {
+            navController.navigate(Screen.Home.route)
         }
     }
 
