@@ -11,6 +11,9 @@ import androidx.annotation.RequiresApi
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.activity.compose.setContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -189,11 +192,16 @@ fun MainScreen(
             startDestination = Screen.Home.route,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
+            enterTransition = { fadeIn(tween(150)) },
+            exitTransition = { fadeOut(tween(150)) },
+            popEnterTransition = { fadeIn(tween(150)) },
+            popExitTransition = { fadeOut(tween(150)) }
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
-                    navController = navController
+                    navController = navController,
+                    userModeStore = userModeStore
                 )
             }
             composable("family") {
@@ -201,7 +209,7 @@ fun MainScreen(
                 FamilyScreen(viewModel, navController)
             }
             composable(Screen.Reminders.route) {
-                RemindersScreen(navController = navController)
+                RemindersScreen(navController = navController, userModeStore = userModeStore)
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(navController = navController)
@@ -233,11 +241,11 @@ fun MainScreen(
             }
             composable("medical_records") {
                 val viewModel: MedicalRecordViewModel = hiltViewModel()
-                MedicalRecordScreen(viewModel, navController)
+                MedicalRecordScreen(viewModel, navController, userModeStore = userModeStore)
             }
             composable(Screen.Settings.route) {
                 val viewModel: SettingsViewModel = hiltViewModel()
-                SettingsScreen(viewModel, navController)
+                SettingsScreen(viewModel, navController, userModeStore = userModeStore)
             }
             composable(
                 "member_detail/{memberId}",

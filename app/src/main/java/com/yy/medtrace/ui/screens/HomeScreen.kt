@@ -89,15 +89,14 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun HomeScreen(
     navController: NavController,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    userModeStore: com.yy.medtrace.data.settings.UserModeStore
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddTodoDialog by remember { mutableStateOf(false) }
     var showAddRecordSheet by remember { mutableStateOf(false) }
     var showFabMenu by remember { mutableStateOf(false) }
     
-    val context = LocalContext.current
-    val userModeStore = remember { UserModeStore(context) }
     val currentMode by userModeStore.currentMode.collectAsState()
     val isElderlyMode = currentMode == UserMode.ELDERLY
 
@@ -255,7 +254,7 @@ fun HomeScreen(
             }
 
             item {
-                val pendingCount = uiState.todos.count { !it.done }
+                val pendingCount = remember(uiState.todos) { uiState.todos.count { !it.done } }
                 SectionTitle(
                     text = stringResource(R.string.screen_home_today_reminders, pendingCount),
                     fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
@@ -278,9 +277,12 @@ fun HomeScreen(
                                 onAdd = { showAddTodoDialog = true }
                             )
                         } else {
+                            val memberMap = remember(uiState.members) {
+                                uiState.members.associateBy { it.id }
+                            }
                             uiState.todos.take(5).forEachIndexed { idx, todo ->
                                 if (idx > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                                val todoMember = uiState.members.find { it.id == todo.memberId }
+                                val todoMember = memberMap[todo.memberId]
                                 TodayTodoItem(
                                     text = todo.content,
                                     member = todoMember,

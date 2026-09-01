@@ -58,7 +58,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun RemindersScreen(
     viewModel: RemindersViewModel = hiltViewModel(),
-    navController: NavController
+    navController: NavController,
+    userModeStore: com.yy.medtrace.data.settings.UserModeStore
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -66,7 +67,6 @@ fun RemindersScreen(
     var editingTodo by remember { mutableStateOf<HealthTodo?>(null) }
     var expandedTypes by remember { mutableStateOf(setOf<String>()) }
     
-    val userModeStore = remember { UserModeStore(context) }
     val currentMode by userModeStore.currentMode.collectAsState()
     val isElderlyMode = currentMode == UserMode.ELDERLY
 

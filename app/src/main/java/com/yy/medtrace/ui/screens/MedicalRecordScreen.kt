@@ -50,7 +50,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun MedicalRecordScreen(
     viewModel: MedicalRecordViewModel = hiltViewModel(),
-    navController: NavController
+    navController: NavController,
+    userModeStore: com.yy.medtrace.data.settings.UserModeStore
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -67,7 +68,6 @@ fun MedicalRecordScreen(
     var showAddRecordSheet by remember { mutableStateOf(false) }
     val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
     
-    val userModeStore = remember { UserModeStore(context) }
     val currentMode by userModeStore.currentMode.collectAsState()
     val isElderlyMode = currentMode == UserMode.ELDERLY
     
@@ -76,8 +76,8 @@ fun MedicalRecordScreen(
     var currentPage by remember { mutableIntStateOf(0) }
     var hasMore by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
-    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-    val dayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm") }
+    val dayFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd") }
 
     LaunchedEffect(Unit) {
         viewModel.loadMembers()

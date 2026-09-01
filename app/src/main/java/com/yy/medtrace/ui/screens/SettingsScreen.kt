@@ -55,11 +55,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
-    navController: NavController
+    navController: NavController,
+    userModeStore: com.yy.medtrace.data.settings.UserModeStore
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val userModeStore = remember { UserModeStore(context) }
     val aiServiceManager = remember { AiServiceManager(context) }
     val llmSettings = remember { LlmSettingsStore(context) }
     var settings by remember { mutableStateOf<UserSettings?>(null) }
