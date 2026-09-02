@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -48,7 +47,7 @@ private enum class DetailTab(val labelResId: Int) {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MemberDetailScreen(
     viewModel: MemberDetailViewModel = hiltViewModel(),
@@ -148,16 +147,21 @@ fun MemberDetailScreen(
             }
 
             item {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                TabRow(
+                    selectedTabIndex = DetailTab.entries.indexOf(selectedTab),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary
                 ) {
                     DetailTab.entries.forEach { tab ->
-                        FilterChip(
+                        Tab(
                             selected = selectedTab == tab,
                             onClick = { selectedTab = tab },
-                            label = { Text(stringResource(tab.labelResId)) }
+                            text = {
+                                Text(
+                                    stringResource(tab.labelResId),
+                                    maxLines = 1
+                                )
+                            }
                         )
                     }
                 }

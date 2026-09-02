@@ -202,26 +202,6 @@ fun MedicalRecordScreen(
                             .padding(if (isElderlyMode) 16.dp else 12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(if (isElderlyMode) 22.dp else 18.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(R.string.medical_record_search_filter),
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontSize = if (isElderlyMode) 18.sp
-                                    else MaterialTheme.typography.titleSmall.fontSize
-                                ),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
                         OutlinedTextField(
                             value = keyword,
                             onValueChange = { keyword = it },

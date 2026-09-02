@@ -163,7 +163,7 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 🎨 外观设置
+            // 外观设置
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = AppShapes.large,
@@ -222,7 +222,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 🤖 AI配置
+            // AI配置
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = AppShapes.large,
@@ -339,7 +339,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 💾 数据备份
+            // 数据备份
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = AppShapes.large,
@@ -399,7 +399,10 @@ fun SettingsScreen(
                                 }
                                 OutlinedButton(
                                     onClick = { showImportConfirm = true },
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
                                 ) {
                                     Text("导入备份")
                                 }
@@ -433,7 +436,7 @@ fun SettingsScreen(
                 }
             }
 
-            // ⚙️ 界面模式
+            // 界面模式
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = AppShapes.large,
