@@ -50,8 +50,8 @@ class AiServiceManager @Inject constructor(
 
         // 内置服务
         val BUILT_IN_SERVICES = listOf(
-            AiService("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-chat", true),
-            AiService("mimo", "Mimo", "https://api.mimo.com", "mimo-chat", true)
+            AiService("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-v4-flash-vision-exp", true),
+            AiService("mimo", "Mimo", "https://api.xiaomimimo.com/v1", "mimo-v2.5", true)
         )
     }
 
