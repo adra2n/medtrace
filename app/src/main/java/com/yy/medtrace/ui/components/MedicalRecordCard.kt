@@ -64,6 +64,9 @@ fun MedicalRecordCard(
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
+    val displayFormatter = if (record.onsetTime.toLocalTime() == java.time.LocalTime.MIDNIGHT)
+        DateTimeFormatter.ofPattern("yyyy-MM-dd") else dateFormatter
+
     var expanded by remember { mutableStateOf(false) }
 
     Card(
@@ -103,7 +106,7 @@ fun MedicalRecordCard(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = record.onsetTime.format(dateFormatter),
+                        text = record.onsetTime.format(displayFormatter),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
