@@ -1,20 +1,25 @@
 package com.yy.medtrace.data.llm
 
-import com.yy.medtrace.data.settings.LlmSettingsStore
+import com.yy.medtrace.data.settings.AiServiceManager
 import kotlinx.serialization.json.Json
 import retrofit2.HttpException
 import java.io.IOException
 
-abstract class BaseLlmUseCase(protected val settings: LlmSettingsStore) {
+abstract class BaseLlmUseCase(protected val aiServiceManager: AiServiceManager) {
     protected val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
 
     protected suspend fun getLlmApi(): Pair<LlmApi, String> {
-        val base = settings.getBaseUrl() ?: error("LLM base URL 未设置")
-        val key = settings.getApiKey() ?: error("LLM API key 未设置")
+        val service = aiServiceManager.getCurrentService() ?: error("未选择 AI 服务")
+        val base = service.baseUrl.ifBlank { error("LLM base URL 未设置") }
+        val key = aiServiceManager.getApiKey(service.id) ?: error("LLM API key 未设置")
         return Pair(LlmApi.create(base.normalizeBaseUrl()), "Bearer $key")
     }
 
-    protected suspend fun getModel(): String = settings.getModel() ?: "gpt-4o"
+    protected suspend fun getModel(): String = when (aiServiceManager.getCurrentService()?.id) {
+        "deepseek" -> "deepseek-chat"
+        "mimo" -> "mimo-chat"
+        else -> "gpt-4o"
+    }
 
     protected suspend fun callApi(request: ChatRequest): String {
         val (api, auth) = getLlmApi()

@@ -27,7 +27,6 @@ import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
@@ -48,7 +47,7 @@ import com.yy.medtrace.data.llm.preferredVisitDateTime
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.data.model.MedicationItem
-import com.yy.medtrace.data.settings.LlmSettingsStore
+import com.yy.medtrace.data.settings.AiServiceManager
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
@@ -114,14 +113,14 @@ fun AddMedicalRecordScreen(
     var analysisProgress by remember { mutableStateOf("") }
     var showConsent by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
 
     val isFromBottomSheet = memberId != -1L
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-    val analysisUseCase = remember { AnalysisUseCase(LlmSettingsStore(context)) }
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val analysisUseCase = remember { AnalysisUseCase(AiServiceManager(context)) }
 
     LaunchedEffect(Unit) {
         database.familyMemberDao().getAllMembers().collect { list ->
@@ -330,7 +329,7 @@ fun AddMedicalRecordScreen(
                         }
                         Text(stringResource(R.string.screen_add_record_summary_diagnosis, diagnosis.ifBlank { stringResource(R.string.screen_add_record_summary_blank) }))
                         if (hospital.isNotBlank()) Text(stringResource(R.string.screen_add_record_summary_hospital, hospital))
-                        Text(stringResource(R.string.screen_add_record_summary_time, onsetTime.format(dateTimeFormatter)))
+                        Text(stringResource(R.string.screen_add_record_summary_time, onsetTime.format(dateFormatter)))
                     }
                 }
             } else {
@@ -363,7 +362,7 @@ fun AddMedicalRecordScreen(
                     ) {
                         Icon(Icons.Default.DateRange, stringResource(R.string.screen_add_record_icon_select_datetime))
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.screen_add_record_label_visit_time, onsetTime.format(dateTimeFormatter)))
+                        Text(stringResource(R.string.screen_add_record_label_visit_time, onsetTime.format(dateFormatter)))
                     }
                 }
             }
@@ -443,13 +442,14 @@ fun AddMedicalRecordScreen(
 
             // AI 智能识别区（需要配置 AI 才能使用）
             SectionCard(title = stringResource(R.string.screen_add_record_section_ai_recognition)) {
-                // 检查是否已配置 AI
-                val llmSettings = remember { com.yy.medtrace.data.settings.LlmSettingsStore(context) }
+                // 检查是否已配置 AI（与设置页共用 AiServiceManager 单一来源）
+                val aiServiceManager = remember { com.yy.medtrace.data.settings.AiServiceManager(context) }
                 var isAiConfigured by remember { mutableStateOf(false) }
-                
+
                 LaunchedEffect(Unit) {
                     isAiConfigured = runCatching {
-                        llmSettings.getApiKey()?.isNotBlank() == true
+                        val currentId = aiServiceManager.currentServiceId.value
+                        aiServiceManager.getApiKey(currentId)?.isNotBlank() == true
                     }.getOrDefault(false)
                 }
                 
@@ -631,10 +631,9 @@ fun AddMedicalRecordScreen(
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
                         val selectedDate = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-                        onsetTime = LocalDateTime.of(selectedDate, onsetTime.toLocalTime())
+                        onsetTime = selectedDate.atStartOfDay()
                     }
                     showDatePicker = false
-                    showTimePicker = true
                 }) { Text(stringResource(R.string.btn_confirm)) }
             },
             dismissButton = {
@@ -643,26 +642,6 @@ fun AddMedicalRecordScreen(
         ) {
             DatePicker(state = datePickerState)
         }
-    }
-
-    if (showTimePicker) {
-        val timePickerState = rememberTimePickerState(
-            initialHour = onsetTime.hour,
-            initialMinute = onsetTime.minute
-        )
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    onsetTime = LocalDateTime.of(onsetTime.toLocalDate(), java.time.LocalTime.of(timePickerState.hour, timePickerState.minute))
-                    showTimePicker = false
-                }) { Text(stringResource(R.string.btn_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.btn_cancel)) }
-            },
-            text = { TimePicker(state = timePickerState) }
-        )
     }
 }
 

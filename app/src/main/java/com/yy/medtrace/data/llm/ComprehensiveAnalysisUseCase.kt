@@ -2,7 +2,7 @@ package com.yy.medtrace.data.llm
 
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.MedicalRecord
-import com.yy.medtrace.data.settings.LlmSettingsStore
+import com.yy.medtrace.data.settings.AiServiceManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
 
@@ -12,7 +12,7 @@ data class ComprehensiveResult(
     val raw: String
 )
 
-class ComprehensiveAnalysisUseCase(settings: LlmSettingsStore) : BaseLlmUseCase(settings) {
+class ComprehensiveAnalysisUseCase(aiServiceManager: AiServiceManager) : BaseLlmUseCase(aiServiceManager) {
 
     private fun buildSummary(member: FamilyMember, records: List<MedicalRecord>, maskPii: Boolean = false): String {
         val name = if (maskPii) "成员A" else member.name

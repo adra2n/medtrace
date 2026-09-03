@@ -1,6 +1,6 @@
 package com.yy.medtrace.data.llm
 
-import com.yy.medtrace.data.settings.LlmSettingsStore
+import com.yy.medtrace.data.settings.AiServiceManager
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonArray
@@ -31,7 +31,7 @@ data class Metric(val name: String, val value: String, val unit: String, val ran
 @Serializable
 data class Item(val name: String, val dose: String, val note: String)
 
-class AnalysisUseCase(settings: LlmSettingsStore) : BaseLlmUseCase(settings) {
+class AnalysisUseCase(aiServiceManager: AiServiceManager) : BaseLlmUseCase(aiServiceManager) {
 
     suspend fun analyze(text: String, images: List<String>): AnalysisResult {
         val model = getModel()
