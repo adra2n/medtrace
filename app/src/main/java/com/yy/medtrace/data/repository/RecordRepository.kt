@@ -14,6 +14,9 @@ interface RecordRepository {
     suspend fun getRecordById(id: Long): MedicalRecord?
     fun getRecentRecords(limit: Int): Flow<List<MedicalRecord>>
     fun getRecentRecordsByMember(patientId: Long, limit: Int): Flow<List<MedicalRecord>>
+
+    /** 每位成员最近一次就诊记录（每人最多一条），用于首页「最新记录」。 */
+    fun getLatestRecordPerMember(): Flow<List<MedicalRecord>>
     fun searchByMember(
         patientId: Long,
         keyword: String?,
@@ -30,6 +33,17 @@ interface RecordRepository {
         limit: Int,
         offset: Int
     ): List<MedicalRecord>
+
+    /** 全部成员的记录分页查询（不按 patientId 过滤）。 */
+    suspend fun searchAllPaged(
+        keyword: String?,
+        likePattern: String,
+        from: LocalDateTime,
+        to: LocalDateTime,
+        limit: Int,
+        offset: Int
+    ): List<MedicalRecord>
+
     suspend fun getLatestRecord(): MedicalRecord?
     suspend fun insert(record: MedicalRecord): Long
     suspend fun count(): Int

@@ -33,9 +33,10 @@ class MedicalRecordViewModel @Inject constructor(
         const val PAGE_SIZE = 20
     }
 
-    /** 最近一次查询条件，供「加载更多」与「删除后刷新」复用，避免刷新到错误的成员。 */
+    /** 最近一次查询条件，供「加载更多」与「删除后刷新」复用，避免刷新到错误的成员。
+     *  memberId 为 null 表示不按成员过滤（展示所有人的记录）。 */
     private data class RecordQuery(
-        val memberId: Long,
+        val memberId: Long?,
         val keyword: String?,
         val fromDate: Long?,
         val toDate: Long?
@@ -67,10 +68,11 @@ class MedicalRecordViewModel @Inject constructor(
     /**
      * 加载记录。
      *
+     * @param memberId 指定成员 id；为 null 时不按成员过滤，展示所有人的记录。
      * @param append true 时把本页数据追加到已有列表之后（分页加载），false 时替换列表。
      */
     fun loadRecords(
-        memberId: Long,
+        memberId: Long? = null,
         keyword: String? = null,
         fromDate: Long? = null,
         toDate: Long? = null,
@@ -107,20 +109,31 @@ class MedicalRecordViewModel @Inject constructor(
                     LocalDateTime.of(9999, 12, 31, 23, 59, 59)
                 }
 
-                val page = recordRepository.searchByMemberPaged(
-                    patientId = memberId,
-                    keyword = kw,
-                    likePattern = likePattern,
-                    from = from,
-                    to = to,
-                    limit = PAGE_SIZE,
-                    offset = offset
-                )
+                val page = if (memberId == null) {
+                    recordRepository.searchAllPaged(
+                        keyword = kw,
+                        likePattern = likePattern,
+                        from = from,
+                        to = to,
+                        limit = PAGE_SIZE,
+                        offset = offset
+                    )
+                } else {
+                    recordRepository.searchByMemberPaged(
+                        patientId = memberId,
+                        keyword = kw,
+                        likePattern = likePattern,
+                        from = from,
+                        to = to,
+                        limit = PAGE_SIZE,
+                        offset = offset
+                    )
+                }
 
                 _uiState.update { state ->
                     val merged = if (append) state.records + page else page
                     state.copy(
-                        currentMemberId = memberId,
+                        currentMemberId = memberId ?: 0L,
                         keyword = keyword,
                         fromDate = fromDate,
                         toDate = toDate,

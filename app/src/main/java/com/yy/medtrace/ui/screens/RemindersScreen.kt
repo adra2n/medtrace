@@ -7,15 +7,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -36,10 +36,10 @@ import com.yy.medtrace.data.settings.UserMode
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.RepeatType
 import com.yy.medtrace.ui.components.SectionCard
+import com.yy.medtrace.ui.components.SectionHeader
 import com.yy.medtrace.ui.components.TodoCategory
 import com.yy.medtrace.ui.components.TodoEditSheet
 import com.yy.medtrace.ui.components.repeatLabelOrNull
-import com.yy.medtrace.ui.components.todoCategoryFromStored
 import com.yy.medtrace.ui.components.todoCategoryLabel
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.CardPadding
@@ -64,7 +64,6 @@ fun RemindersScreen(
     var showTodoSheet by remember { mutableStateOf(false) }
     var editingTodo by remember { mutableStateOf<HealthTodo?>(null) }
     var sheetCategory by remember { mutableStateOf(TodoCategory.OTHER) }
-    var expandedTypes by remember { mutableStateOf(setOf<String>()) }
 
     val currentMode by userModeStore.currentMode.collectAsState()
     val isElderlyMode = currentMode == UserMode.ELDERLY
@@ -75,8 +74,6 @@ fun RemindersScreen(
 
     val members = uiState.members
     val todos = uiState.todos
-
-    val groupedByType = remember(todos) { todos.groupBy { it.category } }
 
     Scaffold(
         topBar = {
@@ -124,12 +121,8 @@ fun RemindersScreen(
                 }
             }
 
-            // 本周计划 - 长辈版隐藏
-            if (!isElderlyMode) {
-                item { WeeklyPlanSection(todos = todos) }
-            }
-
-            if (groupedByType.isEmpty()) {
+            // 全部提醒：直接平铺所有人的提醒（已移除"本周计划"与按类型折叠分组）
+            if (todos.isEmpty()) {
                 item {
                     EmptyReminders(onAdd = {
                         editingTodo = null
@@ -138,23 +131,21 @@ fun RemindersScreen(
                     })
                 }
             } else {
-                groupedByType.forEach { (type, typeTodos) ->
-                    val isExpanded = if (isElderlyMode) true else expandedTypes.contains(type)
-                    item(key = "type_$type") {
-                        ReminderTypeGroup(
-                            type = type,
-                            todos = typeTodos,
-                            isExpanded = isExpanded,
-                            onToggleExpand = {
-                                expandedTypes = if (isExpanded) expandedTypes - type
-                                else expandedTypes + type
-                            },
-                            onToggle = { todo, done -> viewModel.setTodoDone(todo.id, done) },
-                            onDelete = { viewModel.deleteTodo(it) },
-                            onEdit = { editingTodo = it },
-                            isElderlyMode = isElderlyMode
-                        )
-                    }
+                item(key = "header_all_reminders") {
+                    SectionHeader(
+                        icon = Icons.Default.Notifications,
+                        title = stringResource(R.string.screen_reminders_all_title),
+                        count = todos.size
+                    )
+                }
+                items(todos, key = { "todo_${it.id}" }) { todo ->
+                    ReminderItem(
+                        todo = todo,
+                        onToggle = { viewModel.setTodoDone(todo.id, !todo.done) },
+                        onDelete = { viewModel.deleteTodo(todo) },
+                        onEdit = { editingTodo = todo },
+                        isElderlyMode = isElderlyMode
+                    )
                 }
             }
         }
@@ -215,94 +206,6 @@ private fun EmptyReminders(onAdd: () -> Unit) {
         actionText = stringResource(R.string.screen_reminders_add_reminder),
         onAction = onAdd
     )
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-private fun ReminderTypeGroup(
-    type: String,
-    todos: List<HealthTodo>,
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
-    onToggle: (HealthTodo, Boolean) -> Unit,
-    onDelete: (HealthTodo) -> Unit,
-    onEdit: (HealthTodo) -> Unit,
-    isElderlyMode: Boolean = false
-) {
-    val pendingCount = todos.count { !it.done }
-    val category = todoCategoryFromStored(type)
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = AppShapes.large,
-        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-        elevation = appCardElevation()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onToggleExpand)
-                .padding(if (isElderlyMode) CardPaddingElderly else CardPadding)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(if (isElderlyMode) 40.dp else 32.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        category.icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(if (isElderlyMode) 24.dp else 18.dp)
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        type,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontSize = if (isElderlyMode) 20.sp
-                            else MaterialTheme.typography.titleSmall.fontSize
-                        ),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        stringResource(R.string.screen_reminders_pending_count, todos.size, pendingCount),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = if (isElderlyMode) 16.sp
-                            else MaterialTheme.typography.labelSmall.fontSize
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = stringResource(R.string.cd_toggle_expand),
-                    modifier = Modifier.size(if (isElderlyMode) 28.dp else 20.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            if (isExpanded) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                todos.forEach { todo ->
-                    ReminderItem(
-                        todo = todo,
-                        onToggle = { onToggle(todo, !todo.done) },
-                        onDelete = { onDelete(todo) },
-                        onEdit = { onEdit(todo) },
-                        isElderlyMode = isElderlyMode
-                    )
-                }
-            }
-        }
-    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -474,77 +377,3 @@ private fun QuickAddChip(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-private fun WeeklyPlanSection(todos: List<HealthTodo>) {
-    val today = LocalDate.now()
-    val weekEnd = today.plusDays(6)
-    val weeklyTodos = todos.filter {
-        !it.done && it.dueDate in today..weekEnd
-    }.sortedBy { it.dueDate }
-
-    SectionCard(title = stringResource(R.string.screen_reminders_weekly_plan)) {
-        if (weeklyTodos.isEmpty()) {
-            Text(
-                stringResource(R.string.screen_reminders_no_pending),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            weeklyTodos.take(5).forEach { todo ->
-                val dayLabel = when (todo.dueDate) {
-                    today -> stringResource(R.string.screen_reminders_today)
-                    today.plusDays(1) -> stringResource(R.string.screen_reminders_tomorrow)
-                    today.plusDays(2) -> stringResource(R.string.screen_reminders_day_after_tomorrow)
-                    else -> {
-                        when (todo.dueDate.dayOfWeek) {
-                            java.time.DayOfWeek.MONDAY -> stringResource(R.string.screen_reminders_monday)
-                            java.time.DayOfWeek.TUESDAY -> stringResource(R.string.screen_reminders_tuesday)
-                            java.time.DayOfWeek.WEDNESDAY -> stringResource(R.string.screen_reminders_wednesday)
-                            java.time.DayOfWeek.THURSDAY -> stringResource(R.string.screen_reminders_thursday)
-                            java.time.DayOfWeek.FRIDAY -> stringResource(R.string.screen_reminders_friday)
-                            java.time.DayOfWeek.SATURDAY -> stringResource(R.string.screen_reminders_saturday)
-                            java.time.DayOfWeek.SUNDAY -> stringResource(R.string.screen_reminders_sunday)
-                            else -> todo.dueDate.format(DateTimeFormatter.ofPattern("MM-dd"))
-                        }
-                    }
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        dayLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (todo.dueDate == today) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.width(40.dp)
-                    )
-                    Text(
-                        todo.content,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        todo.memberName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            if (weeklyTodos.size > 5) {
-                Text(
-                    stringResource(R.string.screen_reminders_more_items, weeklyTodos.size - 5),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-        }
-    }
-}

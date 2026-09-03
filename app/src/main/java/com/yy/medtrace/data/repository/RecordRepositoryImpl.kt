@@ -39,6 +39,10 @@ class RecordRepositoryImpl(private val medicalRecordDao: MedicalRecordDao) : Rec
     override fun getRecentRecordsByMember(patientId: Long, limit: Int): Flow<List<MedicalRecord>> {
         return medicalRecordDao.getRecentRecordsByMember(patientId, limit)
     }
+
+    override fun getLatestRecordPerMember(): Flow<List<MedicalRecord>> {
+        return medicalRecordDao.getLatestRecordPerMember()
+    }
     
     override fun searchByMember(
         patientId: Long,
@@ -60,6 +64,17 @@ class RecordRepositoryImpl(private val medicalRecordDao: MedicalRecordDao) : Rec
         offset: Int
     ): List<MedicalRecord> {
         return medicalRecordDao.searchByMemberPaged(patientId, keyword, likePattern, from, to, limit, offset)
+    }
+
+    override suspend fun searchAllPaged(
+        keyword: String?,
+        likePattern: String,
+        from: LocalDateTime,
+        to: LocalDateTime,
+        limit: Int,
+        offset: Int
+    ): List<MedicalRecord> {
+        return medicalRecordDao.searchAllPaged(keyword, likePattern, from, to, limit, offset)
     }
     
     override suspend fun getLatestRecord(): MedicalRecord? {

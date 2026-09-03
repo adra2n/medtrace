@@ -102,10 +102,16 @@
     <string name="screen_home_member_info">%1$s · %2$d岁</string>
     <string name="screen_home_member_allergy">过敏：%1$s</string>
     <string name="screen_home_todo_count">%1$d项待办</string>
-    <string name="screen_home_today_reminders">今日提醒（%1$d项待办）</string>
+    <string name="screen_home_recent_reminders">最近提醒（%1$d项待办）</string>
     <string name="screen_home_view_all">查看全部 %1$d 项待办</string>
-    <string name="screen_home_recent_records">最近记录</string>
+    <string name="screen_home_recent_records">最新记录</string>
+    <string name="screen_home_recent_records_hint">每位家人最近一次就诊</string>
     <string name="screen_home_view_all_records">查看全部</string>
+    <string name="screen_home_record_unknown_member">未归属</string>
+    <string name="screen_home_reminder_overdue">已逾期</string>
+    <string name="screen_home_reminder_today">今天</string>
+    <string name="screen_home_reminder_tomorrow">明天</string>
+    <string name="screen_home_reminder_days_later">%1$d天后</string>
     <string name="screen_home_quick_functions">快捷功能</string>
     <string name="screen_home_add_medication">添加健康提醒</string>
     <string name="screen_home_visit_record">添加就诊记录</string>
@@ -167,6 +173,7 @@
     <!-- 提醒管理页面 -->
     <string name="screen_reminders_title">提醒管理</string>
     <string name="screen_reminders_subtitle">查看和管理所有提醒</string>
+    <string name="screen_reminders_all_title">全部提醒</string>
     <string name="screen_reminders_add_reminder">添加提醒</string>
     <string name="screen_reminders_edit_reminder">编辑提醒</string>
     <string name="screen_reminders_empty_title">暂无提醒</string>
@@ -392,7 +399,7 @@
     <string name="profile_btn_got_it">知道了</string>
 
     <!-- MedicalRecordScreen -->
-    <string name="medical_record_title">就诊记录</string>
+    <string name="medical_record_title">就诊管理</string>
     <string name="medical_record_subtitle_count">共 %1$d 条记录</string>
     <string name="medical_record_cd_add">添加记录</string>
     <string name="medical_record_overview">记录概览</string>
@@ -412,6 +419,8 @@
     <string name="medical_record_filter_to">结束</string>
     <string name="medical_record_btn_reset">重置筛选</string>
     <string name="medical_record_list_title">记录列表</string>
+    <string name="medical_record_all_title">全部记录</string>
+    <string name="medical_record_empty_no_records_all">还没有任何就诊记录</string>
     <string name="medical_record_error_loading">加载数据时出错：%1$s</string>
     <string name="medical_record_empty_no_match">没有符合筛选条件的记录</string>
     <string name="medical_record_empty_no_records">该成员还没有就诊记录</string>

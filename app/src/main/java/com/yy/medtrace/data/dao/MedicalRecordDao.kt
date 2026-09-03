@@ -31,6 +31,27 @@ interface MedicalRecordDao {
     @Query("SELECT * FROM medical_records WHERE patientId = :patientId ORDER BY COALESCE(onsetTime, '0000-01-01T00:00:00') DESC LIMIT :limit")
     fun getRecentRecordsByMember(patientId: Long, limit: Int): Flow<List<MedicalRecord>>
 
+    /**
+     * 每位成员最近一次就诊记录：先按 patientId 分组取 onsetTime 最大值，再回连原表取整行。
+     * 外层再 GROUP BY patientId 是为了给「同一成员同一时间存在多条」的情况去重，
+     * 保证每个成员最多只返回一条，供首页「最新记录」按人平铺展示。
+     */
+    @Query(
+        """
+        SELECT m.* FROM medical_records m
+        INNER JOIN (
+            SELECT patientId, MAX(COALESCE(onsetTime, '0000-01-01T00:00:00')) AS maxOnset
+            FROM medical_records
+            GROUP BY patientId
+        ) latest
+          ON m.patientId = latest.patientId
+         AND COALESCE(m.onsetTime, '0000-01-01T00:00:00') = latest.maxOnset
+        GROUP BY m.patientId
+        ORDER BY COALESCE(m.onsetTime, '0000-01-01T00:00:00') DESC
+        """
+    )
+    fun getLatestRecordPerMember(): Flow<List<MedicalRecord>>
+
     @Query(
         """
         SELECT * FROM medical_records
@@ -60,6 +81,27 @@ interface MedicalRecordDao {
     )
     suspend fun searchByMemberPaged(
         patientId: Long,
+        keyword: String?,
+        likePattern: String,
+        from: java.time.LocalDateTime,
+        to: java.time.LocalDateTime,
+        limit: Int,
+        offset: Int
+    ): List<MedicalRecord>
+
+    /**
+     * 全部成员的记录分页查询（不按 patientId 过滤），用于"记录"页展示所有人的记录。
+     */
+    @Query(
+        """
+        SELECT * FROM medical_records
+        WHERE (:keyword IS NULL OR :keyword = '' OR diagnosis LIKE :likePattern OR hospital LIKE :likePattern OR notes LIKE :likePattern)
+          AND onsetTime >= :from AND onsetTime <= :to
+        ORDER BY onsetTime DESC
+        LIMIT :limit OFFSET :offset
+        """
+    )
+    suspend fun searchAllPaged(
         keyword: String?,
         likePattern: String,
         from: java.time.LocalDateTime,

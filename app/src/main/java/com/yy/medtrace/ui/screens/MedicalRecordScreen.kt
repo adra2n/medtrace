@@ -7,12 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.MedicalServices
-import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -31,7 +27,7 @@ import com.yy.medtrace.data.settings.UserMode
 import com.yy.medtrace.ui.components.AddRecordBottomSheet
 import com.yy.medtrace.ui.components.EmptyState
 import com.yy.medtrace.ui.components.MedicalRecordCard
-import com.yy.medtrace.ui.state.SelectedMemberHolder
+import com.yy.medtrace.ui.components.SectionHeader
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.CardPadding
 import com.yy.medtrace.ui.theme.CardPaddingElderly
@@ -41,12 +37,9 @@ import com.yy.medtrace.ui.theme.ScreenHorizontalPaddingElderly
 import com.yy.medtrace.ui.theme.appCardElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import com.yy.medtrace.viewmodel.MedicalRecordViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
-private const val SEARCH_DEBOUNCE_MS = 300L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,21 +52,7 @@ fun MedicalRecordScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     var pendingDelete by remember { mutableStateOf<MedicalRecord?>(null) }
-    var keyword by remember { mutableStateOf("") }
-    // 输入防抖：避免每敲一个字都查一次数据库
-    val debouncedKeyword by produceState(initialValue = "", keyword) {
-        delay(SEARCH_DEBOUNCE_MS)
-        value = keyword
-    }
-    var fromDate by remember { mutableStateOf<LocalDate?>(null) }
-    var toDate by remember { mutableStateOf<LocalDate?>(null) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var datePickerTarget by remember { mutableStateOf(DateTarget.From) }
-    var showFilter by remember { mutableStateOf(false) }
-    var showMemberMenu by remember { mutableStateOf(false) }
-    var sortOrder by remember { mutableStateOf("time") }
     var showAddRecordSheet by remember { mutableStateOf(false) }
-    val selectedMemberId = SelectedMemberHolder.selectedMemberId.value
 
     val currentMode by userModeStore.currentMode.collectAsState()
     val isElderlyMode = currentMode == UserMode.ELDERLY
@@ -81,29 +60,10 @@ fun MedicalRecordScreen(
     val dateFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm") }
     val dayFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd") }
 
+    // 「记录」页展示所有人的记录：memberId = null 走全量查询（不按成员过滤）。
     LaunchedEffect(Unit) {
         viewModel.loadMembers()
-        if (SelectedMemberHolder.selectedMemberId.value == null) {
-            val latest = viewModel.getLatestRecord()
-            val defaultMember = viewModel.getDefaultMember()
-            val fallbackId = latest?.patientId ?: defaultMember?.id ?: 1L
-            scope.launch { SelectedMemberHolder.select(fallbackId, viewModel.database) }
-        }
-    }
-
-    // 筛选条件变化时重新加载第一页
-    LaunchedEffect(selectedMemberId, debouncedKeyword, fromDate, toDate) {
-        val id = selectedMemberId
-        if (id != null) {
-            viewModel.loadRecords(
-                memberId = id,
-                keyword = debouncedKeyword.trim().takeIf { it.isNotEmpty() },
-                fromDate = fromDate.atStartOfDayMillis(),
-                toDate = toDate.atEndOfDayMillis()
-            )
-        } else {
-            viewModel.loadRecords(0)
-        }
+        viewModel.loadRecords(memberId = null)
     }
 
     Scaffold(
@@ -114,40 +74,6 @@ fun MedicalRecordScreen(
                     stringResource(R.string.medical_record_subtitle_count, uiState.records.size)
                 } else null,
                 actions = {
-                    Box {
-                        IconButton(onClick = { showMemberMenu = true }) {
-                            Icon(
-                                Icons.Default.People,
-                                contentDescription = stringResource(R.string.medical_record_cd_select_member),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showMemberMenu,
-                            onDismissRequest = { showMemberMenu = false }
-                        ) {
-                            uiState.members.forEach { member ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = if (member.relation.isNotBlank()) {
-                                                "${member.name}（${member.relation}）"
-                                            } else member.name,
-                                            color = if (member.id == selectedMemberId) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else MaterialTheme.colorScheme.onSurface
-                                        )
-                                    },
-                                    onClick = {
-                                        scope.launch {
-                                            SelectedMemberHolder.select(member.id, viewModel.database)
-                                        }
-                                        showMemberMenu = false
-                                    }
-                                )
-                            }
-                        }
-                    }
                     IconButton(onClick = { showAddRecordSheet = true }) {
                         Icon(
                             Icons.Default.Add,
@@ -161,14 +87,10 @@ fun MedicalRecordScreen(
     ) { padding ->
         val listState = rememberLazyListState()
         val isRefreshing by viewModel.isRefreshing.collectAsState()
-        // 排序作用于已加载（经分页增量合并）的全部记录；数据库里有更多记录时
-        // 会在滚动到底部时通过 loadMore() 继续加载，排序随之覆盖完整数据集。
-        val sortedRecords = remember(uiState.records, sortOrder) {
-            when (sortOrder) {
-                "hospital" -> uiState.records.sortedBy { it.hospital.ifBlank { "zzz" } }
-                "diagnosis" -> uiState.records.sortedBy { it.diagnosis.ifBlank { "zzz" } }
-                else -> uiState.records.sortedByDescending { it.onsetTime }
-            }
+        // 统一按就诊时间倒序（最新的排最前）。记录再多也会在滚动到底部时通过
+        // loadMore() 增量加载，排序随之覆盖完整数据集。
+        val sortedRecords = remember(uiState.records) {
+            uiState.records.sortedByDescending { it.onsetTime }
         }
 
         PullToRefreshBox(
@@ -188,105 +110,6 @@ fun MedicalRecordScreen(
                     if (isElderlyMode) CardPaddingElderly else CardPadding
                 ),
             ) {
-            // 搜索筛选 - 长辈版简化
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = AppShapes.large,
-                    colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                    elevation = appCardElevation()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(if (isElderlyMode) 16.dp else 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = keyword,
-                            onValueChange = { keyword = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = {
-                                Text(
-                                    stringResource(R.string.medical_record_search_placeholder),
-                                    style = if (isElderlyMode) MaterialTheme.typography.bodyLarge
-                                    else MaterialTheme.typography.bodyMedium
-                                )
-                            },
-                            singleLine = true,
-                            trailingIcon = {
-                                Row {
-                                    if (keyword.isNotEmpty()) {
-                                        IconButton(onClick = { keyword = "" }) {
-                                            Icon(
-                                                Icons.Default.Close,
-                                                contentDescription = stringResource(R.string.medical_record_cd_clear)
-                                            )
-                                        }
-                                    }
-                                    if (!isElderlyMode) {
-                                        IconButton(onClick = { showFilter = !showFilter }) {
-                                            Icon(
-                                                Icons.Default.Settings,
-                                                contentDescription = stringResource(R.string.medical_record_cd_filter),
-                                                tint = if (showFilter || fromDate != null || toDate != null) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Search,
-                                    contentDescription = stringResource(R.string.medical_record_cd_search)
-                                )
-                            },
-                            textStyle = if (isElderlyMode) MaterialTheme.typography.bodyLarge
-                            else MaterialTheme.typography.bodyMedium
-                        )
-                        if (!isElderlyMode && showFilter) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                FilterDateChip(
-                                    label = stringResource(R.string.medical_record_filter_from),
-                                    value = fromDate?.format(dayFormatter),
-                                    onClick = {
-                                        datePickerTarget = DateTarget.From
-                                        showDatePicker = true
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                FilterDateChip(
-                                    label = stringResource(R.string.medical_record_filter_to),
-                                    value = toDate?.format(dayFormatter),
-                                    onClick = {
-                                        datePickerTarget = DateTarget.To
-                                        showDatePicker = true
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                        if (keyword.isNotEmpty() || fromDate != null || toDate != null) {
-                            TextButton(
-                                onClick = {
-                                    keyword = ""
-                                    fromDate = null
-                                    toDate = null
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(stringResource(R.string.medical_record_btn_reset))
-                            }
-                        }
-                    }
-                }
-            }
-
             when {
                 uiState.isLoading -> {
                     item {
@@ -320,65 +143,21 @@ fun MedicalRecordScreen(
                     item {
                         EmptyState(
                             icon = Icons.Default.MedicalServices,
-                            title = if (keyword.isNotEmpty() || fromDate != null || toDate != null) {
-                                stringResource(R.string.medical_record_empty_no_match)
-                            } else {
-                                stringResource(R.string.medical_record_empty_no_records)
-                            },
-                            hint = if (keyword.isEmpty() && fromDate == null && toDate == null) {
-                                stringResource(R.string.medical_record_empty_hint)
-                            } else null,
+                            title = stringResource(R.string.medical_record_empty_no_records_all),
+                            hint = stringResource(R.string.medical_record_empty_hint),
                             modifier = Modifier.padding(top = 32.dp)
                         )
                     }
                 }
 
                 else -> {
-                    // 记录列表标题
+                    // 分区标题：与「提醒」页保持一致的结构（图标 + 标题 + 数量徽标）
                     item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.MedicalServices,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(if (isElderlyMode) 24.dp else 20.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.medical_record_list_title),
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontSize = if (isElderlyMode) 18.sp
-                                    else MaterialTheme.typography.titleSmall.fontSize
-                                ),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    // 排序选项 - 长辈版隐藏
-                    if (!isElderlyMode) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                val sortOptions = listOf(
-                                    "time" to stringResource(R.string.settings_sort_by_time),
-                                    "hospital" to stringResource(R.string.settings_sort_by_hospital),
-                                    "diagnosis" to stringResource(R.string.settings_sort_by_diagnosis)
-                                )
-                                sortOptions.forEach { (key, label) ->
-                                    FilterChip(
-                                        selected = sortOrder == key,
-                                        onClick = { sortOrder = key },
-                                        label = { Text(label) }
-                                    )
-                                }
-                            }
-                        }
+                        SectionHeader(
+                            icon = Icons.Default.MedicalServices,
+                            title = stringResource(R.string.medical_record_all_title),
+                            count = uiState.records.size
+                        )
                     }
 
                     items(sortedRecords, key = { it.id }) { record ->
@@ -451,22 +230,6 @@ fun MedicalRecordScreen(
         )
     }
 
-    if (showDatePicker) {
-        val initial = (if (datePickerTarget == DateTarget.From) fromDate else toDate)
-            ?: LocalDate.now()
-        val dialog = android.app.DatePickerDialog(
-            context,
-            { _, y, m, d ->
-                val picked = LocalDate.of(y, m + 1, d)
-                if (datePickerTarget == DateTarget.From) fromDate = picked else toDate = picked
-                showDatePicker = false
-            },
-            initial.year, initial.monthValue - 1, initial.dayOfMonth
-        )
-        dialog.setOnCancelListener { showDatePicker = false }
-        dialog.show()
-    }
-
     pendingDelete?.let { record ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
@@ -500,19 +263,3 @@ private fun LocalDate?.atStartOfDayMillis(): Long? =
 private fun LocalDate?.atEndOfDayMillis(): Long? =
     this?.atTime(23, 59, 59)?.atZone(java.time.ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
 
-private enum class DateTarget { From, To }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FilterDateChip(
-    label: String,
-    value: String?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    AssistChip(
-        onClick = onClick,
-        label = { Text(if (value != null) "$label：$value" else label) },
-        modifier = modifier
-    )
-}

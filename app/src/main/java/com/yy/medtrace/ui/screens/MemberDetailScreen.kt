@@ -26,8 +26,10 @@ import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.data.model.MedicalRecord
+import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.components.MemberEditDialog
 import com.yy.medtrace.ui.components.MedicalRecordCard
+import com.yy.medtrace.ui.components.SectionHeader
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
@@ -193,20 +195,11 @@ private fun MemberSummaryCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                // 使用成员已设置的头像（avatarPath），未设置时回退首字母占位。
+                MemberAvatar(
+                    member = member,
                     modifier = Modifier.size(48.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = member.name.take(1),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = member.name,
@@ -262,50 +255,6 @@ private fun SummaryStat(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    count: Int,
-    modifier: Modifier = Modifier,
-    action: @Composable (() -> Unit)? = null
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
-        Surface(
-            shape = AppShapes.small,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-        ) {
-            Text(
-                text = count.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-            )
-        }
-        if (action != null) {
-            action()
         }
     }
 }
