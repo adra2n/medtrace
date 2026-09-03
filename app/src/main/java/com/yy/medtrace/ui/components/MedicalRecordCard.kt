@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.automirrored.filled.Notes
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -61,6 +60,7 @@ fun MedicalRecordCard(
     record: MedicalRecord,
     dateFormatter: DateTimeFormatter = DefaultDateFormatter,
     showActions: Boolean = true,
+    showPatientName: Boolean = true,
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
@@ -85,23 +85,28 @@ fun MedicalRecordCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.People,
+                    Icons.Default.LocalHospital,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = record.patientName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    if (showPatientName) {
+                        Text(
+                            text = record.patientName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     Text(
                         text = record.diagnosis,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = if (showPatientName) MaterialTheme.typography.bodyMedium
+                        else MaterialTheme.typography.titleMedium,
+                        fontWeight = if (showPatientName) FontWeight.Normal else FontWeight.Bold,
+                        color = if (showPatientName) MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
