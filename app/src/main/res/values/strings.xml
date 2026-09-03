@@ -29,6 +29,9 @@
     <string name="tab_exam_reports">检查报告</string>
     <string name="tab_check_indicators">检查指标</string>
     <string name="tab_visit_records">就诊记录</string>
+    <string name="member_detail_section_reminders">后续提醒</string>
+    <string name="member_detail_no_reminders">暂无后续提醒</string>
+    <string name="member_detail_reminder_done">已完成</string>
     
     <!-- 提示文本 -->
     <string name="empty_reminders">还没有添加任何用药提醒</string>

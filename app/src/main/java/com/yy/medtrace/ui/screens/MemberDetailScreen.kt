@@ -3,11 +3,9 @@ package com.yy.medtrace.ui.screens
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
@@ -22,13 +20,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
+import com.yy.medtrace.data.model.HealthTodo
 import com.yy.medtrace.data.model.MedicalRecord
 import com.yy.medtrace.ui.components.EmptyRecordsState
-import com.yy.medtrace.ui.components.MemberAvatar
 import com.yy.medtrace.ui.components.MemberEditDialog
 import com.yy.medtrace.ui.components.MedicalRecordCard
 import com.yy.medtrace.ui.components.SectionCard
-import com.yy.medtrace.ui.components.buildSeries
 import com.yy.medtrace.ui.state.SelectedMemberHolder
 import com.yy.medtrace.ui.theme.AppShapes
 import com.yy.medtrace.ui.theme.GradientTopBar
@@ -38,13 +35,6 @@ import com.yy.medtrace.ui.theme.computeAge
 import com.yy.medtrace.viewmodel.MemberDetailViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-
-private enum class DetailTab(val labelResId: Int) {
-    Medication(R.string.tab_medication_records),
-    Exam(R.string.tab_exam_reports),
-    Metric(R.string.tab_check_indicators),
-    Visit(R.string.tab_visit_records)
-}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,11 +48,7 @@ fun MemberDetailScreen(
     val database = viewModel.database
     var member by remember { mutableStateOf<FamilyMember?>(null) }
     var records by remember { mutableStateOf<List<MedicalRecord>>(emptyList()) }
-    var selectedTab by remember {
-        mutableStateOf(
-            if (initialTab == "check") DetailTab.Exam else DetailTab.Medication
-        )
-    }
+    var reminders by remember { mutableStateOf<List<HealthTodo>>(emptyList()) }
     var showEdit by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -74,24 +60,9 @@ fun MemberDetailScreen(
         database.medicalRecordDao().getRecordsByMember(memberId)
             .catch { }
             .collect { records = it }
-    }
-
-    val medicationRecords = remember(records) { records.filter { it.medItems.isNotEmpty() } }
-    val examRecords = remember(records) { records }
-    val visitRecords = remember(records) { records }
-    val metricPoints = remember(records) {
-        val formatter = java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm")
-        buildSeries(records).flatMap { series ->
-            series.points.map { point ->
-                MetricView(
-                    name = series.name,
-                    value = point.raw,
-                    unit = series.unit,
-                    abnormal = point.abnormal,
-                    time = point.time.format(formatter)
-                )
-            }
-        }
+        database.healthTodoDao().getAll()
+            .catch { }
+            .collect { list -> reminders = list.filter { it.memberId == memberId } }
     }
 
     Scaffold(
@@ -122,111 +93,35 @@ fun MemberDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(bottom = 16.dp, top = 16.dp)
         ) {
+            // 就诊记录（合并原「用药/检查报告/检查指标/就诊记录」分类，直接平铺）
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    member?.let {
-                        MemberAvatar(member = it, size = 64.dp)
-                        Column {
-                            Text(it.name, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-                            val age = computeAge(it.birthday)
-                            Text(
-                                listOfNotNull(
-                                    it.relation.ifBlank { null },
-                                    age?.let { a -> "${a}岁" }
-                                ).joinToString(" · ").ifBlank { "暂无资料" },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                SectionCard(title = stringResource(R.string.tab_visit_records)) {
+                    if (records.isEmpty()) {
+                        EmptyRecordsState()
                     }
                 }
             }
+            if (records.isNotEmpty()) {
+                items(records, key = { it.id }) { record ->
+                    MedicalRecordCard(record, showActions = false)
+                }
+            }
 
+            // 后续提醒
             item {
-                TabRow(
-                    selectedTabIndex = DetailTab.entries.indexOf(selectedTab),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.primary
-                ) {
-                    DetailTab.entries.forEach { tab ->
-                        Tab(
-                            selected = selectedTab == tab,
-                            onClick = { selectedTab = tab },
-                            text = {
-                                Text(
-                                    stringResource(tab.labelResId),
-                                    maxLines = 1
-                                )
-                            }
+                SectionCard(title = stringResource(R.string.member_detail_section_reminders)) {
+                    if (reminders.isEmpty()) {
+                        Text(
+                            stringResource(R.string.member_detail_no_reminders),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
-
-            when (selectedTab) {
-                DetailTab.Medication -> {
-                    if (medicationRecords.isEmpty()) {
-                        item { EmptyRecordsState() }
-                    } else {
-                        items(medicationRecords, key = { it.id }) { record ->
-                            MedicalRecordCard(record, showActions = false)
-                        }
-                    }
-                }
-                DetailTab.Exam -> {
-                    if (examRecords.isEmpty()) {
-                        item { EmptyRecordsState() }
-                    } else {
-                        items(examRecords, key = { it.id }) { record ->
-                            MedicalRecordCard(record, showActions = false)
-                        }
-                    }
-                }
-                DetailTab.Metric -> {
-                    if (metricPoints.isEmpty()) {
-                        item { EmptyRecordsState() }
-                    } else {
-                        items(metricPoints, key = { "${it.name}-${it.time}" }) { point ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = AppShapes.large,
-                                colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
-                                elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(point.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                                        Text(point.time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    Text(
-                                        "${point.value} ${point.unit}",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (point.abnormal) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                DetailTab.Visit -> {
-                    if (visitRecords.isEmpty()) {
-                        item { EmptyRecordsState() }
-                    } else {
-                        items(visitRecords, key = { it.id }) { record ->
-                            MedicalRecordCard(record, showActions = false)
-                        }
-                    }
+            if (reminders.isNotEmpty()) {
+                items(reminders, key = { it.id }) { todo ->
+                    ReminderItemCard(todo)
                 }
             }
         }
@@ -248,10 +143,40 @@ fun MemberDetailScreen(
     }
 }
 
-data class MetricView(
-    val name: String,
-    val value: String,
-    val unit: String,
-    val abnormal: Boolean,
-    val time: String
-)
+@Composable
+private fun ReminderItemCard(todo: HealthTodo) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = AppShapes.large,
+        colors = CardDefaults.cardColors(containerColor = cardContainerColor()),
+        elevation = CardDefaults.cardElevation(defaultElevation = SoftElevation)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    todo.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    "${todo.dueDate} ${todo.reminderTime} · ${todo.category}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (todo.done) {
+                Text(
+                    stringResource(R.string.member_detail_reminder_done),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
