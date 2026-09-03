@@ -57,8 +57,8 @@ fun MedicalRecordScreen(
     val currentMode by userModeStore.currentMode.collectAsState()
     val isElderlyMode = currentMode == UserMode.ELDERLY
 
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm") }
-    val dayFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd") }
+    // 就诊只记录到日期，不展示时分
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd") }
 
     // 「记录」页展示所有人的记录：memberId = null 走全量查询（不按成员过滤）。
     LaunchedEffect(Unit) {

@@ -20,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -34,9 +33,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -49,8 +46,6 @@ import androidx.compose.ui.unit.dp
 import com.yy.medtrace.R
 import com.yy.medtrace.data.model.FamilyMember
 import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 private val VISIT_TYPE_RES = listOf(
     R.string.visit_type_outpatient,
@@ -84,9 +79,7 @@ fun AddRecordBottomSheet(
     var diagnosis by remember { mutableStateOf("") }
     var hospital by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-    var selectedTime by remember { mutableStateOf(LocalTime.of(9, 0)) }
     var visitTypeRes by remember { mutableIntStateOf(R.string.visit_type_outpatient) }
     var customVisitType by remember { mutableStateOf("") }
 
@@ -166,45 +159,30 @@ fun AddRecordBottomSheet(
                 singleLine = true
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // 就诊只记录到日期：时分对用药/复诊回溯没有意义，反而多一次选择
+            OutlinedButton(
+                onClick = { showDatePicker = true },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
             ) {
-                OutlinedButton(
-                    onClick = { showDatePicker = true },
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                ) {
-                    Icon(
-                        Icons.Default.DateRange,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                Icon(
+                    Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    stringResource(
+                        R.string.screen_add_record_label_visit_time,
+                        selectedDate.toString()
                     )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        stringResource(
-                            R.string.screen_add_record_label_visit_time,
-                            selectedDate.toString()
-                        )
-                    )
-                }
-                OutlinedButton(
-                    onClick = { showTimePicker = true },
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Schedule,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(selectedTime.format(DateTimeFormatter.ofPattern("HH:mm")))
-                }
+                )
             }
 
             val visitTypeText = stringResource(visitTypeRes)
             Button(
                 onClick = {
-                    val onsetTime = "${selectedDate}T${selectedTime}"
+                    // 统一落 00:00，保证同一天的记录排序稳定
+                    val onsetTime = "${selectedDate}T00:00:00"
                     val finalVisitType =
                         if (visitTypeRes == R.string.visit_type_other && customVisitType.isNotBlank()) {
                             customVisitType
@@ -247,26 +225,4 @@ fun AddRecordBottomSheet(
         }
     }
 
-    if (showTimePicker) {
-        val timePickerState = rememberTimePickerState(
-            initialHour = selectedTime.hour,
-            initialMinute = selectedTime.minute,
-            is24Hour = true
-        )
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
-                    showTimePicker = false
-                }) { Text(stringResource(R.string.screen_home_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
-                    Text(stringResource(R.string.screen_home_cancel))
-                }
-            },
-            text = { TimePicker(state = timePickerState) }
-        )
-    }
 }

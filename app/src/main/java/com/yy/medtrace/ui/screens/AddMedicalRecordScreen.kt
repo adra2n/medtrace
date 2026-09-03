@@ -118,7 +118,6 @@ fun AddMedicalRecordScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     val analysisUseCase = remember { AnalysisUseCase(AiServiceManager(context)) }
 

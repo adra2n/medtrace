@@ -53,7 +53,8 @@ import com.yy.medtrace.ui.theme.SoftElevation
 import com.yy.medtrace.ui.theme.cardContainerColor
 import java.time.format.DateTimeFormatter
 
-private val DefaultDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+/** 就诊只记录到日期，历史数据里残留的时分一律不展示。 */
+private val DefaultDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
 @Composable
 fun MedicalRecordCard(
@@ -64,8 +65,7 @@ fun MedicalRecordCard(
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
-    val displayFormatter = if (record.onsetTime.toLocalTime() == java.time.LocalTime.MIDNIGHT)
-        DateTimeFormatter.ofPattern("yyyy-MM-dd") else dateFormatter
+    val displayFormatter = dateFormatter
 
     var expanded by remember { mutableStateOf(false) }
 
