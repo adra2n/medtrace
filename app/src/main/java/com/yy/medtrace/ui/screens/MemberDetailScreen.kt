@@ -104,12 +104,12 @@ fun MemberDetailScreen(
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             // 成员概览卡片
-            item {
+            item(key = "member_summary") {
                 MemberSummaryCard(member = member, recordCount = records.size, reminderCount = reminders.size)
             }
 
             // 就诊记录
-            item {
+            item(key = "header_records") {
                 SectionHeader(
                     icon = Icons.AutoMirrored.Filled.EventNote,
                     title = stringResource(R.string.tab_visit_records),
@@ -117,11 +117,14 @@ fun MemberDetailScreen(
                 )
             }
             if (records.isEmpty()) {
-                item {
+                item(key = "empty_records") {
                     EmptyRow(text = "暂无就诊记录")
                 }
             } else {
-                items(records, key = { it.id }) { record ->
+                // 注意：就诊记录与提醒共用一个 LazyColumn，key 必须加前缀区分，
+                // 否则两边 id 从 1 开始递增会撞车，导致
+                // "Key \"N\" was already used" 崩溃。
+                items(records, key = { "record_${it.id}" }) { record ->
                     MedicalRecordCard(
                         record = record,
                         showActions = false,
@@ -131,7 +134,7 @@ fun MemberDetailScreen(
             }
 
             // 后续提醒
-            item {
+            item(key = "header_reminders") {
                 SectionHeader(
                     icon = Icons.Default.Notifications,
                     title = stringResource(R.string.member_detail_section_reminders),
@@ -139,11 +142,11 @@ fun MemberDetailScreen(
                 )
             }
             if (reminders.isEmpty()) {
-                item {
+                item(key = "empty_reminders") {
                     EmptyRow(text = stringResource(R.string.member_detail_no_reminders))
                 }
             } else {
-                items(reminders, key = { it.id }) { todo ->
+                items(reminders, key = { "reminder_${it.id}" }) { todo ->
                     ReminderItemCard(todo)
                 }
             }
