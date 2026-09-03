@@ -25,6 +25,9 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.animation.AnimatedVisibility
 import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -35,9 +38,9 @@ import com.yy.medtrace.data.backup.decodeBackup
 import com.yy.medtrace.data.backup.encodeBackup
 import com.yy.medtrace.data.backup.shareCsvIntent
 import com.yy.medtrace.data.model.UserSettings
-import com.yy.medtrace.data.settings.LlmSettingsStore
 import com.yy.medtrace.data.settings.UserMode
 import com.yy.medtrace.data.settings.UserModeStore
+import com.yy.medtrace.data.settings.AiService
 import com.yy.medtrace.data.settings.AiServiceManager
 import com.yy.medtrace.navigation.Screen
 import com.yy.medtrace.ui.theme.AppShapes
@@ -61,12 +64,15 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val aiServiceManager = remember { AiServiceManager(context) }
-    val llmSettings = remember { LlmSettingsStore(context) }
     var settings by remember { mutableStateOf<UserSettings?>(null) }
     
     val currentMode by userModeStore.currentMode.collectAsState()
     val currentAiService by aiServiceManager.currentServiceId.collectAsState()
-    val allAiServices = remember { aiServiceManager.getAllServices() }
+    val customServices by aiServiceManager.services.collectAsState()
+    val allAiServices = AiServiceManager.BUILT_IN_SERVICES + customServices
+    val currentService = remember(currentAiService, customServices) {
+        allAiServices.find { it.id == currentAiService }
+    }
     
     var darkMode by remember { mutableStateOf(false) }
     var appearanceExpanded by remember { mutableStateOf(true) }
@@ -78,6 +84,16 @@ fun SettingsScreen(
     var showApiKey by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var showImportConfirm by remember { mutableStateOf(false) }
+
+    // 自定义服务（provider）添加/编辑
+    var showProviderDialog by remember { mutableStateOf(false) }
+    var editingProvider by remember { mutableStateOf<com.yy.medtrace.data.settings.AiService?>(null) }
+    var providerName by remember { mutableStateOf("") }
+    var providerBaseUrl by remember { mutableStateOf("") }
+    var providerModel by remember { mutableStateOf("") }
+    var providerNameError by remember { mutableStateOf<String?>(null) }
+    var providerUrlError by remember { mutableStateOf<String?>(null) }
+    var showDeleteProviderConfirm by remember { mutableStateOf<com.yy.medtrace.data.settings.AiService?>(null) }
 
     val backupRepository = remember { BackupRepository(viewModel.database) }
 
@@ -266,7 +282,7 @@ fun SettingsScreen(
                                 style = MaterialTheme.typography.labelMedium
                             )
                             allAiServices.forEach { service ->
-                                Row(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
@@ -275,37 +291,120 @@ fun SettingsScreen(
                                                 llmApiKey = aiServiceManager.getApiKey(service.id) ?: ""
                                             }
                                         }
-                                        .padding(vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .padding(vertical = 8.dp)
                                 ) {
-                                    RadioButton(
-                                        selected = currentAiService == service.id,
-                                        onClick = {
-                                            aiServiceManager.selectService(service.id)
-                                            scope.launch {
-                                                llmApiKey = aiServiceManager.getApiKey(service.id) ?: ""
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = currentAiService == service.id,
+                                            onClick = {
+                                                aiServiceManager.selectService(service.id)
+                                                scope.launch {
+                                                    llmApiKey = aiServiceManager.getApiKey(service.id) ?: ""
+                                                }
+                                            }
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(service.name, modifier = Modifier.weight(1f))
+                                        if (service.isBuiltIn) {
+                                            Surface(
+                                                shape = AppShapes.small,
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                            ) {
+                                                Text(
+                                                    "内置",
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        } else {
+                                            IconButton(
+                                                onClick = {
+                                                    editingProvider = service
+                                                    providerName = service.name
+                                                    providerBaseUrl = service.baseUrl
+                                                    providerModel = service.model
+                                                    providerNameError = null
+                                                    providerUrlError = null
+                                                    showProviderDialog = true
+                                                }
+                                            ) {
+                                                Icon(
+                                                    Icons.Filled.Edit,
+                                                    contentDescription = stringResource(R.string.settings_btn_edit_provider),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = { showDeleteProviderConfirm = service }
+                                            ) {
+                                                Icon(
+                                                    Icons.Filled.Delete,
+                                                    contentDescription = stringResource(R.string.settings_btn_delete_provider),
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
                                             }
                                         }
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(service.name)
-                                    if (service.isBuiltIn) {
-                                        Spacer(Modifier.width(8.dp))
-                                        Surface(
-                                            shape = AppShapes.small,
-                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                        ) {
-                                            Text(
-                                                "内置",
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
+                                    }
+                                    if (!service.isBuiltIn) {
+                                        Text(
+                                            service.baseUrl.ifBlank { "未设置 Base URL" },
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(start = 40.dp, top = 2.dp)
+                                        )
                                     }
                                 }
                             }
-                            
+
+                            Spacer(Modifier.height(4.dp))
+
+                            Button(
+                                onClick = {
+                                    editingProvider = null
+                                    providerName = ""
+                                    providerBaseUrl = ""
+                                    providerModel = ""
+                                    providerNameError = null
+                                    providerUrlError = null
+                                    showProviderDialog = true
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Filled.Add, contentDescription = null)
+                                Spacer(Modifier.width(6.dp))
+                                Text(stringResource(R.string.settings_btn_add_provider))
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+                            currentService?.let { svc ->
+                                if (!svc.isBuiltIn) {
+                                    Text(
+                                        stringResource(R.string.settings_provider_hint),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        "Base URL：${svc.baseUrl.ifBlank { "未设置" }}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    Text(
+                                        "模型：${svc.model.ifBlank { "默认 gpt-4o" }}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                } else {
+                                    Text(
+                                        "当前：${svc.name}（内置服务 · 模型 ${svc.model}）",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
                             HorizontalDivider()
                             
                             OutlinedTextField(
@@ -543,6 +642,114 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showImportConfirm = false }) { Text(stringResource(R.string.settings_btn_cancel)) }
+            }
+        )
+    }
+
+    // 添加 / 编辑自定义 AI 服务（provider）
+    if (showProviderDialog) {
+        AlertDialog(
+            onDismissRequest = { showProviderDialog = false },
+            title = {
+                Text(
+                    stringResource(
+                        if (editingProvider != null) R.string.settings_dialog_edit_provider_title
+                        else R.string.settings_dialog_add_provider_title
+                    )
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = providerName,
+                        onValueChange = { providerName = it; providerNameError = null },
+                        label = { Text(stringResource(R.string.settings_label_provider_name)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = providerNameError != null,
+                        supportingText = { providerNameError?.let { Text(it) } }
+                    )
+                    OutlinedTextField(
+                        value = providerBaseUrl,
+                        onValueChange = { providerBaseUrl = it; providerUrlError = null },
+                        label = { Text(stringResource(R.string.settings_label_base_url)) },
+                        placeholder = { Text("https://api.example.com") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        isError = providerUrlError != null,
+                        supportingText = { providerUrlError?.let { Text(it) } }
+                    )
+                    OutlinedTextField(
+                        value = providerModel,
+                        onValueChange = { providerModel = it },
+                        label = { Text(stringResource(R.string.settings_label_model_name)) },
+                        placeholder = { Text("gpt-4o") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val name = providerName.trim()
+                    val url = providerBaseUrl.trim()
+                    var valid = true
+                    if (name.isEmpty()) {
+                        providerNameError = context.getString(R.string.settings_error_provider_name_required)
+                        valid = false
+                    }
+                    if (url.isEmpty()) {
+                        providerUrlError = context.getString(R.string.settings_error_provider_url_required)
+                        valid = false
+                    }
+                    if (!valid) return@TextButton
+                    val id = editingProvider?.id ?: ("custom_" + System.currentTimeMillis())
+                    val svc = AiService(id, name, url, providerModel.trim(), false)
+                    aiServiceManager.addCustomService(svc)
+                    aiServiceManager.selectService(id)
+                    llmApiKey = aiServiceManager.getApiKey(id) ?: ""
+                    showProviderDialog = false
+                    Toast.makeText(
+                        context,
+                        context.getString(
+                            if (editingProvider != null) R.string.settings_toast_provider_updated
+                            else R.string.settings_toast_provider_added
+                        ),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }) { Text(stringResource(R.string.settings_btn_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showProviderDialog = false }) { Text(stringResource(R.string.settings_btn_cancel)) }
+            }
+        )
+    }
+
+    // 删除自定义服务确认
+    showDeleteProviderConfirm?.let { svc ->
+        AlertDialog(
+            onDismissRequest = { showDeleteProviderConfirm = null },
+            title = { Text(stringResource(R.string.settings_dialog_delete_provider_title)) },
+            text = { Text(stringResource(R.string.settings_dialog_delete_provider_message, svc.name)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    aiServiceManager.removeCustomService(svc.id)
+                    scope.launch {
+                        llmApiKey = aiServiceManager.getApiKey(aiServiceManager.currentServiceId.value) ?: ""
+                    }
+                    showDeleteProviderConfirm = null
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.settings_toast_provider_removed),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }) { Text(stringResource(R.string.settings_btn_delete_provider)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteProviderConfirm = null }) { Text(stringResource(R.string.settings_btn_cancel)) }
             }
         )
     }

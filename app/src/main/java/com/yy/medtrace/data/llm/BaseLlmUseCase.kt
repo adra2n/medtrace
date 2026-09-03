@@ -15,10 +15,14 @@ abstract class BaseLlmUseCase(protected val aiServiceManager: AiServiceManager) 
         return Pair(LlmApi.create(base.normalizeBaseUrl()), "Bearer $key")
     }
 
-    protected suspend fun getModel(): String = when (aiServiceManager.getCurrentService()?.id) {
-        "deepseek" -> "deepseek-chat"
-        "mimo" -> "mimo-chat"
-        else -> "gpt-4o"
+    protected suspend fun getModel(): String {
+        val service = aiServiceManager.getCurrentService()
+        return when {
+            service?.model?.isNotBlank() == true -> service.model
+            service?.id == "deepseek" -> "deepseek-chat"
+            service?.id == "mimo" -> "mimo-chat"
+            else -> "gpt-4o"
+        }
     }
 
     protected suspend fun callApi(request: ChatRequest): String {

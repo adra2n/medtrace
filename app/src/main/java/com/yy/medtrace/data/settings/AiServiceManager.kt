@@ -20,6 +20,7 @@ data class AiService(
     val id: String,
     val name: String,
     val baseUrl: String,
+    val model: String = "",
     val isBuiltIn: Boolean = false
 )
 
@@ -49,8 +50,8 @@ class AiServiceManager @Inject constructor(
 
         // 内置服务
         val BUILT_IN_SERVICES = listOf(
-            AiService("deepseek", "DeepSeek", "https://api.deepseek.com", true),
-            AiService("mimo", "Mimo", "https://api.mimo.com", true)
+            AiService("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-chat", true),
+            AiService("mimo", "Mimo", "https://api.mimo.com", "mimo-chat", true)
         )
     }
 
@@ -92,11 +93,16 @@ class AiServiceManager @Inject constructor(
     }
 
     /**
-     * 添加自定义服务
+     * 添加或更新自定义服务（按 id 覆盖）
      */
     fun addCustomService(service: AiService) {
         val currentServices = _services.value.toMutableList()
-        currentServices.add(service.copy(isBuiltIn = false))
+        val index = currentServices.indexOfFirst { it.id == service.id }
+        if (index >= 0) {
+            currentServices[index] = service.copy(isBuiltIn = false)
+        } else {
+            currentServices.add(service.copy(isBuiltIn = false))
+        }
         _services.value = currentServices
         saveServices(currentServices)
     }
@@ -109,7 +115,10 @@ class AiServiceManager @Inject constructor(
         currentServices.removeAll { it.id == serviceId && !it.isBuiltIn }
         _services.value = currentServices
         saveServices(currentServices)
-        
+
+        // 同时清除该服务保存的 API Key
+        prefs.edit().remove(KEY_API_KEY_PREFIX + serviceId).apply()
+
         // 如果删除的是当前服务，切换到第一个内置服务
         if (_currentServiceId.value == serviceId) {
             selectService(BUILT_IN_SERVICES.first().id)
