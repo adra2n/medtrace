@@ -37,9 +37,9 @@ class HomeViewModelTest {
         Dispatchers.setMain(testDispatcher)
         // 默认mock repositories
         every { memberRepository.getAllMembers() } returns flowOf(emptyList())
-        every { todoRepository.getByDate(any()) } returns flowOf(emptyList())
+        every { todoRepository.getAll() } returns flowOf(emptyList())
         coEvery { memberRepository.insert(any()) } returns 1L
-        every { recordRepository.getRecentRecords(any()) } returns flowOf(emptyList())
+        every { recordRepository.getLatestRecordPerMember() } returns flowOf(emptyList())
         coEvery { recordRepository.countByMembers(any()) } returns emptyList()
     }
     

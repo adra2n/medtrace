@@ -45,14 +45,19 @@ import com.yy.medtrace.ui.components.TodoCategory
 import com.yy.medtrace.ui.components.todoCategoryFromStored
 import com.yy.medtrace.ui.theme.memberCardColors
 import kotlinx.coroutines.delay
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 /**
- * 今日待办条目。
+ * 最近提醒条目。
+ *
+ * 首页不再只看"今天"，因此右侧补一个到期标记（已逾期 / 今天 / 明天 / N天后 / 具体日期），
+ * 否则跨日期的提醒混在一起时无法判断紧急程度。
  */
 @Composable
-internal fun TodayTodoItem(
+internal fun RecentReminderItem(
     todo: HealthTodo,
     member: FamilyMember?,
     onToggle: () -> Unit,
@@ -60,6 +65,22 @@ internal fun TodayTodoItem(
     modifier: Modifier = Modifier
 ) {
     val category = todoCategoryFromStored(todo.category)
+    val daysUntilDue = remember(todo.dueDate) {
+        ChronoUnit.DAYS.between(LocalDate.now(), todo.dueDate)
+    }
+    val dueLabel = when {
+        daysUntilDue < 0L -> stringResource(R.string.screen_home_reminder_overdue)
+        daysUntilDue == 0L -> stringResource(R.string.screen_home_reminder_today)
+        daysUntilDue == 1L -> stringResource(R.string.screen_home_reminder_tomorrow)
+        daysUntilDue <= 7L -> stringResource(R.string.screen_home_reminder_days_later, daysUntilDue.toInt())
+        else -> todo.dueDate.format(DateTimeFormatter.ofPattern("M月d日"))
+    }
+    val dueColor = when {
+        todo.done -> MaterialTheme.colorScheme.onSurfaceVariant
+        daysUntilDue < 0L -> MaterialTheme.colorScheme.error
+        daysUntilDue == 0L -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     Row(
         modifier = modifier
@@ -105,11 +126,23 @@ internal fun TodayTodoItem(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = dueLabel,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = if (isElderlyMode) 15.sp else MaterialTheme.typography.labelSmall.fontSize
+            ),
+            color = dueColor,
+            maxLines = 1
+        )
     }
 }
 
 /**
- * 最近就诊记录条目。
+ * 最新就诊记录条目（首页每位家人一条）。
+ *
+ * 因为首页列表已按"人"平铺，主标题用成员名做身份锚点，诊断与医院降为副标题，
+ * 右侧对齐相对时间——与 [RecentReminderItem] 的"左头像 / 中内容 / 右时间"结构保持一致。
  */
 @Composable
 internal fun RecentRecordItem(
@@ -156,40 +189,42 @@ internal fun RecentRecordItem(
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                record.diagnosis,
+                text = member?.name ?: stringResource(R.string.screen_home_record_unknown_member),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(
-                    Icons.Default.DateRange,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            val detail = listOf(record.diagnosis, record.hospital)
+                .filter { it.isNotBlank() }
+                .joinToString(" · ")
+            if (detail.isNotEmpty()) {
                 Text(
-                    timeAgo,
+                    text = detail,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                if (member != null) {
-                    Text(
-                        "·",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        member.name,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
+        }
+        Spacer(Modifier.width(8.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                Icons.Default.DateRange,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = timeAgo,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
         }
     }
 }

@@ -260,7 +260,7 @@ fun HomeScreen(
 
             item {
                 SectionTitle(
-                    text = stringResource(R.string.screen_home_today_reminders, uiState.pendingCount),
+                    text = stringResource(R.string.screen_home_recent_reminders, uiState.pendingCount),
                     fontSize = if (isElderlyMode) 20.sp else MaterialTheme.typography.titleMedium.fontSize
                 )
                 Spacer(Modifier.height(6.dp))
@@ -287,12 +287,10 @@ fun HomeScreen(
                             uiState.todos.take(5).forEachIndexed { idx, todo ->
                                 if (idx > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 val todoMember = memberMap[todo.memberId]
-                                TodayTodoItem(
-                                    text = todo.content,
-                                    member = todoMember,
-                                    done = todo.done,
-                                    onToggle = { viewModel.toggleTodoDone(todo.id, !todo.done) },
+                                RecentReminderItem(
                                     todo = todo,
+                                    member = todoMember,
+                                    onToggle = { viewModel.toggleTodoDone(todo.id, !todo.done) },
                                     isElderlyMode = isElderlyMode
                                 )
                             }
@@ -321,7 +319,14 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SectionTitle(stringResource(R.string.screen_home_recent_records))
+                        Column {
+                            SectionTitle(stringResource(R.string.screen_home_recent_records))
+                            Text(
+                                text = stringResource(R.string.screen_home_recent_records_hint),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         TextButton(onClick = {
                             navController.navigate("medical_records") {
                                 popUpTo("home") { saveState = true }
@@ -345,11 +350,22 @@ fun HomeScreen(
                                 .padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            uiState.recentRecords.forEach { record ->
+                            // 每位家人最近一次就诊，点击直达该成员详情；未归属记录（patientId=0）回落到记录页
+                            uiState.recentRecords.forEachIndexed { idx, record ->
+                                if (idx > 0) {
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                }
+                                val hasMember = uiState.members.any { it.id == record.patientId }
                                 RecentRecordItem(
                                     record = record,
                                     members = uiState.members,
-                                    onClick = { navController.navigate("medical_records") }
+                                    onClick = {
+                                        if (hasMember) {
+                                            navController.navigate("member_detail/${record.patientId}")
+                                        } else {
+                                            navController.navigate("medical_records")
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -396,150 +412,6 @@ fun HomeScreen(
 
 
 
-@Composable
-private fun TodayTodoItem(
-    text: String,
-    member: FamilyMember?,
-    done: Boolean,
-    onToggle: () -> Unit,
-    todo: HealthTodo? = null,
-    isElderlyMode: Boolean = false
-) {
-    val categoryIcon = when (todo?.category) {
-        stringResource(R.string.todo_category_medication) -> "💊"
-        stringResource(R.string.todo_category_followup) -> "🏥"
-        stringResource(R.string.todo_category_checkup) -> "🔬"
-        else -> "📋"
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(
-            checked = done,
-            onCheckedChange = { onToggle() },
-            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
-            modifier = Modifier.size(if (isElderlyMode) 32.dp else 24.dp)
-        )
-        if (member != null) {
-            val (bg, content) = memberCardColors(member.relation, member.gender)
-            MemberAvatar(
-                member = member,
-                size = if (isElderlyMode) 32.dp else 24.dp,
-                fallbackBackground = bg,
-                fallbackContent = content
-            )
-        }
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = "$categoryIcon $text",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = if (isElderlyMode) 18.sp else MaterialTheme.typography.bodyMedium.fontSize
-            ),
-            color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            textDecoration = if (done) TextDecoration.LineThrough else null,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun RecentRecordItem(
-    record: MedicalRecord,
-    members: List<FamilyMember>,
-    onClick: () -> Unit
-) {
-    val member = members.find { it.id == record.patientId }
-    val timeAgo = getTimeAgo(record.onsetTime)
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (member != null) {
-            val (bg, content) = memberCardColors(member.relation, member.gender)
-            MemberAvatar(
-                member = member,
-                size = 36.dp,
-                fallbackBackground = bg,
-                fallbackContent = content
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.outlineVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Filled.MedicalInformation,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                record.diagnosis,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(
-                    Icons.Filled.DateRange,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    timeAgo,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (member != null) {
-                    Text(
-                        "·",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        member.name,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun getTimeAgo(dateTime: java.time.LocalDateTime): String {
-    val now = java.time.LocalDateTime.now()
-    val minutes = java.time.Duration.between(dateTime, now).toMinutes()
-    return when {
-        minutes < 60 -> stringResource(R.string.screen_home_minutes_ago, minutes.toInt())
-        minutes < 1440 -> stringResource(R.string.screen_home_hours_ago, (minutes / 60).toInt())
-        minutes < 10080 -> stringResource(R.string.screen_home_days_ago, (minutes / 1440).toInt())
-        else -> dateTime.format(java.time.format.DateTimeFormatter.ofPattern("M月d日"))
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

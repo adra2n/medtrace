@@ -85,9 +85,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 首页「最近提醒」：不再按"今天"过滤，改为全量提醒。
+     * DAO 已按 done ASC, dueDate ASC 排序，天然是「未完成的最近提醒优先（含逾期）」，
+     * 页面只取前若干条展示。
+     */
     private fun loadTodos() {
         viewModelScope.launch {
-            todoRepository.getByDate(LocalDate.now())
+            todoRepository.getAll()
                 .asResultWithoutLoading()
                 .collect { result ->
                     when (result) {
@@ -107,9 +112,10 @@ class HomeViewModel @Inject constructor(
         }
     }
     
+    /** 首页「最新记录」：每位成员各取最近一次就诊记录，按时间倒序平铺。 */
     private fun loadRecentRecords() {
         viewModelScope.launch {
-            recordRepository.getRecentRecords(3)
+            recordRepository.getLatestRecordPerMember()
                 .asResultWithoutLoading()
                 .collect { result ->
                     when (result) {
@@ -187,8 +193,8 @@ class HomeViewModel @Inject constructor(
                 val members = memberRepository.getAllMembers().first().also {
                     if (it.isEmpty()) memberRepository.insert(FamilyMember.DEFAULT)
                 }
-                val todos = todoRepository.getByDate(LocalDate.now()).first()
-                val records = recordRepository.getRecentRecords(3).first()
+                val todos = todoRepository.getAll().first()
+                val records = recordRepository.getLatestRecordPerMember().first()
                 _uiState.update {
                     it.copy(
                         members = members,
