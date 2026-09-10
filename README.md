@@ -8,15 +8,18 @@
 
 ## 功能特性
 
-- **家庭成员管理**：维护成员档案（关系、性别、生日、血型、过敏史、慢性病、用药备注等），可设默认成员。
-- **病历记录**：记录诊断、发病时间、就诊医院、用药项、剂量、频次与备注；支持从文本 / 图片经 AI 解析自动填充。
-- **AI 分析**：接入大模型（LLM）对病历文本或检查报告照片进行结构化分析（`data/llm`）。
+- **家庭成员管理**：维护成员档案（关系、性别、生日、血型、过敏史、慢性病、用药备注等），可设默认成员；免费版支持添加 2 个家人。
+- **病历记录**：记录诊断、发病时间、就诊医院、用药项、剂量、频次与备注；就诊时间简化为仅日期（不涉及时分）；支持卡片展开收起。
+- **健康提醒**：支持每天/每周/每月/每年周期提醒，可按成员筛选。
+- **AI 分析**：接入大模型（LLM）对病历文本或检查报告照片进行结构化分析；支持自定义 AI 服务提供商（baseUrl + model 可配）；AI 识别不限次数，仅配置功能需 VIP。
+- **长辈版模式**：首页、医疗记录、提醒管理页面支持长辈版/标准版切换。
 - **数据安全**：
   - 应用锁：生物识别（指纹 / 人脸）+ 6 位 PIN 备用密码，支持自动锁定（立即 / 1 分钟 / 5 分钟）与阻止截屏录屏。
   - 数据备份与恢复：通过系统文件选择器（SAF，无需存储权限）导出 / 导入 JSON 备份。
   - AES-256-GCM 加密导出：备份可设密码加密（PBKDF2 派生密钥）。
-  - GitHub Gist 同步：加密备份可同步到私有 Gist，并支持从 Gist 恢复。
   - 本地敏感数据（Token、加密密码、PIN 哈希）使用 `EncryptedSharedPreferences` 存储；`allowBackup=false` 防止 adb 备份提取。
+  - APK 混淆加固 + 签名校验防篡改。
+- **VIP 系统**：HMAC-SHA256 注册码验证 + NDK 保护。
 - **自适应图标**：青绿底 + 医疗十字 / 心电波形 / 病历横线。
 
 ## 技术栈
@@ -24,8 +27,9 @@
 - 语言：Kotlin
 - UI：Jetpack Compose (Material 3)，Compose BOM 2024.04.01
 - 架构：MVVM（Hilt 依赖注入 + ViewModel + Repository 模式）
-- 持久化：Room + SQLite（SQLCipher 非默认；加密层在备份导出与偏好设置）
+- 持久化：Room + SQLite（数据库索引优化）
 - 安全：`androidx.biometric` 1.2.0-alpha05、`androidx.security:security-crypto` 1.1.0-alpha06（MasterKey + Tink）
+- 性能：Baseline Profile（macrobenchmark + profileinstaller）优化冷启动
 - 异步：Kotlin 协程
 
 ## 构建要求
@@ -62,7 +66,7 @@ adb -s <device-id> install -r -g app/build/outputs/apk/release/app-release.apk
 
 ## 下载
 
-签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.8.1**（`v3.8.1.apk`）。
+签名发布包在 [GitHub Releases](https://github.com/adra2n/medtrace/releases) 页面，最新稳定版为 **v3.9.1**（`v3.9.1.apk`）。
 
 安装到已连接设备：
 
@@ -75,29 +79,55 @@ adb -s <device-id> install -r -g MedTrace-v3.6.0.apk
 ```
 app/src/main/java/com/yy/medtrace/
 ├── data/
-│   ├── model/        实体：FamilyMember / MedicalRecord / UserSettings ...
+│   ├── model/        实体：FamilyMember / MedicalRecord / HealthTodo ...
 │   ├── dao/          Room DAO
-│   ├── backup/       BackupRepository / CryptoUtil / GistSync / BackupData
+│   ├── backup/       BackupRepository / CsvExport / BackupData
 │   ├── security/     PinManager / SecurePrefs / BiometricHelper
-│   ├── settings/     PremiumManager / SyncSettingsStore / SecuritySettingsStore / LlmSettingsStore
+│   ├── settings/     AiServiceManager / LlmSettingsStore / OnboardingStore / UserModeStore / PrivacyConsentStore
 │   ├── repository/   RecordRepository / MemberRepository / TodoRepository
 │   ├── llm/          LlmApi / AnalysisUseCase（AI 病历分析）
 │   ├── converter/    Room 类型转换器（LocalDate / LocalDateTime / 列表等）
 │   └── AppDatabase.kt
-├── viewmodel/        9个ViewModel（@HiltViewModel + @Inject）
+├── viewmodel/        ViewModel（@HiltViewModel + @Inject）
 ├── ui/
-│   ├── screens/      Home / Family / MedicalRecord / AddMedicalRecord / Settings / Lock / Trends / Profile / Reminders / Premium
-│   ├── components/   复用 Compose 组件（MemberAvatar / TrendChart / SectionCard ...）
-│   ├── theme/        主题与配色（Color / Theme / Design）
+│   ├── screens/      Home / MedicalRecord / AddMedicalRecord / Settings / Lock / Trends / Profile / Reminders / MemberDetail
+│   ├── components/   复用 Compose 组件（MemberAvatar / TrendChart / SectionCard / TodoFormFields / AddRecordSheet ...）
+│   ├── theme/        主题与配色（Color / Theme / Design / ElderlyTheme）
 │   └── state/        界面状态（SelectedMemberHolder）
 ├── di/               Hilt 依赖注入（AppModule）
-├── reminder/         提醒通知（ReminderReceiver / ReminderHelper）
 ├── navigation/       导航路由（Screen / NavGraph）
 ├── MainActivity.kt   导航与中央应用锁门控
 └── MedTraceApplication.kt
+
+baselineprofile/
+└── src/main/java/.../BaselineProfileGenerator.kt   Baseline Profile 生成器
 ```
 
 ## 版本里程碑
+
+- **v3.9.1**（versionCode 32，2026-09）
+  - 性能：引入 Baseline Profile 工具链（macrobenchmark + profileinstaller）优化冷启动。
+  - 性能：移除 Splash 3秒倒计时，UMeng 改为预初始化。
+  - 性能：数据库索引 + ViewModel 查询优化 + LazyColumn key。
+  - 性能：页面切换性能优化。
+  - UI：首页拆分布局组件、录入校验/键盘避让、深色对比度优化、三屏下拉刷新。
+  - UI：就诊记录卡片午夜时间仅显示日期、卡片支持展开收起。
+  - UI：个人详情页重构、家庭管理页面精简。
+  - UI：就诊类型选择功能。
+  - 架构：支持长辈版/标准版切换（HomeScreen/MedicalRecordScreen/RemindersScreen）。
+  - 架构：移除支付功能，仅保留注册码 VIP 系统。
+  - 架构：导航栏重构（医疗记录取代家人 tab，家人管理移入首页）。
+  - 修复：底部导航栏在所有页面显示、BackHandler 改用 popBackStack 回退。
+
+- **v3.9.0**（versionCode 31，2026-08）
+  - 功能：支持自定义 AI 服务提供商（baseUrl + model 可配）。
+  - 功能：AI 分析添加隐私提示与确认弹窗。
+  - 功能：AI 配置新增测试连通性按钮。
+  - 安全：APK 混淆加固 + 签名校验防篡改。
+  - 安全：HMAC-SHA256 注册码系统 + NDK 保护。
+  - UI：成员详情页重新设计。
+  - UI：记录与提醒列表页扁平化统一。
+  - 修复：成员详情页打开崩溃（重复 LazyColumn key）。
 
 - **v3.8.1**（versionCode 30，2026-07-29）
   - 安全修复：移除注册码/设备ID日志泄露、友盟SDK日志改为DEBUG控制、PIN暴力破解保护（5次错误锁定30秒）。
